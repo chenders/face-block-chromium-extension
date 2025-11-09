@@ -30,16 +30,16 @@
       // Get reference descriptors from background
       await loadReferenceDescriptors();
 
+      // Process existing images (even if no reference data)
+      await processExistingImages();
+
+      // Set up dynamic content monitoring
+      setupMutationObserver();
+
       if (faceMatcher) {
-        // Process existing images
-        await processExistingImages();
-
-        // Set up dynamic content monitoring
-        setupMutationObserver();
-
         console.log('Face Block Chromium Extension: Initialized successfully');
       } else {
-        console.log('Face Block Chromium Extension: No reference faces stored yet');
+        console.log('Face Block Chromium Extension: No reference faces stored yet - images will be shown normally');
       }
     } catch (error) {
       console.error('Face Block Chromium Extension: Initialization error:', error);
@@ -132,8 +132,9 @@
   }
 
   // Process existing images on page
+  // This runs even when no reference data exists to restore image visibility
   async function processExistingImages() {
-    if (!faceMatcher || !config.enabled) return;
+    if (!config.enabled) return;
 
     const images = document.querySelectorAll('img');
     console.log(`Face Block Chromium Extension: Processing ${images.length} existing images`);
@@ -154,10 +155,24 @@
     // Skip if already processed
     if (processedImages.has(img)) return;
 
+    // If no reference data, just restore visibility
+    if (!faceMatcher) {
+      img.setAttribute('data-face-block-processed', 'true');
+      img.style.opacity = '';
+      processedImages.add(img);
+      return;
+    }
+
     // Skip if image not loaded or too small
-    if (!img.complete || img.naturalWidth < 50 || img.naturalHeight < 50) {
+    // Use display dimensions (offsetWidth/Height) instead of natural dimensions
+    // to properly handle CSS-scaled images (e.g., thumbnails)
+    const displayWidth = img.offsetWidth || img.width;
+    const displayHeight = img.offsetHeight || img.height;
+    if (!img.complete || displayWidth < 50 || displayHeight < 50) {
       console.debug('Face Block Chromium Extension: Skipping image (not loaded or too small):', img.src.substring(0, 100));
       processedImages.add(img); // Mark as processed to avoid retrying
+      img.setAttribute('data-face-block-processed', 'true');
+      img.style.opacity = '';
       return;
     }
 
@@ -165,6 +180,8 @@
     if (img.naturalWidth === 0 || img.naturalHeight === 0) {
       console.debug('Face Block Chromium Extension: Skipping image with 0 dimensions:', img.src.substring(0, 100));
       processedImages.add(img);
+      img.setAttribute('data-face-block-processed', 'true');
+      img.style.opacity = '';
       return;
     }
 
@@ -173,12 +190,11 @@
 
     console.log('Face Block Chromium Extension: Processing image:', img.src.substring(0, 100));
 
-    // Detect background color BEFORE hiding the image
+    // Detect background color (image is already hidden by preload.js)
     const bgColor = getBackgroundColor(img.parentElement || img);
     const bgRgb = parseRgb(bgColor);
 
-    // Hide image immediately to prevent flash (better than blur)
-    img.style.opacity = '0';
+    // Mark that we're processing this image (preload.js already hid it)
     img.dataset.wasHidden = 'true';
 
     try {
@@ -221,6 +237,7 @@
           console.debug('Face Block Chromium Extension: CORS-restricted image, skipping:', img.src.substring(0, 100));
           // Restore visibility for CORS-restricted images
           if (img.dataset.wasHidden) {
+            img.setAttribute('data-face-block-processed', 'true');
             img.style.opacity = '';
             delete img.dataset.wasHidden;
           }
@@ -266,17 +283,17 @@
             const matchedPerson = matches.find(m => m.label !== 'unknown');
             console.log(`Face Block Chromium Extension: ✓ BLOCKED image (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`);
           } else {
-            // No match - restore visibility
-            if (img.dataset.wasHidden) {
-              img.style.opacity = '';
-              delete img.dataset.wasHidden;
-            }
+            // No match - restore visibility by marking as processed
+            img.setAttribute('data-face-block-processed', 'true');
+            img.style.opacity = '';
+            delete img.dataset.wasHidden;
             console.log('Face Block Chromium Extension: No match - faces detected but distances too high or all unknown');
           }
         } catch (matchError) {
           console.error('Face Block Chromium Extension: Error matching faces:', matchError.message);
           // Restore visibility on error
           if (img.dataset.wasHidden) {
+            img.setAttribute('data-face-block-processed', 'true');
             img.style.opacity = '';
             delete img.dataset.wasHidden;
           }
@@ -286,7 +303,8 @@
       } else {
         // No faces detected - restore visibility
         if (img.dataset.wasHidden) {
-          img.style.opacity = '';
+          img.setAttribute('data-face-block-processed', 'true');
+            img.style.opacity = '';
           delete img.dataset.wasHidden;
         }
         console.log('Face Block Chromium Extension: No faces detected in image');
@@ -299,7 +317,8 @@
       console.warn('Face Block Chromium Extension: Error processing image:', error.name, error.message, 'URL:', img.src.substring(0, 100));
       // Restore visibility on error
       if (img.dataset.wasHidden) {
-        img.style.opacity = '';
+        img.setAttribute('data-face-block-processed', 'true');
+            img.style.opacity = '';
         delete img.dataset.wasHidden;
       }
       processedImages.add(img); // Mark as processed to avoid retry
@@ -395,7 +414,8 @@
 
     // Restore visibility now that we have the replacement
     if (img.dataset.wasHidden) {
-      img.style.opacity = '';
+      img.setAttribute('data-face-block-processed', 'true');
+            img.style.opacity = '';
       delete img.dataset.wasHidden;
     }
 
