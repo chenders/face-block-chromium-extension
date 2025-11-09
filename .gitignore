@@ -1,0 +1,63 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Test and Debug Files
+test*.html
+debug*.png
+wtf.png
+serve.sh
+simple-test.html
+
+# Example/Test Images
+example_images/
+
+# Extension Test/Utility Files
+extension/content-test.js
+extension/diagnostic.html
+extension/create-icons.html
+
+# Development Documentation
+DEBUGGING.md
+BUGFIX.md
+PROJECT_SUMMARY.md
+QUICK_TEST.md
+
+# Node modules (if added in future)
+node_modules/
+
+# Build artifacts (if added in future)
+dist/
+build/
+*.zip
+
+# Testing
+/test-results/
+/playwright-report/
+/playwright/.cache/
+.playwright/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Etc
+.claude

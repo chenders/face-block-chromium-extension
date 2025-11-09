@@ -1,0 +1,251 @@
+# Face Block Chromium Extension
+
+A privacy-focused Chromium extension that automatically blocks images of specified people on web pages using client-side face recognition. Matched images are replaced with blank placeholders.
+
+## Features
+
+- **100% Local Processing** - All face recognition happens in your browser, no cloud services
+- **Privacy First** - Face data stored as irreversible 128-dimensional mathematical descriptors
+- **Smart Color Matching** - Replaced images blend seamlessly with page background colors
+- **Multiple Reference Photos** - Upload 3-5 photos per person for better accuracy
+- **Dynamic Content Support** - Automatically handles infinite scroll, SPAs, and lazy-loaded images
+- **Seamless Experience** - Images briefly hidden during detection to prevent flashing
+
+## Installation
+
+### Quick Start
+
+1. **Clone or download this repository:**
+   ```bash
+   git clone https://github.com/chenders/face-block-chromium-extension.git
+   ```
+
+2. **Load in Chrome:**
+   - Open `chrome://extensions/`
+   - Enable **"Developer mode"** (top right)
+   - Click **"Load unpacked"**
+   - Select the `extension` folder
+   - Extension icon appears in toolbar
+
+3. **Add people to block:**
+   - Click extension icon
+   - Enter person's name
+   - Upload 3-5 clear photos of their face
+   - Browse the web - matched images are automatically replaced
+
+**Requirements:** Chrome 88+ or any Chromium-based browser (Edge, Brave, etc.)
+
+## Usage
+
+### Adding People
+
+1. Click the extension icon
+2. Enter a name
+3. Choose 3-5 clear, well-lit photos (different angles work best)
+4. Click "Add Person"
+5. Wait a few seconds for processing
+
+### How It Works
+
+When you visit a webpage:
+1. Extension scans all `<img>` elements
+2. Briefly hides each image while detecting faces
+3. Detects faces using the Tiny Face Detector model
+4. Compares faces against your stored references
+5. Replaces matches with color-matched placeholders that blend into the page background
+6. Restores non-matching images immediately
+
+Replaced images automatically match the surrounding background color with a subtle border for a seamless appearance. The brief hiding prevents any flash of the original image.
+
+### Settings
+
+- **Match Threshold** (0.3-0.8): Controls matching strictness
+  - **0.5-0.55**: Very strict (fewer false positives)
+  - **0.6**: Default (recommended)
+  - **0.65-0.75**: More lenient (catches more variations)
+
+### Data Management
+
+- **Export**: Backup face descriptors as JSON
+- **Import**: Restore previously exported data
+- **Clear All**: Delete all data (cannot be undone)
+
+## Known Limitations
+
+### CORS-Restricted Images
+Some websites have strict security policies preventing image access. These images are **silently skipped** (browser security limitation, not a bug).
+
+**Affected sites:** ESPN, Getty Images, some CDNs, authenticated content
+
+### Not Supported
+- CSS `background-image` properties
+- Video frames (`<video>` elements)
+- Animated GIFs (only first frame)
+- Canvas-rendered content
+- Very small faces (<50x50 pixels)
+
+### Performance
+- Pages with 100+ images: 3-5 seconds to process
+- Each additional person: +10-20% processing time
+- Desktop: ~50-200ms per image
+
+**Best performance on:** Wikipedia, news sites, general web browsing
+
+## Privacy & Security
+
+### What Makes It Private?
+
+- **Zero data transmission** - Nothing ever leaves your computer
+- **Irreversible descriptors** - Photos converted to mathematical vectors that can't reconstruct the original
+- **Local storage only** - Data in browser's IndexedDB (~512 bytes per photo)
+- **No tracking** - No analytics or telemetry
+- **Open source** - All code is auditable
+
+### What's Stored?
+
+| Data | Location | Size | Can Reconstruct Photo? |
+|------|----------|------|----------------------|
+| Face descriptors | IndexedDB | ~512 bytes/photo | ❌ No |
+| Person names | IndexedDB | ~20 bytes/person | N/A |
+| Settings | chrome.storage | ~4 bytes | N/A |
+| **Original photos** | ❌ Never stored | 0 bytes | N/A |
+
+### GDPR Compliance
+
+- ✅ All processing happens locally on your device
+- ✅ No data controllers or third parties involved
+- ✅ Full control: export, import, or delete anytime
+- ✅ Operates with explicit consent
+
+## Troubleshooting
+
+### No Faces Detected
+
+**Possible causes:**
+- Image is CORS-restricted (check console for CORS errors)
+- Face too small (<50x50 pixels)
+- Poor lighting or low quality
+- Face obscured (sunglasses, mask, etc.)
+
+**Solutions:**
+- Use clear, well-lit reference photos
+- Try different photos from various angles
+- Check browser console (F12) for errors
+
+### Images Not Being Replaced
+
+**Check:**
+1. Do you have people added? (Click icon → "Stored People")
+2. Check console logs for distance values:
+   ```
+   Face 1: PersonName (distance: 0.650, threshold: 0.600)
+   ```
+3. If distance > threshold: Increase "Match Threshold" and refresh
+
+**Debug:**
+- Open DevTools (F12) → Console tab
+- Look for "Face Blur Extension" messages
+- Check if images are being skipped due to CORS
+
+### Performance Issues
+
+**If extension is slow:**
+- Reduce number of blocked people
+- Use fewer reference photos (3-5 is optimal)
+- Close unused tabs
+- Expected: 1-3 seconds for 50 images is normal
+
+## Technical Details
+
+### Core Technologies
+
+- **Face Recognition:** [face-api.js](https://github.com/justadudewhohacks/face-api.js) (TensorFlow.js)
+- **Detection Model:** Tiny Face Detector (~190KB)
+- **Recognition Model:** FaceNet embeddings (128-dimensional)
+- **Storage:** IndexedDB + chrome.storage.sync
+- **Manifest:** Version 3
+
+### Project Structure
+
+```
+extension/
+├── manifest.json          # Extension configuration
+├── background.js          # Service worker (CORS, messaging)
+├── content.js             # Face detection & replacement
+├── popup.html/js          # Extension UI
+├── storage.js             # IndexedDB wrapper
+├── libs/
+│   └── face-api.min.js   # ML library (included)
+├── models/                # Pre-trained models (included)
+└── icons/                 # Extension icons
+```
+
+## Testing
+
+The project includes comprehensive Playwright tests to verify functionality.
+
+### Setup
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+### Running Tests
+
+```bash
+# Run all tests (headless)
+npm test
+
+# Run tests with visible browser
+npm run test:headed
+
+# Run tests in debug mode
+npm run test:debug
+
+# Run tests with UI mode
+npm run test:ui
+```
+
+### Test Coverage
+
+- **Extension Loading**: Verifies extension loads correctly
+- **Content Script**: Tests face detection and image processing
+- **Image Replacement**: Verifies images are replaced with color-matched placeholders
+- **Settings**: Tests threshold configuration and data management
+- **CORS Handling**: Ensures graceful handling of restricted images
+- **Responsive Images**: Tests srcset handling
+
+**Note:** Tests run in headed mode because Chrome extensions don't work in headless mode.
+
+## Contributing
+
+Contributions welcome! Ways to help:
+
+- 🐛 Report bugs
+- 💡 Suggest features
+- 📝 Improve documentation
+- 🔧 Submit pull requests
+
+### Development
+
+1. Clone repository
+2. Make changes in `extension/` directory
+3. Run tests: `npm test`
+4. Test manually in Chrome (`chrome://extensions/` → Load unpacked)
+5. Submit PR
+
+**Test on:** Wikipedia (works well), news sites, check console for errors.
+
+## License
+
+MIT License
+
+## Acknowledgments
+
+- [face-api.js](https://github.com/justadudewhohacks/face-api.js) by Vincent Mühler
+- TensorFlow.js team
+
+---
+
+**⭐ If you find this useful, please star the repository!**

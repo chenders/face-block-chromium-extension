@@ -1,0 +1,11 @@
+/* Face Blur Extension Styles */
+
+.face-blurred {
+  /* Images are replaced with blank placeholders in JavaScript */
+  /* No CSS blur needed */
+  display: inline-block;
+}
+
+.face-blur-processing {
+  opacity: 0.9;
+}
