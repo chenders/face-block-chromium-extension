@@ -16,13 +16,16 @@ let config = {
 (async function initializeModels() {
   try {
     console.log('Face Block: Loading face-api.js models in offscreen document...');
-    const MODEL_URL = chrome.runtime.getURL('models');
+    // Use relative path from offscreen document
+    const MODEL_URL = './models';
+    console.log('Face Block: Model URL:', MODEL_URL);
 
     // Always load TinyFaceDetector (fast, primary detector)
     console.log('Face Block: Loading TinyFaceDetector...');
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
 
     // Load shared models
+    console.log('Face Block: Loading shared models...');
     await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
 
@@ -32,7 +35,7 @@ let config = {
     // Lazy-load SsdMobilenet for hybrid/thorough modes
     // This is loaded in background to be ready when needed
     console.log('Face Block: Loading SsdMobilenetv1 in background...');
-    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL).then(() => {
+    faceapi.nets.ssdMobilenetv1.loadFromUri('./models').then(() => {
       ssdMobilenetLoaded = true;
       console.log('Face Block: SsdMobilenetv1 loaded (available for fallback)');
     }).catch(error => {

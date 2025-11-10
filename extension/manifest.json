@@ -44,8 +44,9 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["models/*"],
-      "matches": ["<all_urls>"]
+      "resources": ["models/*", "libs/face-api.min.js"],
+      "matches": ["<all_urls>"],
+      "use_dynamic_url": false
     }
   ]
 }
