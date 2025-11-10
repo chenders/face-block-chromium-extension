@@ -223,11 +223,14 @@
         });
       }
 
-      // Detect faces in image
+      // Log image dimensions for debugging
+      console.log(`Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`);
+
+      // Detect faces in image with lower threshold for better detection
       let detections;
       try {
         detections = await faceapi
-          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 }))
+          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.3 }))
           .withFaceLandmarks()
           .withFaceDescriptors();
       } catch (detectionError) {
@@ -250,7 +253,13 @@
         throw detectionError; // Re-throw other errors
       }
 
-      console.log(`Face Block Chromium Extension: [${imgId}] Detected ${detections.length} face(s)`);
+      // Log detection details
+      if (detections && detections.length > 0) {
+        const scores = detections.map(d => d.detection.score.toFixed(3)).join(', ');
+        console.log(`Face Block Chromium Extension: [${imgId}] Detected ${detections.length} face(s) with scores: ${scores}`);
+      } else {
+        console.log(`Face Block Chromium Extension: [${imgId}] Detected 0 face(s)`);
+      }
 
       if (detections && detections.length > 0) {
         try {
