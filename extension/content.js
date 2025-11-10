@@ -114,43 +114,36 @@
     });
   }
 
-  // Convert image element to data URL for sending to offscreen document
-  async function imageToDataURL(img) {
-    return new Promise((resolve, reject) => {
-      try {
-        // If image is already a data URL, use it directly
-        if (img.src.startsWith('data:')) {
-          resolve(img.src);
-          return;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const dataURL = canvas.toDataURL('image/jpeg', 0.95);
-        resolve(dataURL);
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
   // Detect faces using offscreen document
   async function detectFacesOffscreen(img, imgId) {
     try {
-      // Convert image to data URL
-      const dataURL = await imageToDataURL(img);
+      // For data URLs, send directly
+      let imageData;
+      if (img.src.startsWith('data:') || img.src.startsWith('blob:')) {
+        imageData = img.src;
+      } else {
+        // For HTTP/HTTPS URLs, try canvas conversion
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          imageData = canvas.toDataURL('image/jpeg', 0.95);
+        } catch (canvasError) {
+          // If canvas fails (CORS), send URL directly and let offscreen handle it
+          imageData = img.src;
+        }
+      }
 
       // Send to offscreen document for detection
       return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({
           type: 'DETECT_FACES',
           data: {
-            imageDataUrl: dataURL,
+            imageDataUrl: imageData,
             imgId: imgId,
             detector: config.detector
           }
@@ -263,28 +256,6 @@
     img.dataset.wasHidden = 'true';
 
     try {
-      // Set crossOrigin for HTTP/HTTPS images only (not file:// or data:)
-      const isHttpImage = img.src.startsWith('http://') || img.src.startsWith('https://');
-
-      if (isHttpImage && !img.crossOrigin) {
-        img.crossOrigin = 'anonymous';
-        // Reload image with CORS enabled
-        const tempSrc = img.src;
-        img.src = '';
-        img.src = tempSrc;
-
-        // Wait for reload
-        await new Promise((resolve) => {
-          if (img.complete) {
-            resolve();
-          } else {
-            img.onload = resolve;
-            img.onerror = resolve;
-            setTimeout(resolve, 2000); // Timeout after 2 seconds
-          }
-        });
-      }
-
       // Log image dimensions for debugging
       console.log(`Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`);
 

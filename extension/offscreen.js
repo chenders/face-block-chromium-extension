@@ -118,9 +118,13 @@ async function handleDetectFaces(data, sendResponse) {
 
     const { imageDataUrl, imgId, detector } = data;
 
-    // Create image element from data URL
+    // Create image element from data URL or HTTP URL
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // Only set crossOrigin for HTTP/HTTPS URLs (not for data: or blob:)
+    if (imageDataUrl.startsWith('http://') || imageDataUrl.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     await new Promise((resolve, reject) => {
       img.onload = resolve;
