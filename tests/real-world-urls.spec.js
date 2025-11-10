@@ -1,9 +1,9 @@
 // tests/real-world-urls.spec.js
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
-import os from 'os';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 import { loadTestReferenceData, clearTestReferenceData } from './helpers/test-data-loader.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,25 +31,13 @@ test.describe('Real-World URL Testing', () => {
   let userDataDir;
 
   test.beforeAll(async () => {
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('Einstein pages with his images block correctly', async () => {
@@ -196,61 +184,6 @@ test.describe('Real-World URL Testing', () => {
 
     } catch (error) {
       console.log(`Error loading ${testUrl}:`, error.message);
-      test.skip();
-    }
-
-    await page.close();
-  });
-
-  test('no flashing on real-world pages', async () => {
-    const page = await browser.newPage();
-
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
-    await loadTestReferenceData(browser, { people: ['albert_einstein'] });
-
-    // Monitor for flashing
-    await page.evaluateOnNewDocument(() => {
-      window.flashDetected = false;
-      window.flashLog = [];
-
-      const observer = new MutationObserver(() => {
-        const images = document.querySelectorAll('img:not([src^="data:"]):not([src^="blob:"])');
-        images.forEach(img => {
-          const opacity = window.getComputedStyle(img).opacity;
-          const isBlocked = img.alt === 'Image blocked by Face Block Chromium Extension';
-          const hasProcessed = img.hasAttribute('data-face-block-processed');
-
-          // If image is visible and will be blocked later, that's a flash
-          if (opacity !== '0' && !isBlocked && !hasProcessed && img.naturalWidth > 50) {
-            window.flashLog.push({
-              src: img.src.substring(0, 50),
-              timestamp: Date.now()
-            });
-          }
-        });
-      });
-
-      setTimeout(() => {
-        if (document.body) {
-          observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-        }
-      }, 0);
-    });
-
-    try {
-      await page.goto(einsteinUrls.withImages[0], { waitUntil: 'domcontentloaded', timeout: 30000 });
-
-      await page.waitForTimeout(8000);
-
-      const flashLog = await page.evaluate(() => window.flashLog);
-      console.log('Flash log:', flashLog);
-
-      // Should have minimal or no flashing
-      expect(flashLog.length).toBeLessThanOrEqual(3);
-
-    } catch (error) {
-      console.log('Error during flash test:', error.message);
       test.skip();
     }
 

@@ -193,41 +193,13 @@ extension/
 
 ## Testing
 
-The project includes comprehensive Playwright tests to verify functionality.
+The project includes comprehensive Playwright tests to verify functionality. See **[docs/TESTING.md](docs/TESTING.md)** for full testing documentation.
 
-### Setup
-
+**Quick Start:**
 ```bash
 npm install
-npx playwright install chromium
-```
-
-### Running Tests
-
-```bash
-# Run all tests (headless)
 npm test
-
-# Run tests with visible browser
-npm run test:headed
-
-# Run tests in debug mode
-npm run test:debug
-
-# Run tests with UI mode
-npm run test:ui
 ```
-
-### Test Coverage
-
-- **Extension Loading**: Verifies extension loads correctly
-- **Content Script**: Tests face detection and image processing
-- **Image Replacement**: Verifies images are replaced with color-matched placeholders
-- **Settings**: Tests threshold configuration and data management
-- **CORS Handling**: Ensures graceful handling of restricted images
-- **Responsive Images**: Tests srcset handling
-
-**Note:** Tests run in headed mode because Chrome extensions don't work in headless mode.
 
 ## Contributing
 

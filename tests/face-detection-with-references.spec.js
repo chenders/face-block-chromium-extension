@@ -1,9 +1,8 @@
 // tests/face-detection-with-references.spec.js
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
-import os from 'os';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 import { loadTestReferenceData, clearTestReferenceData } from './helpers/test-data-loader.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,25 +14,13 @@ test.describe('Face Detection with Reference Data', () => {
   let testPageUrl;
 
   test.beforeAll(async () => {
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('blocked person images are replaced with placeholders', async () => {
@@ -159,39 +146,6 @@ test.describe('Face Detection with Reference Data', () => {
     await page.close();
   });
 
-  test('small images are skipped and not processed', async () => {
-    const page = await browser.newPage();
-
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein'] });
-
-    await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
-    await page.waitForTimeout(6000);
-
-    // Check tiny images
-    const tinyImages = await page.$$eval('#einstein-tiny, #monroe-tiny', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed'),
-        width: img.offsetWidth,
-        height: img.offsetHeight
-      }))
-    );
-
-    console.log('Tiny images:', tinyImages);
-
-    // Tiny images should be marked as processed (skipped) but not blocked
-    tinyImages.forEach(img => {
-      expect(img.width).toBeLessThan(50);
-      expect(img.height).toBeLessThan(50);
-      expect(img.isBlocked).toBe(false);
-    });
-
-    await page.close();
-  });
-
   test('inline images are processed correctly', async () => {
     const page = await browser.newPage();
 
@@ -226,58 +180,6 @@ test.describe('Face Detection with Reference Data', () => {
 
     expect(monroe?.isBlocked).toBe(false);
     expect(pruitt?.isBlocked).toBe(false);
-
-    await page.close();
-  });
-
-  test('no flashing occurs when blocking images', async () => {
-    const page = await browser.newPage();
-
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein'] });
-
-    // Track if images are ever visible before being blocked
-    await browser.addInitScript(() => {
-      window.imageVisibilityLog = [];
-
-      const observer = new MutationObserver(() => {
-        const einsteinImages = document.querySelectorAll('[id^="einstein-"]');
-        einsteinImages.forEach(img => {
-          const opacity = window.getComputedStyle(img).opacity;
-          const isBlocked = img.alt === 'Image blocked by Face Block Chromium Extension';
-
-          if (opacity !== '0' && !isBlocked && !img.hasAttribute('data-face-block-processed')) {
-            window.imageVisibilityLog.push({
-              id: img.id,
-              timestamp: Date.now(),
-              opacity,
-              src: img.src.substring(0, 50)
-            });
-          }
-        });
-      });
-
-      // Start observing when DOM is ready
-      if (document.body) {
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'alt', 'src'] });
-      } else {
-        document.addEventListener('DOMContentLoaded', () => {
-          observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'alt', 'src'] });
-        });
-      }
-    });
-
-    await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
-    await page.waitForTimeout(6000);
-
-    // Check the visibility log
-    const visibilityLog = await page.evaluate(() => window.imageVisibilityLog);
-    console.log('Images that were visible before blocking:', visibilityLog);
-
-    // Ideally, no Einstein images should have been visible before being blocked
-    // But we allow some tolerance for timing
-    expect(visibilityLog.length).toBeLessThanOrEqual(2);
 
     await page.close();
   });

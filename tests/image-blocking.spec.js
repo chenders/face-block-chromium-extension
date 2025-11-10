@@ -1,41 +1,24 @@
 // tests/image-blocking.spec.js
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import os from 'os';
-import fs from 'fs';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 test.describe('Image Blocking Functionality', () => {
   let browser;
-  let context;
   let userDataDir;
 
   test.beforeAll(async () => {
-    // Create temporary directory for user data
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    // Wait for extension to initialize
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    // Clean up temporary directory
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('images are processed on page load', async () => {

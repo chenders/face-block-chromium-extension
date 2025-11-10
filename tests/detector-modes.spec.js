@@ -1,13 +1,10 @@
 // tests/detector-modes.spec.js
 // Tests for face detection with different detector modes
-import { test, expect, chromium } from '@playwright/test';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import { test, expect } from '@playwright/test';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
 test.describe('Detector Modes', () => {
   let browser;
-  let context;
   let extensionId;
   let userDataDir;
   let testServerUrl;
@@ -16,38 +13,14 @@ test.describe('Detector Modes', () => {
     // Use existing test server (assumed to be running on port 8080)
     testServerUrl = 'http://localhost:8080';
 
-    // Create temporary directory for user data
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-detector-'));
-
-    // Launch browser with extension
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    // Wait for extension to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Get extension ID
-    for (const worker of browser.serviceWorkers()) {
-      if (worker.url().includes('chrome-extension://')) {
-        extensionId = new URL(worker.url()).host;
-        break;
-      }
-    }
-
-    console.log('Extension ID:', extensionId);
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    extensionId = context.extensionId;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('hybrid mode loads both TinyFace and SsdMobilenet models', async () => {

@@ -1,9 +1,7 @@
 // tests/google-images-scenarios.spec.js
 // Tests simulating Google Images lazy loading patterns
-import { test, expect, chromium } from '@playwright/test';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import { test, expect } from '@playwright/test';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
 test.describe('Google Images Lazy Loading Scenarios', () => {
   let browser;
@@ -11,38 +9,14 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
   let userDataDir;
 
   test.beforeAll(async () => {
-    // Create temporary directory for user data
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-google-'));
-
-    // Launch browser with extension
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    // Wait for extension to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Get extension ID
-    for (const worker of browser.serviceWorkers()) {
-      if (worker.url().includes('chrome-extension://')) {
-        extensionId = new URL(worker.url()).host;
-        break;
-      }
-    }
-
-    console.log('Extension ID:', extensionId);
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    extensionId = context.extensionId;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('handles Google Images placeholder-to-real pattern', async () => {

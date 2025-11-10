@@ -1,33 +1,19 @@
 // tests/flashing-prevention.spec.js
-import { test, expect, chromium } from '@playwright/test';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import { test, expect } from '@playwright/test';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
 test.describe('Flashing Prevention', () => {
   let browser;
   let userDataDir;
 
   test.beforeAll(async () => {
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('preload CSS should be injected early', async () => {
