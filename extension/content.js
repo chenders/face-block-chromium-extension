@@ -497,27 +497,37 @@
         const newImages = [];
 
         mutations.forEach(mutation => {
-          mutation.addedNodes.forEach(node => {
-            // Check if node is an image
-            if (node.nodeName === 'IMG' && !processedImages.has(node)) {
-              newImages.push(node);
-            }
-            // Check for images in added subtrees
-            else if (node.querySelectorAll) {
-              const imgs = node.querySelectorAll('img');
-              imgs.forEach(img => {
-                if (!processedImages.has(img)) {
-                  newImages.push(img);
-                }
-              });
-            }
-          });
+          // Handle attribute changes on images (e.g., src/size changes)
+          if (mutation.type === 'attributes' && mutation.target.nodeName === 'IMG') {
+            const img = mutation.target;
+            // Remove from processed set to allow re-processing
+            processedImages.delete(img);
+            newImages.push(img);
+          }
+          // Handle new nodes being added
+          else if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach(node => {
+              // Check if node is an image
+              if (node.nodeName === 'IMG' && !processedImages.has(node)) {
+                newImages.push(node);
+              }
+              // Check for images in added subtrees
+              else if (node.querySelectorAll) {
+                const imgs = node.querySelectorAll('img');
+                imgs.forEach(img => {
+                  if (!processedImages.has(img)) {
+                    newImages.push(img);
+                  }
+                });
+              }
+            });
+          }
         });
 
         if (newImages.length > 0) {
-          console.log(`Face Block Chromium Extension: Processing ${newImages.length} new image(s)`);
+          console.log(`Face Block Chromium Extension: Processing ${newImages.length} new/updated image(s)`);
 
-          // Process new images
+          // Process new/updated images
           for (const img of newImages) {
             // Wait for image to load if not loaded yet
             if (!img.complete) {
@@ -539,10 +549,13 @@
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'srcset', 'style', 'class', 'width', 'height'],
+      attributeOldValue: false
     });
 
-    console.log('Face Block Chromium Extension: MutationObserver started');
+    console.log('Face Block Chromium Extension: MutationObserver started (watching attributes)');
   }
 
   // Listen for messages from popup/background
