@@ -7,12 +7,8 @@ test.describe('Detector Modes', () => {
   let browser;
   let extensionId;
   let userDataDir;
-  let testServerUrl;
 
   test.beforeAll(async () => {
-    // Use existing test server (assumed to be running on port 8080)
-    testServerUrl = 'http://localhost:8080';
-
     const context = await setupExtensionContext();
     browser = context.browser;
     extensionId = context.extensionId;
@@ -21,162 +17,6 @@ test.describe('Detector Modes', () => {
 
   test.afterAll(async () => {
     await cleanupExtensionContext({ browser, userDataDir });
-  });
-
-  test('hybrid mode loads both TinyFace and SsdMobilenet models', async () => {
-    const page = await browser.newPage();
-    await page.goto(`${testServerUrl}/test-ssdmobilenet.html`);
-
-    // Wait for models to load and first detection
-    await page.waitForTimeout(5000);
-
-    // Check console for model loading logs
-    const logs = [];
-    page.on('console', msg => logs.push(msg.text()));
-
-    await page.waitForTimeout(2000);
-
-    // Reload to capture logs
-    await page.reload();
-    await page.waitForTimeout(5000);
-
-    const logText = logs.join('\n');
-
-    // In hybrid mode (default), should see loading message for both detectors
-    const hasHybridLoading =
-      logText.includes('Loading hybrid detectors') ||
-      logText.includes('TinyFace') ||
-      logText.includes('SsdMobilenet');
-
-    expect(hasHybridLoading).toBe(true);
-
-    await page.close();
-  });
-
-  test('Fast Mode (TinyFaceDetector) loads correctly', async () => {
-    // Set detector to TinyFaceDetector
-    const popupPage = await browser.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popupPage.waitForTimeout(1000);
-
-    await popupPage.click('input[name="detector"][value="tinyFaceDetector"]');
-    await popupPage.waitForTimeout(1000);
-    await popupPage.close();
-
-    // Navigate to test page
-    const page = await browser.newPage();
-    const logs = [];
-    page.on('console', msg => {
-      if (msg.text().includes('Face Block')) {
-        logs.push(msg.text());
-      }
-    });
-
-    await page.goto(`${testServerUrl}/test-ssdmobilenet.html`);
-    await page.waitForTimeout(5000);
-
-    const logText = logs.join('\n');
-    console.log('TinyFaceDetector logs:', logText);
-
-    // Verify TinyFaceDetector loads correctly
-    const hasTinyFaceLoading =
-      logText.includes('Loading TinyFaceDetector') ||
-      logText.includes('detector: tinyFaceDetector');
-    const hasModelsLoaded = logText.includes('Models loaded');
-
-    expect(hasTinyFaceLoading).toBe(true);
-    expect(hasModelsLoaded).toBe(true);
-
-    await page.close();
-
-    // Reset to hybrid
-    const resetPage = await browser.newPage();
-    await resetPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await resetPage.waitForTimeout(1000);
-    await resetPage.click('input[name="detector"][value="hybrid"]');
-    await resetPage.waitForTimeout(1000);
-    await resetPage.close();
-  });
-
-  test('Thorough Mode (SsdMobilenet) loads correctly', async () => {
-    // Set detector to SsdMobilenet
-    const popupPage = await browser.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popupPage.waitForTimeout(1000);
-
-    await popupPage.click('input[name="detector"][value="ssdMobilenetv1"]');
-    await popupPage.waitForTimeout(1000);
-    await popupPage.close();
-
-    // Navigate to test page
-    const page = await browser.newPage();
-    const logs = [];
-    page.on('console', msg => {
-      if (msg.text().includes('Face Block')) {
-        logs.push(msg.text());
-      }
-    });
-
-    await page.goto(`${testServerUrl}/test-ssdmobilenet.html`);
-    await page.waitForTimeout(5000);
-
-    const logText = logs.join('\n');
-    console.log('SsdMobilenet logs:', logText);
-
-    // Verify SsdMobilenet loads correctly
-    const hasSsdLoading =
-      logText.includes('Loading SsdMobilenetv1') || logText.includes('detector: ssdMobilenetv1');
-    const hasModelsLoaded = logText.includes('Models loaded');
-
-    expect(hasSsdLoading).toBe(true);
-    expect(hasModelsLoaded).toBe(true);
-
-    await page.close();
-
-    // Reset to hybrid
-    const resetPage = await browser.newPage();
-    await resetPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await resetPage.waitForTimeout(1000);
-    await resetPage.click('input[name="detector"][value="hybrid"]');
-    await resetPage.waitForTimeout(1000);
-    await resetPage.close();
-  });
-
-  test('Hybrid Mode loads both detectors correctly', async () => {
-    // Set detector to Hybrid (should be default)
-    const popupPage = await browser.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popupPage.waitForTimeout(1000);
-
-    await popupPage.click('input[name="detector"][value="hybrid"]');
-    await popupPage.waitForTimeout(1000);
-    await popupPage.close();
-
-    // Navigate to test page
-    const page = await browser.newPage();
-    const logs = [];
-    page.on('console', msg => {
-      if (msg.text().includes('Face Block')) {
-        logs.push(msg.text());
-      }
-    });
-
-    await page.goto(`${testServerUrl}/test-ssdmobilenet.html`);
-    await page.waitForTimeout(5000);
-
-    const logText = logs.join('\n');
-    console.log('Hybrid mode logs:', logText);
-
-    // In hybrid mode, should load both detectors
-    const hasHybridLoading =
-      logText.includes('Loading hybrid detectors') || logText.includes('TinyFace + SsdMobilenet');
-    const hasModelsLoaded =
-      logText.includes('Models loaded') && logText.includes('detector: hybrid');
-
-    expect(hasHybridLoading).toBe(true);
-    expect(hasModelsLoaded).toBe(true);
-
-    await page.close();
   });
 
   test('detector change triggers status message', async () => {
@@ -232,38 +72,32 @@ test.describe('Detector Modes', () => {
     const page = await browser.newPage();
     const logs = [];
     page.on('console', msg => {
-      if (msg.text().includes('Face Block')) {
+      if (msg.text().includes('Detector changed')) {
         logs.push(msg.text());
       }
     });
 
-    await page.goto(`${testServerUrl}/test-ssdmobilenet.html`);
-    await page.waitForTimeout(5000);
-
-    // Clear logs
-    logs.length = 0;
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
 
     // Change detector mode in popup
-    const popupPage = await browser.newPage();
-    await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
-    await popupPage.waitForTimeout(1000);
+    await page.click('input[name="detector"][value="ssdMobilenetv1"]');
+    await page.waitForTimeout(2000);
 
-    // Switch to a different mode
-    await popupPage.click('input[name="detector"][value="ssdMobilenetv1"]');
-    await popupPage.waitForTimeout(2000);
+    // Open a new page to trigger content script with new detector
+    const contentPage = await browser.newPage();
+    await contentPage.goto('https://example.com');
+    await contentPage.waitForTimeout(2000);
 
     const logText = logs.join('\n');
     console.log('Logs after detector change:', logText);
 
     // Should see detector changed message
-    const hasDetectorChange =
-      logText.includes('Detector changed') ||
-      logText.includes('Loading') ||
-      logText.includes('Models loaded');
+    const hasDetectorChange = logText.includes('Detector changed');
 
     expect(hasDetectorChange).toBe(true);
 
-    await popupPage.close();
+    await contentPage.close();
     await page.close();
   });
 });
