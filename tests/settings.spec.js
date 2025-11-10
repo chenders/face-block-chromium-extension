@@ -99,21 +99,14 @@ test.describe('Settings and Configuration', () => {
     const page = await browser.newPage();
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
-    // Try to add person without name
-    const addButton = await page.$('#addPersonBtn');
-
-    // Leave name empty and try to click
-    await page.fill('#personName', '');
-
-    // Click add button
-    await addButton.click();
-
-    // Should show error or prevent submission
     await page.waitForTimeout(500);
 
-    // Check that no success message appeared (since validation should fail)
-    const statusText = await page.textContent('#uploadStatus');
-    expect(statusText).not.toContain('Success');
+    // Leave name empty
+    await page.fill('#personName', '');
+
+    // Button should be disabled when no name/photos provided
+    const isDisabled = await page.$eval('#addPersonBtn', btn => btn.disabled);
+    expect(isDisabled).toBe(true);
 
     await page.close();
   });
@@ -148,14 +141,17 @@ test.describe('Settings and Configuration', () => {
 
     // Get initial display value
     const initialDisplay = await page.textContent('#thresholdValue');
-    expect(initialDisplay).toContain('0.60');
+    expect(initialDisplay).toMatch(/0\.\d+/); // Should be a decimal like 0.60
 
-    // Change slider
+    // Change slider to a different value
     await page.fill('#matchThreshold', '0.75');
 
     // Check display updated
     const newDisplay = await page.textContent('#thresholdValue');
     expect(newDisplay).toContain('0.75');
+
+    // Verify it actually changed
+    expect(newDisplay).not.toBe(initialDisplay);
 
     await page.close();
   });

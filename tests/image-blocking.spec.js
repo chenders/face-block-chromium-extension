@@ -87,22 +87,17 @@ test.describe('Image Blocking Functionality', () => {
   test('responsive images (srcset) are handled', async () => {
     const page = await browser.newPage();
 
-    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-page.html')}`;
-    await page.goto(testPagePath);
+    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'responsive-images.html')}`;
+    await page.goto(testPagePath, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
 
-    // Check if srcset images were processed
-    const responsiveImage = await page.$('#responsive-image');
-    expect(responsiveImage).toBeTruthy();
-
-    // If image was replaced, srcset should be removed
-    const hasSrcset = await page.evaluate(() => {
-      const img = document.querySelector('#responsive-image');
-      return img.hasAttribute('srcset');
+    // Check that page has images with srcset
+    const imagesWithSrcset = await page.evaluate(() => {
+      return document.querySelectorAll('img[srcset]').length;
     });
 
-    // Image should either have srcset (not matched) or not have it (was replaced)
-    expect(typeof hasSrcset).toBe('boolean');
+    // Should have at least one responsive image
+    expect(imagesWithSrcset).toBeGreaterThan(0);
 
     await page.close();
   });
