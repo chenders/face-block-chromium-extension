@@ -291,7 +291,33 @@ async function handleImportData(people, sendResponse) {
   }
 }
 
+// Create offscreen document for face detection
+async function setupOffscreenDocument() {
+  // Check if offscreen document already exists
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [chrome.runtime.getURL('offscreen.html')]
+  });
+
+  if (existingContexts.length > 0) {
+    console.log('Offscreen document already exists');
+    return;
+  }
+
+  // Create offscreen document
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['DOM_SCRAPING'], // We need DOM/Canvas for face-api.js
+    justification: 'Face detection requires Canvas/WebGL APIs not available in service workers'
+  });
+
+  console.log('Offscreen document created for face detection');
+}
+
 // Initialize when service worker starts
 initialize();
+setupOffscreenDocument().catch(error => {
+  console.error('Error setting up offscreen document:', error);
+});
 
 console.log('Face Block Chromium Extension background service worker loaded');

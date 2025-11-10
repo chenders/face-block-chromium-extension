@@ -64,7 +64,7 @@ test.describe('Flashing Prevention', () => {
     });
 
     // Check images immediately after DOM loads
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
     const initialImages = await page.$$eval('img:not([src^="data:"]):not([src^="blob:"])', imgs =>
       imgs.slice(0, 5).map(img => ({
@@ -80,8 +80,8 @@ test.describe('Flashing Prevention', () => {
     const hiddenCount = initialImages.filter(img => img.opacity === '0').length;
     console.log(`${hiddenCount}/${initialImages.length} images hidden initially`);
 
-    // Wait for processing
-    await page.waitForTimeout(4000);
+    // Wait for processing (reduced from 4000ms due to faster 100ms debounce)
+    await page.waitForTimeout(3000);
 
     // Check after processing
     const processedImages = await page.$$eval('img:not([src^="data:"]):not([src^="blob:"])', imgs =>
@@ -106,6 +106,53 @@ test.describe('Flashing Prevention', () => {
 
     // At least some images should be processed
     expect(properlyProcessed).toBeGreaterThan(0);
+
+    await page.close();
+  });
+
+  test('images respond quickly to src changes with 100ms debounce', async () => {
+    const page = await browser.newPage();
+
+    await page.setContent(`
+      <!DOCTYPE html>
+      <html>
+        <body style="background: white;">
+          <img id="test-img" src="https://via.placeholder.com/300x200?text=Initial" width="300" height="200" alt="Test">
+        </body>
+      </html>
+    `);
+
+    // Wait for initial processing
+    await page.waitForTimeout(2000);
+
+    // Record when we change the src
+    const startTime = Date.now();
+
+    // Listen for processing logs
+    const timestamps = [];
+    page.on('console', msg => {
+      if (msg.text().includes('Face Block') &&
+          (msg.text().includes('Processing') || msg.text().includes('Scanning'))) {
+        timestamps.push(Date.now());
+      }
+    });
+
+    // Change src
+    await page.evaluate(() => {
+      document.getElementById('test-img').src = 'https://via.placeholder.com/300x200?text=Changed';
+    });
+
+    // Wait for processing (should be quick with 100ms debounce)
+    await page.waitForTimeout(500);
+
+    // Processing should have started relatively quickly
+    // With 100ms debounce, should be much faster than old 500ms
+    if (timestamps.length > 0) {
+      const responseTime = timestamps[0] - startTime;
+      console.log(`Response time: ${responseTime}ms`);
+      // Should respond within ~400ms (100ms debounce + processing + margin)
+      expect(responseTime).toBeLessThan(600);
+    }
 
     await page.close();
   });

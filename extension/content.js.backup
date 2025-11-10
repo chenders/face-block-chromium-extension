@@ -10,7 +10,9 @@
     detector: 'hybrid' // 'tinyFaceDetector', 'ssdMobilenetv1', or 'hybrid'
   };
 
-  let hasReferenceData = false;
+  let modelsLoaded = false;
+  let ssdMobilenetLoaded = false; // Track lazy-loaded SsdMobilenet
+  let faceMatcher = null;
   let processing = false;
   // Store processed images with their src to detect src changes
   const processedImages = new WeakMap();
@@ -24,10 +26,10 @@
       // Load settings
       await loadSettings();
 
-      // Send config to offscreen document
-      await updateOffscreenConfig();
+      // Load face-api.js models
+      await loadModels();
 
-      // Get reference descriptors and send to offscreen document
+      // Get reference descriptors from background
       await loadReferenceDescriptors();
 
       // Process existing images (even if no reference data)
@@ -36,7 +38,7 @@
       // Set up dynamic content monitoring
       setupMutationObserver();
 
-      if (hasReferenceData) {
+      if (faceMatcher) {
         console.log('Face Block Chromium Extension: Initialized successfully');
       } else {
         console.log('Face Block Chromium Extension: No reference faces stored yet - images will be shown normally');
@@ -44,25 +46,6 @@
     } catch (error) {
       console.error('Face Block Chromium Extension: Initialization error:', error);
     }
-  }
-
-  // Send config to offscreen document
-  async function updateOffscreenConfig() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
-        type: 'UPDATE_CONFIG',
-        data: {
-          matchThreshold: config.matchThreshold,
-          enabled: config.enabled,
-          detector: config.detector
-        }
-      }, (response) => {
-        if (response && response.success) {
-          console.log('Face Block Chromium Extension: Config sent to offscreen document');
-        }
-        resolve();
-      });
-    });
   }
 
   // Load settings from chrome.storage
@@ -77,88 +60,91 @@
     });
   }
 
-  // Load reference descriptors from background and send to offscreen document
+  // Load face-api.js models
+  async function loadModels() {
+    if (modelsLoaded) return;
+
+    try {
+      const MODEL_URL = chrome.runtime.getURL('models');
+
+      // Load the appropriate detector(s) based on config
+      if (config.detector === 'hybrid') {
+        console.log('Face Block Chromium Extension: Loading hybrid detectors (TinyFace + SsdMobilenet)...');
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL)
+        ]);
+      } else if (config.detector === 'ssdMobilenetv1') {
+        console.log('Face Block Chromium Extension: Loading SsdMobilenetv1 detector...');
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+      } else {
+        console.log('Face Block Chromium Extension: Loading TinyFaceDetector...');
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      }
+
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+      modelsLoaded = true;
+      console.log(`Face Block Chromium Extension: Models loaded (detector: ${config.detector})`);
+    } catch (error) {
+      console.error('Face Block Chromium Extension: Error loading models:', error);
+      throw error;
+    }
+  }
+
+  // Load reference descriptors from background
   async function loadReferenceDescriptors() {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'GET_REFERENCE_DESCRIPTORS' }, async (response) => {
+      chrome.runtime.sendMessage({ type: 'GET_REFERENCE_DESCRIPTORS' }, (response) => {
         console.log('Content: Received reference data response:', response);
 
         if (response && response.success && response.referenceData && response.referenceData.length > 0) {
-          hasReferenceData = true;
-          console.log(`Face Block Chromium Extension: Sending ${response.referenceData.length} reference face(s) to offscreen document`);
+          try {
+            const labeledDescriptors = response.referenceData.map(person => {
+              console.log(`Content: Processing ${person.name}, ${person.descriptors.length} descriptors`);
 
-          // Send reference data to offscreen document
-          chrome.runtime.sendMessage({
-            type: 'UPDATE_FACE_MATCHER',
-            data: response.referenceData
-          }, (updateResponse) => {
-            if (updateResponse && updateResponse.success) {
-              console.log('Face Block Chromium Extension: Reference data sent to offscreen document successfully');
+              // Validate and convert descriptors
+              const validDescriptors = person.descriptors
+                .map((d, idx) => {
+                  console.log(`Content: Descriptor ${idx} - type: ${typeof d}, isArray: ${Array.isArray(d)}, length: ${d?.length}`);
+
+                  const float32 = new Float32Array(d);
+                  console.log(`Content: Converted to Float32Array, length: ${float32.length}`);
+
+                  if (float32.length !== 128) {
+                    console.error(`Face Block Chromium Extension: Invalid descriptor length for ${person.name}: ${float32.length}`);
+                    return null;
+                  }
+                  return float32;
+                })
+                .filter(d => d !== null);
+
+              console.log(`Content: ${person.name} has ${validDescriptors.length} valid descriptors`);
+
+              if (validDescriptors.length === 0) {
+                console.error(`Face Block Chromium Extension: No valid descriptors for ${person.name}`);
+                return null;
+              }
+
+              return new faceapi.LabeledFaceDescriptors(person.name, validDescriptors);
+            }).filter(ld => ld !== null);
+
+            if (labeledDescriptors.length > 0) {
+              faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, config.matchThreshold);
+              console.log(`Face Block Chromium Extension: Loaded ${labeledDescriptors.length} reference face(s)`);
             } else {
-              console.error('Face Block Chromium Extension: Failed to update offscreen document face matcher');
+              console.error('Face Block Chromium Extension: No valid reference descriptors loaded');
             }
-            resolve();
-          });
+          } catch (error) {
+            console.error('Face Block Chromium Extension: Error creating face matcher:', error);
+          }
         } else {
-          hasReferenceData = false;
           console.log('Face Block Chromium Extension: No reference data available');
-          // Clear face matcher in offscreen document
-          chrome.runtime.sendMessage({
-            type: 'UPDATE_FACE_MATCHER',
-            data: []
-          }, () => {
-            resolve();
-          });
         }
+        resolve();
       });
     });
-  }
-
-  // Convert image element to data URL for sending to offscreen document
-  async function imageToDataURL(img) {
-    return new Promise((resolve, reject) => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const dataURL = canvas.toDataURL('image/jpeg', 0.95);
-        resolve(dataURL);
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  // Detect faces using offscreen document
-  async function detectFacesOffscreen(img, imgId) {
-    try {
-      // Convert image to data URL
-      const dataURL = await imageToDataURL(img);
-
-      // Send to offscreen document for detection
-      return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          type: 'DETECT_FACES',
-          data: {
-            imageDataUrl: dataURL,
-            imgId: imgId,
-            detector: config.detector
-          }
-        }, (response) => {
-          if (response && response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response?.error || 'Detection failed'));
-          }
-        });
-      });
-    } catch (error) {
-      throw error;
-    }
   }
 
   // Process existing images on page
@@ -188,7 +174,7 @@
     if (lastProcessedSrc === img.src) return;
 
     // If no reference data, just restore visibility
-    if (!hasReferenceData) {
+    if (!faceMatcher) {
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
       processedImages.set(img, img.src);
@@ -535,7 +521,7 @@
       clearTimeout(debounceTimer);
 
       debounceTimer = setTimeout(async () => {
-        if (!hasReferenceData || !config.enabled) return;
+        if (!faceMatcher || !config.enabled) return;
 
         const newImages = [];
 

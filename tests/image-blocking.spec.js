@@ -164,7 +164,7 @@ test.describe('Image Blocking Functionality', () => {
       <!DOCTYPE html>
       <html>
         <body>
-          <img src="https://via.placeholder.com/30x30" width="30" height="30" />
+          <img src="https://via.placeholder.com/20x20" width="20" height="20" />
         </body>
       </html>
     `);
