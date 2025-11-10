@@ -62,31 +62,146 @@ function setupEventListeners() {
   clearDataBtn.addEventListener('click', handleClearData);
 }
 
+// Store photo analyses for real-time feedback
+let photoAnalyses = [];
+
 // Handle file selection
-function handleFileSelection(e) {
+async function handleFileSelection(e) {
   selectedFiles = Array.from(e.target.files);
 
   if (selectedFiles.length > 0) {
-    selectedFilesDiv.textContent = `${selectedFiles.length} photo(s) selected`;
+    selectedFilesDiv.textContent = `${selectedFiles.length} photo(s) selected - analyzing...`;
 
-    // Show image previews
+    // Clear previous analyses
+    photoAnalyses = [];
     previewImagesDiv.innerHTML = '';
-    selectedFiles.forEach(file => {
+
+    // Ensure models are loaded before analysis
+    if (!modelsLoaded) {
+      await loadModels();
+    }
+
+    // Analyze each photo in real-time
+    let processedCount = 0;
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
       const reader = new FileReader();
-      reader.onload = (e) => {
+
+      reader.onload = async (e) => {
+        const dataUrl = e.target.result;
+
+        // Create preview container
+        const container = document.createElement('div');
+        container.className = 'preview-container';
+
         const img = document.createElement('img');
-        img.src = e.target.result;
+        img.src = dataUrl;
         img.className = 'preview-img';
-        previewImagesDiv.appendChild(img);
+        container.appendChild(img);
+
+        // Analyze photo quality
+        try {
+          const analysis = await extractFaceDescriptor(dataUrl);
+          photoAnalyses.push(analysis);
+
+          // Add quality badge
+          const badge = document.createElement('div');
+          badge.className = 'quality-badge';
+
+          if (!analysis.valid) {
+            badge.classList.add('invalid');
+            badge.title = 'No face detected';
+          } else if (analysis.score >= 80) {
+            badge.classList.add('excellent');
+            badge.title = `Excellent quality (${analysis.score}/100)`;
+          } else if (analysis.score >= 65) {
+            badge.classList.add('good');
+            badge.title = `Good quality (${analysis.score}/100)`;
+          } else if (analysis.score >= 50) {
+            badge.classList.add('fair');
+            badge.title = `Fair quality (${analysis.score}/100)`;
+          } else {
+            badge.classList.add('poor');
+            badge.title = `Poor quality (${analysis.score}/100)`;
+          }
+
+          container.appendChild(badge);
+
+          // Add category label (frontal, angle, profile)
+          const feedback = document.createElement('div');
+          feedback.className = 'photo-feedback';
+          if (analysis.valid) {
+            feedback.textContent = analysis.category.replace('-', ' ');
+          } else {
+            feedback.textContent = 'no face';
+          }
+          container.appendChild(feedback);
+
+        } catch (error) {
+          console.error('Error analyzing photo:', error);
+        }
+
+        previewImagesDiv.appendChild(container);
+        processedCount++;
+
+        // Update coverage analysis when all photos are processed
+        if (processedCount === selectedFiles.length) {
+          selectedFilesDiv.textContent = `${selectedFiles.length} photo(s) selected`;
+          updateCoverageAnalysis();
+        }
       };
+
       reader.readAsDataURL(file);
-    });
+    }
   } else {
     selectedFilesDiv.textContent = '';
     previewImagesDiv.innerHTML = '';
+    photoAnalyses = [];
+    document.getElementById('qualityAnalysis').style.display = 'none';
   }
 
   validateForm();
+}
+
+// Update coverage analysis display
+function updateCoverageAnalysis() {
+  const qualityAnalysisDiv = document.getElementById('qualityAnalysis');
+  const coverageSummaryDiv = document.getElementById('coverageSummary');
+  const effectivenessEstimateDiv = document.getElementById('effectivenessEstimate');
+
+  if (photoAnalyses.length === 0) {
+    qualityAnalysisDiv.style.display = 'none';
+    return;
+  }
+
+  // Analyze coverage
+  const coverage = analyzeCoverage(photoAnalyses);
+  const effectiveness = estimateEffectiveness(photoAnalyses);
+
+  // Build coverage summary HTML
+  let coverageHTML = '<div class="coverage-item">';
+  coverageHTML += '<span><strong>Photo Coverage:</strong></span>';
+  coverageHTML += '</div>';
+
+  coverage.recommendations.forEach(rec => {
+    const isPositive = rec.startsWith('✓');
+    const recClass = isPositive ? 'recommendation positive' : 'recommendation';
+    coverageHTML += `<div class="${recClass}">${rec}</div>`;
+  });
+
+  coverageSummaryDiv.innerHTML = coverageHTML;
+
+  // Build effectiveness estimate HTML
+  let effectivenessHTML = '<div class="effectiveness-score">';
+  effectivenessHTML += `${effectiveness}%`;
+  effectivenessHTML += '</div>';
+  effectivenessHTML += '<div class="effectiveness-label">';
+  effectivenessHTML += 'Estimated Blocking Effectiveness';
+  effectivenessHTML += '</div>';
+
+  effectivenessEstimateDiv.innerHTML = effectivenessHTML;
+
+  qualityAnalysisDiv.style.display = 'block';
 }
 
 // Validate form
@@ -124,23 +239,24 @@ async function handleAddPerson() {
       selectedFiles.map(file => fileToDataURL(file))
     );
 
-    // Extract face descriptors from photos
-    const descriptors = [];
+    // Extract face descriptors and quality data from photos
+    const descriptorData = [];
     let processedCount = 0;
 
     for (const photoDataUrl of photoDataUrls) {
       try {
         addPersonBtn.textContent = `Processing photo ${processedCount + 1}/${photoDataUrls.length}...`;
-        const descriptor = await extractFaceDescriptor(photoDataUrl);
-        if (descriptor) {
+        const analysis = await extractFaceDescriptor(photoDataUrl);
+
+        if (analysis && analysis.valid && analysis.descriptor) {
           // Validate descriptor
-          if (descriptor.length !== 128) {
-            console.error('Invalid descriptor length:', descriptor.length);
+          if (analysis.descriptor.length !== 128) {
+            console.error('Invalid descriptor length:', analysis.descriptor.length);
             continue;
           }
 
-          // Convert to regular array for JSON serialization
-          const descriptorArray = Array.from(descriptor);
+          // Convert to regular array for JSON serialization and store with quality data
+          const descriptorArray = Array.from(analysis.descriptor);
 
           // Double-check the array
           if (descriptorArray.length !== 128) {
@@ -148,30 +264,39 @@ async function handleAddPerson() {
             continue;
           }
 
-          descriptors.push(descriptorArray);
+          descriptorData.push({
+            descriptor: descriptorArray,
+            quality: {
+              score: analysis.score,
+              confidence: analysis.metrics.confidence,
+              category: analysis.category,
+              issues: analysis.issues
+            },
+            photoIndex: processedCount
+          });
           processedCount++;
-          console.log(`Extracted descriptor ${processedCount}: length=${descriptorArray.length}`);
+          console.log(`Extracted descriptor ${processedCount}: quality=${analysis.score}/100`);
         }
       } catch (error) {
         console.error('Error processing photo:', error);
       }
     }
 
-    if (descriptors.length === 0) {
+    if (descriptorData.length === 0) {
       showStatus('No faces detected in the provided photos. Please use clear photos with visible faces.', 'error');
       addPersonBtn.disabled = false;
       addPersonBtn.textContent = 'Add Person';
       return;
     }
 
-    // Send descriptors to background script
+    // Send descriptors with quality data to background script
     console.log('Popup: Sending ADD_PERSON message to background...');
 
     chrome.runtime.sendMessage({
       type: 'ADD_PERSON',
       data: {
         personName,
-        descriptors,
+        descriptorData,
         photoCount: selectedFiles.length
       }
     }, (response) => {
@@ -187,7 +312,7 @@ async function handleAddPerson() {
 
       if (response && response.success) {
         console.log('Popup: Person added successfully');
-        showStatus(`Successfully added ${personName} with ${descriptors.length} face descriptor(s)!`, 'success');
+        showStatus(`Successfully added ${personName} with ${descriptorData.length} face descriptor(s)!`, 'success');
         resetForm();
         loadPeopleList();
       } else {
@@ -218,9 +343,12 @@ async function extractFaceDescriptor(imageDataUrl) {
           .withFaceDescriptor();
 
         if (detection) {
-          resolve(detection.descriptor);
+          // Analyze photo quality using the new quality module
+          const qualityAnalysis = analyzePhotoQuality(detection, img);
+          resolve(qualityAnalysis);
         } else {
-          resolve(null);
+          // Return analysis for no face detected
+          resolve(analyzePhotoQuality(null, img));
         }
       } catch (error) {
         console.error('Face detection error:', error);
@@ -251,8 +379,10 @@ function resetForm() {
   personNameInput.value = '';
   photoUploadInput.value = '';
   selectedFiles = [];
+  photoAnalyses = [];
   selectedFilesDiv.textContent = '';
   previewImagesDiv.innerHTML = '';
+  document.getElementById('qualityAnalysis').style.display = 'none';
   validateForm();
 }
 

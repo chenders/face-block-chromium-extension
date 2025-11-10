@@ -37,7 +37,7 @@ class FaceStorage {
   }
 
   // Add or update a person's face descriptors
-  async addPerson(personName, descriptors, photoBlobs = []) {
+  async addPerson(personName, descriptors, photoBlobs = [], qualityData = null) {
     console.log(`Storage.addPerson called: ${personName}, ${descriptors.length} descriptors`);
 
     if (!this.db) {
@@ -61,14 +61,45 @@ class FaceStorage {
 
       const objectStore = transaction.objectStore(STORE_NAME);
 
+      // Build data structure with quality metadata if provided
       const data = {
         personName,
         descriptors: descriptors.map(d => Array.from(d)), // Convert Float32Array to regular arrays for storage
-        photoCount: descriptors.length, // Use descriptors.length instead of photoBlobs
+        photoCount: descriptors.length,
         dateAdded: new Date().toISOString()
       };
 
-      console.log('Storage: Data prepared:', { personName, descriptorCount: data.descriptors.length, photoCount: data.photoCount });
+      // Add quality metadata if provided
+      if (qualityData && qualityData.length > 0) {
+        data.quality = qualityData.map(item => ({
+          score: item.quality.score,
+          confidence: item.quality.confidence,
+          category: item.quality.category,
+          issues: item.quality.issues,
+          photoIndex: item.photoIndex
+        }));
+
+        // Calculate aggregate metrics
+        const avgScore = data.quality.reduce((sum, q) => sum + q.score, 0) / data.quality.length;
+        const frontalCount = data.quality.filter(q => q.category === 'frontal').length;
+        const angleCount = data.quality.filter(q => q.category.includes('angle')).length;
+        const profileCount = data.quality.filter(q => q.category.includes('profile')).length;
+
+        data.aggregateMetrics = {
+          averageQuality: Math.round(avgScore),
+          frontalCount,
+          angleCount,
+          profileCount,
+          totalPhotos: data.quality.length
+        };
+      }
+
+      console.log('Storage: Data prepared:', {
+        personName,
+        descriptorCount: data.descriptors.length,
+        photoCount: data.photoCount,
+        hasQuality: !!data.quality
+      });
 
       const request = objectStore.put(data);
 

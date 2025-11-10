@@ -96,15 +96,17 @@ async function handleMessage(message, sender, sendResponse) {
 async function handleAddPerson(data, sendResponse) {
   console.log('Background: Received ADD_PERSON message', data);
 
-  const { personName, descriptors, photoCount } = data;
+  // Support both old format (descriptors) and new format (descriptorData)
+  const { personName, descriptors, descriptorData, photoCount } = data;
+  const dataToStore = descriptorData || descriptors; // Backward compatibility
 
-  if (!personName || !descriptors || descriptors.length === 0) {
+  if (!personName || !dataToStore || dataToStore.length === 0) {
     console.error('Background: Invalid data received');
     sendResponse({ success: false, error: 'Invalid data' });
     return;
   }
 
-  console.log(`Background: Adding ${personName} with ${descriptors.length} descriptors`);
+  console.log(`Background: Adding ${personName} with ${dataToStore.length} descriptors`);
 
   try {
     // Ensure storage is initialized
@@ -113,24 +115,46 @@ async function handleAddPerson(data, sendResponse) {
       await storage.init();
     }
 
-    // Convert arrays to Float32Array
-    const float32Descriptors = descriptors.map(d => new Float32Array(d));
+    // Handle new format with quality data
+    if (descriptorData) {
+      // Extract descriptors and convert to Float32Array
+      const float32Descriptors = descriptorData.map(item => new Float32Array(item.descriptor));
 
-    console.log(`Background: Converted to Float32Array, storing in IndexedDB...`);
+      console.log(`Background: Converted to Float32Array, storing in IndexedDB with quality data...`);
 
-    // Store descriptors in IndexedDB
-    const result = await storage.addPerson(personName, float32Descriptors, []);
+      // Store descriptors with quality metadata in IndexedDB
+      const result = await storage.addPerson(personName, float32Descriptors, [], descriptorData);
 
-    console.log('Background: Storage result:', result);
+      console.log('Background: Storage result:', result);
 
-    // Verify it was stored
-    const verification = await storage.getPerson(personName);
-    console.log('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
+      // Verify it was stored
+      const verification = await storage.getPerson(personName);
+      console.log('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
 
-    sendResponse({
-      success: true,
-      message: `Added ${personName} with ${descriptors.length} face descriptor(s)`
-    });
+      sendResponse({
+        success: true,
+        message: `Added ${personName} with ${descriptorData.length} face descriptor(s)`
+      });
+    } else {
+      // Old format - just descriptors (backward compatibility)
+      const float32Descriptors = descriptors.map(d => new Float32Array(d));
+
+      console.log(`Background: Converted to Float32Array, storing in IndexedDB...`);
+
+      // Store descriptors in IndexedDB
+      const result = await storage.addPerson(personName, float32Descriptors, []);
+
+      console.log('Background: Storage result:', result);
+
+      // Verify it was stored
+      const verification = await storage.getPerson(personName);
+      console.log('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
+
+      sendResponse({
+        success: true,
+        message: `Added ${personName} with ${descriptors.length} face descriptor(s)`
+      });
+    }
   } catch (error) {
     console.error('Background: Error adding person:', error);
     sendResponse({ success: false, error: error.message });

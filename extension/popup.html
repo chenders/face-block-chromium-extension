@@ -117,6 +117,116 @@
       object-fit: cover;
       border-radius: 4px;
       border: 1px solid #ddd;
+      position: relative;
+    }
+
+    .preview-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .quality-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .quality-badge.excellent {
+      background: #4caf50;
+    }
+
+    .quality-badge.good {
+      background: #8bc34a;
+    }
+
+    .quality-badge.fair {
+      background: #ffc107;
+    }
+
+    .quality-badge.poor {
+      background: #ff9800;
+    }
+
+    .quality-badge.invalid {
+      background: #f44336;
+    }
+
+    .photo-feedback {
+      position: absolute;
+      bottom: -20px;
+      left: 0;
+      right: 0;
+      font-size: 9px;
+      color: #666;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quality-analysis {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .coverage-summary {
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .coverage-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      color: #555;
+    }
+
+    .coverage-icon {
+      margin-right: 4px;
+    }
+
+    .effectiveness-estimate {
+      margin-top: 8px;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .effectiveness-score {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2196f3;
+      margin-bottom: 4px;
+    }
+
+    .effectiveness-label {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .recommendation {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+      padding: 4px 8px;
+      background: #fff3cd;
+      border-radius: 3px;
+      border-left: 3px solid #ffc107;
+    }
+
+    .recommendation.positive {
+      background: #d4edda;
+      border-left-color: #4caf50;
+      color: #155724;
     }
 
     button {
@@ -296,6 +406,12 @@
       <input type="file" id="photoUpload" multiple accept="image/*">
       <div id="selectedFiles" class="selected-files"></div>
       <div id="previewImages" class="preview-images"></div>
+
+      <!-- Quality Analysis Section -->
+      <div id="qualityAnalysis" class="quality-analysis" style="display: none;">
+        <div id="coverageSummary" class="coverage-summary"></div>
+        <div id="effectivenessEstimate" class="effectiveness-estimate"></div>
+      </div>
     </div>
 
     <button id="addPersonBtn" disabled>Add Person</button>
@@ -345,6 +461,7 @@
   </div>
 
   <script src="libs/face-api.min.js"></script>
+  <script src="photo-quality.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
