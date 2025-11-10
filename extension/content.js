@@ -13,7 +13,8 @@
   let modelsLoaded = false;
   let faceMatcher = null;
   let processing = false;
-  const processedImages = new WeakSet();
+  // Store processed images with their src to detect src changes
+  const processedImages = new WeakMap();
   let observer = null;
 
   console.log('Face Block Chromium Extension: Content script loaded');
@@ -166,14 +167,16 @@
 
   // Process a single image
   async function processImage(img) {
-    // Skip if already processed
-    if (processedImages.has(img)) return;
+    // Skip if already processed with the same src
+    // (If src has changed, we need to re-process)
+    const lastProcessedSrc = processedImages.get(img);
+    if (lastProcessedSrc === img.src) return;
 
     // If no reference data, just restore visibility
     if (!faceMatcher) {
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
-      processedImages.add(img);
+      processedImages.set(img, img.src);
       return;
     }
 
@@ -198,10 +201,11 @@
       return;
     }
 
-    // If image is loaded but too small, mark as processed to avoid retrying
+    // If image is loaded but too small, mark as processed with current src
+    // If src changes later (e.g., Google Images replacing placeholder), we'll re-process
     if (displayWidth < MIN_SIZE || displayHeight < MIN_SIZE) {
       console.debug('Face Block Chromium Extension: Skipping image (too small):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
-      processedImages.add(img); // Mark as processed to avoid retrying
+      processedImages.set(img, img.src); // Store src to detect changes
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
       return;
@@ -210,14 +214,17 @@
     // Additional check for invalid dimensions
     if (img.naturalWidth === 0 || img.naturalHeight === 0) {
       console.debug('Face Block Chromium Extension: Skipping image with 0 dimensions:', img.src.substring(0, 100));
-      processedImages.add(img);
+      processedImages.set(img, img.src);
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
       return;
     }
 
-    // Skip if src is data URL or blob (likely already processed)
-    if (img.src.startsWith('data:') || img.src.startsWith('blob:')) return;
+    // Skip if this is our own replacement SVG (has face-blurred class and data/blob URI)
+    if ((img.src.startsWith('data:') || img.src.startsWith('blob:')) &&
+        img.classList.contains('face-blurred')) {
+      return;
+    }
 
     // Create a short identifier for logging (last 50 chars of URL)
     const imgId = img.src.length > 50 ? '...' + img.src.slice(-50) : img.src;
@@ -310,7 +317,7 @@
             img.style.opacity = '';
             delete img.dataset.wasHidden;
           }
-          processedImages.add(img);
+          processedImages.set(img, img.src);
           return;
         }
         throw detectionError; // Re-throw other errors
@@ -338,7 +345,7 @@
 
           if (matches.length === 0) {
             console.log(`Face Block Chromium Extension: [${imgId}] No valid matches (descriptor validation failed)`);
-            processedImages.add(img);
+            processedImages.set(img, img.src);
             return;
           }
 
@@ -372,7 +379,7 @@
             img.style.opacity = '';
             delete img.dataset.wasHidden;
           }
-          processedImages.add(img);
+          processedImages.set(img, img.src);
           return;
         }
       } else {
@@ -386,7 +393,7 @@
       }
 
       // Mark as processed
-      processedImages.add(img);
+      processedImages.set(img, img.src);
     } catch (error) {
       // Log all errors for debugging
       console.warn(`Face Block Chromium Extension: [${imgId}] Error processing image:`, error.name, error.message);
@@ -396,7 +403,7 @@
             img.style.opacity = '';
         delete img.dataset.wasHidden;
       }
-      processedImages.add(img); // Mark as processed to avoid retry
+      processedImages.set(img, img.src); // Mark as processed to avoid retry
     }
   }
 
