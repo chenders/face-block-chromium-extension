@@ -226,11 +226,12 @@
       // Log image dimensions for debugging
       console.log(`Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`);
 
-      // Detect faces in image with lower threshold for better detection
+      // Detect faces in image with higher inputSize for better small face detection
+      // inputSize 320 provides better detection for faces that are small relative to image size
       let detections;
       try {
         detections = await faceapi
-          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.3 }))
+          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
           .withFaceLandmarks()
           .withFaceDescriptors();
       } catch (detectionError) {
