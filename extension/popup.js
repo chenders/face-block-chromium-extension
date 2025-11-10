@@ -14,6 +14,7 @@ const blurIntensitySlider = document.getElementById('blurIntensity');
 const blurValueSpan = document.getElementById('blurValue');
 const matchThresholdSlider = document.getElementById('matchThreshold');
 const thresholdValueSpan = document.getElementById('thresholdValue');
+const detectorRadios = document.querySelectorAll('input[name="detector"]');
 const exportDataBtn = document.getElementById('exportDataBtn');
 const importDataBtn = document.getElementById('importDataBtn');
 const importDataInput = document.getElementById('importDataInput');
@@ -56,6 +57,9 @@ function setupEventListeners() {
   addPersonBtn.addEventListener('click', handleAddPerson);
   blurIntensitySlider.addEventListener('input', handleBlurIntensityChange);
   matchThresholdSlider.addEventListener('input', handleThresholdChange);
+  detectorRadios.forEach(radio => {
+    radio.addEventListener('change', handleDetectorChange);
+  });
   exportDataBtn.addEventListener('click', handleExportData);
   importDataBtn.addEventListener('click', () => importDataInput.click());
   importDataInput.addEventListener('change', handleImportData);
@@ -447,7 +451,7 @@ function handleDeletePerson(personName) {
 
 // Load settings
 function loadSettings() {
-  chrome.storage.sync.get(['blurIntensity', 'matchThreshold'], (result) => {
+  chrome.storage.sync.get(['blurIntensity', 'matchThreshold', 'detector'], (result) => {
     if (result.blurIntensity) {
       blurIntensitySlider.value = result.blurIntensity;
       blurValueSpan.textContent = `${result.blurIntensity}px`;
@@ -456,6 +460,13 @@ function loadSettings() {
       matchThresholdSlider.value = result.matchThreshold;
       thresholdValueSpan.textContent = result.matchThreshold.toFixed(2);
     }
+    // Load detector preference (default to 'hybrid')
+    const detector = result.detector || 'hybrid';
+    detectorRadios.forEach(radio => {
+      if (radio.value === detector) {
+        radio.checked = true;
+      }
+    });
   });
 }
 
@@ -496,6 +507,32 @@ function handleThresholdChange(e) {
         });
       });
     });
+  });
+}
+
+// Handle detector change
+function handleDetectorChange(e) {
+  const detector = e.target.value;
+
+  chrome.storage.sync.set({ detector }, () => {
+    console.log(`Detector changed to: ${detector}`);
+
+    // Notify all content scripts to reload models and settings
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, {
+          type: 'SETTINGS_CHANGED',
+          settings: { detector }
+        }).catch(() => {
+          // Ignore errors for tabs that don't have content script
+        });
+      });
+    });
+
+    // Show status message
+    const modeName = detector === 'tinyFaceDetector' ? 'Fast Mode' :
+                     detector === 'ssdMobilenetv1' ? 'Thorough Mode' : 'Hybrid Mode';
+    showStatus(`Detector changed to ${modeName}. Reload pages for changes to take effect.`, 'success');
   });
 }
 

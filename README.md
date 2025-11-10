@@ -50,14 +50,21 @@ A privacy-focused Chromium extension that automatically blocks images of specifi
 When you visit a webpage:
 1. Extension scans all `<img>` elements
 2. Briefly hides each image while detecting faces
-3. Detects faces using the Tiny Face Detector model
+3. Detects faces using your selected detection mode (Fast, Thorough, or Hybrid)
 4. Compares faces against your stored references
 5. Replaces matches with color-matched placeholders that blend into the page background
 6. Restores non-matching images immediately
 
 Replaced images automatically match the surrounding background color with a subtle border for a seamless appearance. The brief hiding prevents any flash of the original image.
 
+**Hybrid Mode**: For best results, the extension tries the fast TinyFaceDetector first. If no faces are found, it automatically retries with the more thorough SsdMobilenet detector, ensuring maximum coverage of both frontal and profile images.
+
 ### Settings
+
+- **Face Detection Mode**: Choose detection method based on your needs
+  - **Fast Mode (TinyFaceDetector)**: Fastest detection, best for frontal images. May miss profile views.
+  - **Thorough Mode (SsdMobilenet)**: Slower, better at detecting profiles and angled faces. May miss some frontal images.
+  - **Hybrid Mode (Recommended)**: Tries Fast mode first, falls back to Thorough if no faces found. Best overall coverage but uses more resources.
 
 - **Match Threshold** (0.3-0.8): Controls matching strictness
   - **0.5-0.55**: Very strict (fewer false positives)
@@ -126,10 +133,12 @@ Some websites have strict security policies preventing image access. These image
 - Face too small (<50x50 pixels)
 - Poor lighting or low quality
 - Face obscured (sunglasses, mask, etc.)
+- Profile or extreme angle (>45° from camera)
 
 **Solutions:**
 - Use clear, well-lit reference photos
 - Try different photos from various angles
+- Switch to **Hybrid Mode** or **Thorough Mode** in settings for better profile detection
 - Check browser console (F12) for errors
 
 ### Images Not Being Replaced
@@ -160,7 +169,9 @@ Some websites have strict security policies preventing image access. These image
 ### Core Technologies
 
 - **Face Recognition:** [face-api.js](https://github.com/justadudewhohacks/face-api.js) (TensorFlow.js)
-- **Detection Model:** Tiny Face Detector (~190KB)
+- **Detection Models:**
+  - TinyFaceDetector (~190KB) - Fast, optimized for frontal faces
+  - SsdMobilenetv1 (~5.4MB) - Thorough, better for profiles and angled faces
 - **Recognition Model:** FaceNet embeddings (128-dimensional)
 - **Storage:** IndexedDB + chrome.storage.sync
 - **Manifest:** Version 3

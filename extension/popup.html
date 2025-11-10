@@ -379,6 +379,15 @@
       border: 1px solid #f5c6cb;
       display: block;
     }
+
+    .detector-option input[type="radio"]:checked + span {
+      color: #2196f3;
+    }
+
+    .detector-option:has(input[type="radio"]:checked) {
+      border-color: #2196f3 !important;
+      background: #e3f2fd !important;
+    }
   </style>
 </head>
 <body>
@@ -444,6 +453,39 @@
       <div style="font-size: 11px; color: #999; margin-top: 4px;">
         Lower = stricter matching, Higher = more matches
       </div>
+    </div>
+
+    <div class="detector-group" style="margin-top: 20px;">
+      <div style="font-size: 14px; font-weight: 500; margin-bottom: 8px; color: #555;">
+        Face Detection Mode
+      </div>
+      <div style="font-size: 11px; color: #999; margin-bottom: 12px;">
+        Choose detection method based on your needs
+      </div>
+
+      <label class="detector-option" style="display: block; padding: 10px; margin-bottom: 8px; background: #f9f9f9; border-radius: 4px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;">
+        <input type="radio" name="detector" value="tinyFaceDetector" style="margin-right: 8px; cursor: pointer;">
+        <span style="font-weight: 500; color: #333;">Fast Mode (TinyFaceDetector)</span>
+        <div style="font-size: 11px; color: #666; margin-left: 20px; margin-top: 4px;">
+          Fastest detection, best for frontal images. May miss profile views.
+        </div>
+      </label>
+
+      <label class="detector-option" style="display: block; padding: 10px; margin-bottom: 8px; background: #f9f9f9; border-radius: 4px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;">
+        <input type="radio" name="detector" value="ssdMobilenetv1" style="margin-right: 8px; cursor: pointer;">
+        <span style="font-weight: 500; color: #333;">Thorough Mode (SsdMobilenet)</span>
+        <div style="font-size: 11px; color: #666; margin-left: 20px; margin-top: 4px;">
+          Slower, better at profiles. May miss some frontal images.
+        </div>
+      </label>
+
+      <label class="detector-option" style="display: block; padding: 10px; margin-bottom: 8px; background: #f9f9f9; border-radius: 4px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;">
+        <input type="radio" name="detector" value="hybrid" checked style="margin-right: 8px; cursor: pointer;">
+        <span style="font-weight: 500; color: #333;">Hybrid Mode (Recommended)</span>
+        <div style="font-size: 11px; color: #666; margin-left: 20px; margin-top: 4px;">
+          Tries Fast first, falls back to Thorough if needed. Best coverage.
+        </div>
+      </label>
     </div>
 
     <button id="exportDataBtn" style="background: #4caf50; margin-top: 12px;">

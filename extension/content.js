@@ -8,7 +8,7 @@
     blurIntensity: 20,
     matchThreshold: 0.6,
     enabled: true,
-    detector: 'ssdMobilenetv1' // 'tinyFaceDetector' or 'ssdMobilenetv1'
+    detector: 'hybrid' // 'tinyFaceDetector', 'ssdMobilenetv1', or 'hybrid'
   };
 
   let modelsLoaded = false;
@@ -50,10 +50,11 @@
   // Load settings from chrome.storage
   async function loadSettings() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get(['blurIntensity', 'matchThreshold', 'enabled'], (result) => {
+      chrome.storage.sync.get(['blurIntensity', 'matchThreshold', 'enabled', 'detector'], (result) => {
         if (result.blurIntensity) config.blurIntensity = result.blurIntensity;
         if (result.matchThreshold) config.matchThreshold = result.matchThreshold;
         if (result.enabled !== undefined) config.enabled = result.enabled;
+        if (result.detector) config.detector = result.detector;
         resolve();
       });
     });
@@ -66,8 +67,14 @@
     try {
       const MODEL_URL = chrome.runtime.getURL('models');
 
-      // Load the appropriate detector based on config
-      if (config.detector === 'ssdMobilenetv1') {
+      // Load the appropriate detector(s) based on config
+      if (config.detector === 'hybrid') {
+        console.log('Face Block Chromium Extension: Loading hybrid detectors (TinyFace + SsdMobilenet)...');
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL)
+        ]);
+      } else if (config.detector === 'ssdMobilenetv1') {
         console.log('Face Block Chromium Extension: Loading SsdMobilenetv1 detector...');
         await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
       } else {
@@ -238,15 +245,42 @@
       // Detect faces in image using configured detector
       let detections;
       try {
-        // Choose detector options based on configuration
-        const detectorOptions = config.detector === 'ssdMobilenetv1'
-          ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 })
-          : new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
+        if (config.detector === 'hybrid') {
+          // Hybrid mode: try TinyFaceDetector first (fast), then SsdMobilenetv1 (thorough)
+          const tinyDetectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
 
-        detections = await faceapi
-          .detectAllFaces(img, detectorOptions)
-          .withFaceLandmarks()
-          .withFaceDescriptors();
+          detections = await faceapi
+            .detectAllFaces(img, tinyDetectorOptions)
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+
+          if (!detections || detections.length === 0) {
+            // No faces found with TinyFaceDetector, try SsdMobilenetv1
+            console.log(`Face Block Chromium Extension: [${imgId}] TinyFace found nothing, trying SsdMobilenet...`);
+            const ssdDetectorOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
+
+            detections = await faceapi
+              .detectAllFaces(img, ssdDetectorOptions)
+              .withFaceLandmarks()
+              .withFaceDescriptors();
+
+            if (detections && detections.length > 0) {
+              console.log(`Face Block Chromium Extension: [${imgId}] SsdMobilenet detected ${detections.length} face(s) in hybrid fallback`);
+            }
+          } else {
+            console.log(`Face Block Chromium Extension: [${imgId}] TinyFace detected ${detections.length} face(s) in hybrid mode`);
+          }
+        } else {
+          // Single detector mode
+          const detectorOptions = config.detector === 'ssdMobilenetv1'
+            ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 })
+            : new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
+
+          detections = await faceapi
+            .detectAllFaces(img, detectorOptions)
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+        }
       } catch (detectionError) {
         // Handle WebGL/CORS errors silently
         if (detectionError.message && (
@@ -527,6 +561,38 @@
 
         // Reload reference descriptors with new threshold
         loadReferenceDescriptors().then(() => {
+          // Clear processed images and reprocess
+          processedImages.clear();
+
+          // Restore replaced images to their original sources
+          document.querySelectorAll('.face-blurred').forEach(img => {
+            img.classList.remove('face-blurred');
+            if (img.dataset.originalSrc) {
+              img.src = img.dataset.originalSrc;
+              delete img.dataset.originalSrc;
+            }
+            if (img.dataset.originalSrcset) {
+              img.srcset = img.dataset.originalSrcset;
+              delete img.dataset.originalSrcset;
+            }
+            img.style.filter = '';
+            img.style.webkitFilter = '';
+          });
+
+          processExistingImages();
+        });
+      }
+
+      if (message.settings.detector !== undefined) {
+        const oldDetector = config.detector;
+        config.detector = message.settings.detector;
+        console.log(`Face Block Chromium Extension: Detector changed from ${oldDetector} to ${config.detector}`);
+
+        // Reset models to force reload with new detector
+        modelsLoaded = false;
+
+        // Reload models with new detector
+        loadModels().then(() => {
           // Clear processed images and reprocess
           processedImages.clear();
 
