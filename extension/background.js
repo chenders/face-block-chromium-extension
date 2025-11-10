@@ -47,6 +47,14 @@ chrome.declarativeNetRequest.updateDynamicRules({
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Let offscreen document messages pass through without handling
+  if (message.type === 'DETECT_FACES' ||
+      message.type === 'UPDATE_FACE_MATCHER' ||
+      message.type === 'UPDATE_CONFIG') {
+    // Don't handle these - let offscreen document handle them
+    return false;
+  }
+
   handleMessage(message, sender, sendResponse);
   return true; // Keep message channel open for async response
 });
