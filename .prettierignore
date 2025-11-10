@@ -1,0 +1,8 @@
+node_modules/
+extension/libs/
+extension/models/
+playwright-report/
+test-results/
+package-lock.json
+*.min.js
+*.md

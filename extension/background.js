@@ -16,41 +16,47 @@ async function initialize() {
 }
 
 // Set up CORS handling for images
-chrome.declarativeNetRequest.updateDynamicRules({
-  addRules: [{
-    id: 1,
-    priority: 1,
-    action: {
-      type: 'modifyHeaders',
-      responseHeaders: [
-        {
-          header: 'access-control-allow-origin',
-          operation: 'set',
-          value: '*'
+chrome.declarativeNetRequest
+  .updateDynamicRules({
+    addRules: [
+      {
+        id: 1,
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          responseHeaders: [
+            {
+              header: 'access-control-allow-origin',
+              operation: 'set',
+              value: '*',
+            },
+            {
+              header: 'access-control-allow-methods',
+              operation: 'set',
+              value: 'GET, POST, PUT, DELETE, OPTIONS',
+            },
+          ],
         },
-        {
-          header: 'access-control-allow-methods',
-          operation: 'set',
-          value: 'GET, POST, PUT, DELETE, OPTIONS'
-        }
-      ]
-    },
-    condition: {
-      urlFilter: '*',
-      resourceTypes: ['image']
-    }
-  }],
-  removeRuleIds: [1] // Remove existing rule if any
-}).catch(error => {
-  console.log('CORS rule setup:', error.message);
-});
+        condition: {
+          urlFilter: '*',
+          resourceTypes: ['image'],
+        },
+      },
+    ],
+    removeRuleIds: [1], // Remove existing rule if any
+  })
+  .catch(error => {
+    console.log('CORS rule setup:', error.message);
+  });
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Let offscreen document messages pass through without handling
-  if (message.type === 'DETECT_FACES' ||
-      message.type === 'UPDATE_FACE_MATCHER' ||
-      message.type === 'UPDATE_CONFIG') {
+  if (
+    message.type === 'DETECT_FACES' ||
+    message.type === 'UPDATE_FACE_MATCHER' ||
+    message.type === 'UPDATE_CONFIG'
+  ) {
     // Don't handle these - let offscreen document handle them
     return false;
   }
@@ -128,7 +134,9 @@ async function handleAddPerson(data, sendResponse) {
       // Extract descriptors and convert to Float32Array
       const float32Descriptors = descriptorData.map(item => new Float32Array(item.descriptor));
 
-      console.log(`Background: Converted to Float32Array, storing in IndexedDB with quality data...`);
+      console.log(
+        `Background: Converted to Float32Array, storing in IndexedDB with quality data...`
+      );
 
       // Store descriptors with quality metadata in IndexedDB
       const result = await storage.addPerson(personName, float32Descriptors, [], descriptorData);
@@ -141,7 +149,7 @@ async function handleAddPerson(data, sendResponse) {
 
       sendResponse({
         success: true,
-        message: `Added ${personName} with ${descriptorData.length} face descriptor(s)`
+        message: `Added ${personName} with ${descriptorData.length} face descriptor(s)`,
       });
     } else {
       // Old format - just descriptors (backward compatibility)
@@ -160,7 +168,7 @@ async function handleAddPerson(data, sendResponse) {
 
       sendResponse({
         success: true,
-        message: `Added ${personName} with ${descriptors.length} face descriptor(s)`
+        message: `Added ${personName} with ${descriptors.length} face descriptor(s)`,
       });
     }
   } catch (error) {
@@ -177,7 +185,7 @@ async function handleGetPeople(sendResponse) {
     const peopleList = people.map(person => ({
       name: person.personName,
       photoCount: person.photoCount || person.descriptors.length,
-      dateAdded: person.dateAdded
+      dateAdded: person.dateAdded,
     }));
 
     sendResponse({ success: true, people: peopleList });
@@ -224,13 +232,15 @@ async function handleGetReferenceDescriptors(sendResponse) {
       // Convert Float32Arrays to regular arrays for Chrome message passing
       const descriptorArrays = person.descriptors.map((d, idx) => {
         const arr = Array.from(d);
-        console.log(`Background: Descriptor ${idx} - Float32Array length: ${d.length}, Array length: ${arr.length}`);
+        console.log(
+          `Background: Descriptor ${idx} - Float32Array length: ${d.length}, Array length: ${arr.length}`
+        );
         return arr;
       });
 
       return {
         name: person.personName,
-        descriptors: descriptorArrays
+        descriptors: descriptorArrays,
       };
     });
 
@@ -252,7 +262,7 @@ async function handleExportData(sendResponse) {
       personName: person.personName,
       descriptors: person.descriptors.map(d => Array.from(d)),
       photoCount: person.photoCount || person.descriptors.length,
-      dateAdded: person.dateAdded
+      dateAdded: person.dateAdded,
     }));
 
     sendResponse({ success: true, data: exportData });
@@ -291,7 +301,7 @@ async function handleImportData(people, sendResponse) {
 
     sendResponse({
       success: true,
-      message: `Imported ${importedCount} of ${people.length} person(s)`
+      message: `Imported ${importedCount} of ${people.length} person(s)`,
     });
   } catch (error) {
     console.error('Error importing data:', error);
@@ -304,7 +314,7 @@ async function setupOffscreenDocument() {
   // Check if offscreen document already exists
   const existingContexts = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [chrome.runtime.getURL('offscreen.html')]
+    documentUrls: [chrome.runtime.getURL('offscreen.html')],
   });
 
   if (existingContexts.length > 0) {
@@ -316,7 +326,7 @@ async function setupOffscreenDocument() {
   await chrome.offscreen.createDocument({
     url: 'offscreen.html',
     reasons: ['DOM_SCRAPING'], // We need DOM/Canvas for face-api.js
-    justification: 'Face detection requires Canvas/WebGL APIs not available in service workers'
+    justification: 'Face detection requires Canvas/WebGL APIs not available in service workers',
   });
 
   console.log('Offscreen document created for face detection');

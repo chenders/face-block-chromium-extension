@@ -7,7 +7,11 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "lint": "eslint extension/**/*.js tests/**/*.js",
+    "lint:fix": "eslint extension/**/*.js tests/**/*.js --fix",
+    "format": "prettier --write \"extension/**/*.{js,html,css,json}\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"extension/**/*.{js,html,css,json}\" \"tests/**/*.js\""
   },
   "keywords": [
     "chrome-extension",
@@ -17,6 +21,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.40.0"
+    "@playwright/test": "^1.40.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2"
   }
 }

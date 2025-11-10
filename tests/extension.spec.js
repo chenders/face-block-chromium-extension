@@ -86,7 +86,9 @@ test.describe('Face Block Chromium Extension', () => {
     const page = await browser.newPage();
 
     // Try to load a model file
-    const response = await page.goto(`chrome-extension://${extensionId}/models/tiny_face_detector_model-weights_manifest.json`);
+    const response = await page.goto(
+      `chrome-extension://${extensionId}/models/tiny_face_detector_model-weights_manifest.json`
+    );
     expect(response.ok()).toBe(true);
 
     const json = await response.json();
@@ -226,7 +228,9 @@ test.describe('Face Block Chromium Extension', () => {
     const page = await browser.newPage();
 
     // Check that SsdMobilenet model manifest exists
-    const response = await page.goto(`chrome-extension://${extensionId}/models/ssd_mobilenetv1_model-weights_manifest.json`);
+    const response = await page.goto(
+      `chrome-extension://${extensionId}/models/ssd_mobilenetv1_model-weights_manifest.json`
+    );
     expect(response.ok()).toBe(true);
 
     const json = await response.json();

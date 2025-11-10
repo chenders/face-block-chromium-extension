@@ -164,7 +164,7 @@ test.describe('Settings and Configuration', () => {
     const dimensions = await page.evaluate(() => {
       return {
         width: document.body.scrollWidth,
-        height: document.body.scrollHeight
+        height: document.body.scrollHeight,
       };
     });
 

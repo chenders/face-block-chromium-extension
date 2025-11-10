@@ -34,13 +34,16 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
       <html>
         <body style="background: white;">
           <div id="image-container">
-            ${Array.from({ length: 10 }, (_, i) => `
+            ${Array.from(
+              { length: 10 },
+              (_, i) => `
               <img id="img-${i}"
                    src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
                    style="width: 259px; height: 180px; display: inline-block; margin: 5px;"
                    data-deferred="1"
                    alt="Image ${i}">
-            `).join('')}
+            `
+            ).join('')}
           </div>
         </body>
       </html>
@@ -67,13 +70,13 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
     await page.waitForTimeout(2000);
 
     // Should have skipped placeholders initially
-    const hasPlaceholderSkipLog = logs.some(log =>
-      log.includes('too small') && log.includes('natural:1x1')
+    const hasPlaceholderSkipLog = logs.some(
+      log => log.includes('too small') && log.includes('natural:1x1')
     );
 
     // Should have processed real images
-    const hasProcessingLog = logs.some(log =>
-      log.includes('Processing') || log.includes('Scanning')
+    const hasProcessingLog = logs.some(
+      log => log.includes('Processing') || log.includes('Scanning')
     );
 
     expect(hasPlaceholderSkipLog).toBe(true);
@@ -97,12 +100,15 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
       <html>
         <body style="background: white;">
           <div id="image-container">
-            ${Array.from({ length: 20 }, (_, i) => `
+            ${Array.from(
+              { length: 20 },
+              (_, i) => `
               <img id="img-${i}"
                    src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
                    style="width: 200px; height: 150px; display: inline-block;"
                    alt="Image ${i}">
-            `).join('')}
+            `
+            ).join('')}
           </div>
         </body>
       </html>
@@ -154,10 +160,9 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
     await page.waitForTimeout(2000);
 
     // Should skip due to natural dimensions being 1x1
-    const hasSkipLog = logs.some(log =>
-      log.includes('too small') &&
-      log.includes('display:46x46') &&
-      log.includes('natural:1x1')
+    const hasSkipLog = logs.some(
+      log =>
+        log.includes('too small') && log.includes('display:46x46') && log.includes('natural:1x1')
     );
 
     expect(hasSkipLog).toBe(true);
@@ -188,8 +193,8 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
     await page.waitForTimeout(3000);
 
     // Both should be processed (30x30 is at threshold)
-    const processingLogs = logs.filter(log =>
-      log.includes('Image dimensions') && !log.includes('too small')
+    const processingLogs = logs.filter(
+      log => log.includes('Image dimensions') && !log.includes('too small')
     );
 
     expect(processingLogs.length).toBeGreaterThan(0);
@@ -296,7 +301,9 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
       <html>
         <body style="background: white;">
           <div id="results">
-            ${Array.from({ length: 50 }, (_, i) => `
+            ${Array.from(
+              { length: 50 },
+              (_, i) => `
               <div style="display: inline-block; margin: 5px;">
                 <img id="img-${i}"
                      src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
@@ -304,7 +311,8 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
                      data-deferred="1"
                      alt="Result ${i}">
               </div>
-            `).join('')}
+            `
+            ).join('')}
           </div>
         </body>
       </html>
@@ -317,8 +325,8 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
     expect(placeholderSkipCount).toBeGreaterThanOrEqual(45); // Allow some margin
 
     // Should not have tried expensive face detection on them
-    const hasDetectionLog = logs.some(log =>
-      log.includes('TinyFace') && log.includes('data:image/gif')
+    const hasDetectionLog = logs.some(
+      log => log.includes('TinyFace') && log.includes('data:image/gif')
     );
     expect(hasDetectionLog).toBe(false);
 
@@ -341,13 +349,16 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
       <html>
         <body style="background: white;">
           <div id="results">
-            ${Array.from({ length: 5 }, (_, i) => `
+            ${Array.from(
+              { length: 5 },
+              (_, i) => `
               <img id="img-${i}"
                    src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
                    style="width: 259px; height: 180px; display: inline-block; margin: 5px;"
                    data-deferred="1"
                    alt="Result ${i}">
-            `).join('')}
+            `
+            ).join('')}
           </div>
         </body>
       </html>
@@ -371,8 +382,8 @@ test.describe('Google Images Lazy Loading Scenarios', () => {
     await page.waitForTimeout(1000);
 
     // Should have processed the real images
-    const hasProcessingLog = logs.some(log =>
-      log.includes('Image dimensions') && log.includes('259x180')
+    const hasProcessingLog = logs.some(
+      log => log.includes('Image dimensions') && log.includes('259x180')
     );
 
     expect(hasProcessingLog).toBe(true);

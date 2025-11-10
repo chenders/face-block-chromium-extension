@@ -2,7 +2,7 @@
 // This script hides all images immediately before they load, then the main content script
 // will restore visibility for non-matching images after processing
 
-(function() {
+(function () {
   'use strict';
 
   // Inject CSS to hide all images initially

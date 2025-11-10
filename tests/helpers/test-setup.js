@@ -14,10 +14,7 @@ import fs from 'fs';
  * @returns {Promise<Object>} - { browser, extensionId, userDataDir }
  */
 export async function setupExtensionContext(options = {}) {
-  const {
-    needsExtensionId = true,
-    loadDelay = 2000
-  } = options;
+  const { needsExtensionId = true, loadDelay = 2000 } = options;
 
   // Create temporary directory for user data
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
@@ -26,10 +23,7 @@ export async function setupExtensionContext(options = {}) {
   const pathToExtension = path.join(process.cwd(), 'extension');
   const browser = await chromium.launchPersistentContext(userDataDir, {
     headless: false, // Extensions don't work in headless mode
-    args: [
-      `--disable-extensions-except=${pathToExtension}`,
-      `--load-extension=${pathToExtension}`,
-    ],
+    args: [`--disable-extensions-except=${pathToExtension}`, `--load-extension=${pathToExtension}`],
   });
 
   // Wait for extension to load
@@ -82,10 +76,11 @@ export function createExtensionFixture(options = {}) {
   const { test } = require('@playwright/test');
 
   return test.extend({
+    // eslint-disable-next-line no-empty-pattern
     context: async ({}, use) => {
       const ctx = await setupExtensionContext(options);
       await use(ctx);
       await cleanupExtensionContext(ctx);
-    }
+    },
   });
 }

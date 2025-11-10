@@ -52,8 +52,8 @@ test.describe('Dynamic Src Changes', () => {
     await page.waitForTimeout(500);
 
     // Verify image was re-processed
-    const hasProcessingLog = logs.some(log =>
-      log.includes('Processing') || log.includes('Scanning')
+    const hasProcessingLog = logs.some(
+      log => log.includes('Processing') || log.includes('Scanning')
     );
 
     expect(hasProcessingLog).toBe(true);
@@ -195,8 +195,10 @@ test.describe('Dynamic Src Changes', () => {
     const page = await browser.newPage();
     const logs = [];
     page.on('console', msg => {
-      if (msg.text().includes('Face Block') &&
-          (msg.text().includes('not loaded yet') || msg.text().includes('Processing'))) {
+      if (
+        msg.text().includes('Face Block') &&
+        (msg.text().includes('not loaded yet') || msg.text().includes('Processing'))
+      ) {
         logs.push(msg.text());
       }
     });
@@ -277,8 +279,8 @@ test.describe('Dynamic Src Changes', () => {
     await page.waitForTimeout(500);
 
     // Should have processed the real image
-    const hasProcessingLog = logs.some(log =>
-      log.includes('Processing') || log.includes('Scanning')
+    const hasProcessingLog = logs.some(
+      log => log.includes('Processing') || log.includes('Scanning')
     );
 
     expect(hasProcessingLog).toBe(true);
@@ -312,9 +314,7 @@ test.describe('Dynamic Src Changes', () => {
     await page.waitForTimeout(2000);
 
     // Should have log about skipping due to natural dimensions
-    const hasSkipLog = logs.some(log =>
-      log.includes('too small') && log.includes('natural:1x1')
-    );
+    const hasSkipLog = logs.some(log => log.includes('too small') && log.includes('natural:1x1'));
 
     expect(hasSkipLog).toBe(true);
 
@@ -346,12 +346,10 @@ test.describe('Dynamic Src Changes', () => {
     await page.waitForTimeout(3000);
 
     // Should have processing logs, not "too small" logs
-    const hasProcessingLog = logs.some(log =>
-      log.includes('Processing') || log.includes('Image dimensions')
+    const hasProcessingLog = logs.some(
+      log => log.includes('Processing') || log.includes('Image dimensions')
     );
-    const hasSkipLog = logs.some(log =>
-      log.includes('too small')
-    );
+    const hasSkipLog = logs.some(log => log.includes('too small'));
 
     expect(hasProcessingLog).toBe(true);
     expect(hasSkipLog).toBe(false);

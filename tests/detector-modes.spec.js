@@ -43,9 +43,10 @@ test.describe('Detector Modes', () => {
     const logText = logs.join('\n');
 
     // In hybrid mode (default), should see loading message for both detectors
-    const hasHybridLoading = logText.includes('Loading hybrid detectors') ||
-                             logText.includes('TinyFace') ||
-                             logText.includes('SsdMobilenet');
+    const hasHybridLoading =
+      logText.includes('Loading hybrid detectors') ||
+      logText.includes('TinyFace') ||
+      logText.includes('SsdMobilenet');
 
     expect(hasHybridLoading).toBe(true);
 
@@ -78,8 +79,9 @@ test.describe('Detector Modes', () => {
     console.log('TinyFaceDetector logs:', logText);
 
     // Verify TinyFaceDetector loads correctly
-    const hasTinyFaceLoading = logText.includes('Loading TinyFaceDetector') ||
-                                logText.includes('detector: tinyFaceDetector');
+    const hasTinyFaceLoading =
+      logText.includes('Loading TinyFaceDetector') ||
+      logText.includes('detector: tinyFaceDetector');
     const hasModelsLoaded = logText.includes('Models loaded');
 
     expect(hasTinyFaceLoading).toBe(true);
@@ -122,8 +124,8 @@ test.describe('Detector Modes', () => {
     console.log('SsdMobilenet logs:', logText);
 
     // Verify SsdMobilenet loads correctly
-    const hasSsdLoading = logText.includes('Loading SsdMobilenetv1') ||
-                           logText.includes('detector: ssdMobilenetv1');
+    const hasSsdLoading =
+      logText.includes('Loading SsdMobilenetv1') || logText.includes('detector: ssdMobilenetv1');
     const hasModelsLoaded = logText.includes('Models loaded');
 
     expect(hasSsdLoading).toBe(true);
@@ -166,10 +168,10 @@ test.describe('Detector Modes', () => {
     console.log('Hybrid mode logs:', logText);
 
     // In hybrid mode, should load both detectors
-    const hasHybridLoading = logText.includes('Loading hybrid detectors') ||
-                             logText.includes('TinyFace + SsdMobilenet');
-    const hasModelsLoaded = logText.includes('Models loaded') &&
-                             logText.includes('detector: hybrid');
+    const hasHybridLoading =
+      logText.includes('Loading hybrid detectors') || logText.includes('TinyFace + SsdMobilenet');
+    const hasModelsLoaded =
+      logText.includes('Models loaded') && logText.includes('detector: hybrid');
 
     expect(hasHybridLoading).toBe(true);
     expect(hasModelsLoaded).toBe(true);
@@ -183,7 +185,9 @@ test.describe('Detector Modes', () => {
     await page.waitForTimeout(1000);
 
     // Initially no status message should be visible
-    const initialStatus = await page.$eval('#statusMessage', el => el.classList.contains('success'));
+    const initialStatus = await page.$eval('#statusMessage', el =>
+      el.classList.contains('success')
+    );
     expect(initialStatus).toBe(false);
 
     // Change detector
@@ -191,7 +195,9 @@ test.describe('Detector Modes', () => {
     await page.waitForTimeout(500);
 
     // Status message should now be visible
-    const statusVisible = await page.$eval('#statusMessage', el => el.classList.contains('success'));
+    const statusVisible = await page.$eval('#statusMessage', el =>
+      el.classList.contains('success')
+    );
     expect(statusVisible).toBe(true);
 
     // Status message should mention the detector change
@@ -250,9 +256,10 @@ test.describe('Detector Modes', () => {
     console.log('Logs after detector change:', logText);
 
     // Should see detector changed message
-    const hasDetectorChange = logText.includes('Detector changed') ||
-                               logText.includes('Loading') ||
-                               logText.includes('Models loaded');
+    const hasDetectorChange =
+      logText.includes('Detector changed') ||
+      logText.includes('Loading') ||
+      logText.includes('Models loaded');
 
     expect(hasDetectorChange).toBe(true);
 

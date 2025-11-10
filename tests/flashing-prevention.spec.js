@@ -21,7 +21,7 @@ test.describe('Flashing Prevention', () => {
 
     // Check that preload styles exist
     await page.goto('https://en.wikipedia.org/wiki/Main_Page', {
-      waitUntil: 'domcontentloaded'
+      waitUntil: 'domcontentloaded',
     });
 
     // Wait a moment for preload script
@@ -46,7 +46,7 @@ test.describe('Flashing Prevention', () => {
 
     // Navigate to a test page
     await page.goto('https://en.wikipedia.org/wiki/Main_Page', {
-      waitUntil: 'domcontentloaded'
+      waitUntil: 'domcontentloaded',
     });
 
     // Check images immediately after DOM loads
@@ -56,7 +56,7 @@ test.describe('Flashing Prevention', () => {
       imgs.slice(0, 5).map(img => ({
         src: img.src.substring(0, 50),
         opacity: window.getComputedStyle(img).opacity,
-        hasProcessed: img.hasAttribute('data-face-block-processed')
+        hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
 
@@ -75,7 +75,7 @@ test.describe('Flashing Prevention', () => {
         src: img.src.substring(0, 50),
         opacity: window.getComputedStyle(img).opacity,
         hasProcessed: img.hasAttribute('data-face-block-processed'),
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension'
+        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
       }))
     );
 
@@ -84,8 +84,8 @@ test.describe('Flashing Prevention', () => {
     // After processing, images should either be:
     // 1. Visible with data-face-block-processed (no match)
     // 2. Blocked (replaced with SVG)
-    const properlyProcessed = processedImages.filter(img =>
-      img.hasProcessed || img.isBlocked
+    const properlyProcessed = processedImages.filter(
+      img => img.hasProcessed || img.isBlocked
     ).length;
 
     console.log(`${properlyProcessed}/${processedImages.length} images properly processed`);
@@ -117,8 +117,10 @@ test.describe('Flashing Prevention', () => {
     // Listen for processing logs
     const timestamps = [];
     page.on('console', msg => {
-      if (msg.text().includes('Face Block') &&
-          (msg.text().includes('Processing') || msg.text().includes('Scanning'))) {
+      if (
+        msg.text().includes('Face Block') &&
+        (msg.text().includes('Processing') || msg.text().includes('Scanning'))
+      ) {
         timestamps.push(Date.now());
       }
     });

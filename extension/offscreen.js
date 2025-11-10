@@ -9,7 +9,7 @@ let faceMatcher = null;
 let config = {
   matchThreshold: 0.6,
   enabled: true,
-  detector: 'hybrid'
+  detector: 'hybrid',
 };
 
 // Load models immediately when offscreen document loads
@@ -35,13 +35,15 @@ let config = {
     // Lazy-load SsdMobilenet for hybrid/thorough modes
     // This is loaded in background to be ready when needed
     console.log('Face Block: Loading SsdMobilenetv1 in background...');
-    faceapi.nets.ssdMobilenetv1.loadFromUri('./models').then(() => {
-      ssdMobilenetLoaded = true;
-      console.log('Face Block: SsdMobilenetv1 loaded (available for fallback)');
-    }).catch(error => {
-      console.warn('Face Block: SsdMobilenet loading failed:', error);
-    });
-
+    faceapi.nets.ssdMobilenetv1
+      .loadFromUri('./models')
+      .then(() => {
+        ssdMobilenetLoaded = true;
+        console.log('Face Block: SsdMobilenetv1 loaded (available for fallback)');
+      })
+      .catch(error => {
+        console.warn('Face Block: SsdMobilenet loading failed:', error);
+      });
   } catch (error) {
     console.error('Face Block: Error loading models in offscreen document:', error);
   }
@@ -52,12 +54,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'DETECT_FACES') {
     handleDetectFaces(message.data, sendResponse);
     return true; // Keep channel open for async response
-  }
-  else if (message.type === 'UPDATE_FACE_MATCHER') {
+  } else if (message.type === 'UPDATE_FACE_MATCHER') {
     handleUpdateFaceMatcher(message.data, sendResponse);
     return true;
-  }
-  else if (message.type === 'UPDATE_CONFIG') {
+  } else if (message.type === 'UPDATE_CONFIG') {
     handleUpdateConfig(message.data, sendResponse);
     return true;
   }
@@ -132,14 +132,19 @@ async function handleDetectFaces(data, sendResponse) {
       img.src = imageDataUrl;
     });
 
-    console.log(`Face Block: [${imgId}] Detecting faces with ${detector || config.detector} mode...`);
+    console.log(
+      `Face Block: [${imgId}] Detecting faces with ${detector || config.detector} mode...`
+    );
 
     let detections = null;
     const detectorMode = detector || config.detector;
 
     if (detectorMode === 'hybrid') {
       // Try TinyFaceDetector first
-      const tinyOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
+      const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 320,
+        scoreThreshold: 0.3,
+      });
 
       detections = await faceapi
         .detectAllFaces(img, tinyOptions)
@@ -166,7 +171,9 @@ async function handleDetectFaces(data, sendResponse) {
             .withFaceDescriptors();
 
           if (detections && detections.length > 0) {
-            console.log(`Face Block: [${imgId}] SsdMobilenet detected ${detections.length} face(s)`);
+            console.log(
+              `Face Block: [${imgId}] SsdMobilenet detected ${detections.length} face(s)`
+            );
           }
         }
       } else {
@@ -174,9 +181,10 @@ async function handleDetectFaces(data, sendResponse) {
       }
     } else {
       // Single detector mode
-      const options = detectorMode === 'ssdMobilenetv1'
-        ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 })
-        : new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
+      const options =
+        detectorMode === 'ssdMobilenetv1'
+          ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 })
+          : new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
 
       detections = await faceapi
         .detectAllFaces(img, options)
@@ -203,9 +211,11 @@ async function handleDetectFaces(data, sendResponse) {
           matches.push({
             label: bestMatch.label,
             distance: bestMatch.distance,
-            faceIndex: i
+            faceIndex: i,
           });
-          console.log(`Face Block: [${imgId}] Match found: ${bestMatch.label} (distance: ${bestMatch.distance.toFixed(3)})`);
+          console.log(
+            `Face Block: [${imgId}] Match found: ${bestMatch.label} (distance: ${bestMatch.distance.toFixed(3)})`
+          );
         }
       }
     }
@@ -213,9 +223,8 @@ async function handleDetectFaces(data, sendResponse) {
     sendResponse({
       success: true,
       facesDetected: detections.length,
-      matches: matches
+      matches: matches,
     });
-
   } catch (error) {
     console.error('Face Block: Detection error:', error);
     sendResponse({ success: false, error: error.message });

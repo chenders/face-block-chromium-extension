@@ -1,13 +1,13 @@
 // content.js - Main content script for face detection and blurring
 
-(async function() {
+(async function () {
   'use strict';
 
   // Configuration
   let config = {
     matchThreshold: 0.6,
     enabled: true,
-    detector: 'hybrid' // 'tinyFaceDetector', 'ssdMobilenetv1', or 'hybrid'
+    detector: 'hybrid', // 'tinyFaceDetector', 'ssdMobilenetv1', or 'hybrid'
   };
 
   let hasReferenceData = false;
@@ -39,7 +39,9 @@
       if (hasReferenceData) {
         console.log('Face Block Chromium Extension: Initialized successfully');
       } else {
-        console.log('Face Block Chromium Extension: No reference faces stored yet - images will be shown normally');
+        console.log(
+          'Face Block Chromium Extension: No reference faces stored yet - images will be shown normally'
+        );
       }
     } catch (error) {
       console.error('Face Block Chromium Extension: Initialization error:', error);
@@ -48,27 +50,30 @@
 
   // Send config to offscreen document
   async function updateOffscreenConfig() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
-        type: 'UPDATE_CONFIG',
-        data: {
-          matchThreshold: config.matchThreshold,
-          enabled: config.enabled,
-          detector: config.detector
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage(
+        {
+          type: 'UPDATE_CONFIG',
+          data: {
+            matchThreshold: config.matchThreshold,
+            enabled: config.enabled,
+            detector: config.detector,
+          },
+        },
+        response => {
+          if (response && response.success) {
+            console.log('Face Block Chromium Extension: Config sent to offscreen document');
+          }
+          resolve();
         }
-      }, (response) => {
-        if (response && response.success) {
-          console.log('Face Block Chromium Extension: Config sent to offscreen document');
-        }
-        resolve();
-      });
+      );
     });
   }
 
   // Load settings from chrome.storage
   async function loadSettings() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(['matchThreshold', 'enabled', 'detector'], (result) => {
+    return new Promise(resolve => {
+      chrome.storage.sync.get(['matchThreshold', 'enabled', 'detector'], result => {
         if (result.matchThreshold) config.matchThreshold = result.matchThreshold;
         if (result.enabled !== undefined) config.enabled = result.enabled;
         if (result.detector) config.detector = result.detector;
@@ -79,36 +84,53 @@
 
   // Load reference descriptors from background and send to offscreen document
   async function loadReferenceDescriptors() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: 'GET_REFERENCE_DESCRIPTORS' }, async (response) => {
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'GET_REFERENCE_DESCRIPTORS' }, async response => {
         console.log('Content: Received reference data response:', response);
 
-        if (response && response.success && response.referenceData && response.referenceData.length > 0) {
+        if (
+          response &&
+          response.success &&
+          response.referenceData &&
+          response.referenceData.length > 0
+        ) {
           hasReferenceData = true;
-          console.log(`Face Block Chromium Extension: Sending ${response.referenceData.length} reference face(s) to offscreen document`);
+          console.log(
+            `Face Block Chromium Extension: Sending ${response.referenceData.length} reference face(s) to offscreen document`
+          );
 
           // Send reference data to offscreen document
-          chrome.runtime.sendMessage({
-            type: 'UPDATE_FACE_MATCHER',
-            data: response.referenceData
-          }, (updateResponse) => {
-            if (updateResponse && updateResponse.success) {
-              console.log('Face Block Chromium Extension: Reference data sent to offscreen document successfully');
-            } else {
-              console.error('Face Block Chromium Extension: Failed to update offscreen document face matcher');
+          chrome.runtime.sendMessage(
+            {
+              type: 'UPDATE_FACE_MATCHER',
+              data: response.referenceData,
+            },
+            updateResponse => {
+              if (updateResponse && updateResponse.success) {
+                console.log(
+                  'Face Block Chromium Extension: Reference data sent to offscreen document successfully'
+                );
+              } else {
+                console.error(
+                  'Face Block Chromium Extension: Failed to update offscreen document face matcher'
+                );
+              }
+              resolve();
             }
-            resolve();
-          });
+          );
         } else {
           hasReferenceData = false;
           console.log('Face Block Chromium Extension: No reference data available');
           // Clear face matcher in offscreen document
-          chrome.runtime.sendMessage({
-            type: 'UPDATE_FACE_MATCHER',
-            data: []
-          }, () => {
-            resolve();
-          });
+          chrome.runtime.sendMessage(
+            {
+              type: 'UPDATE_FACE_MATCHER',
+              data: [],
+            },
+            () => {
+              resolve();
+            }
+          );
         }
       });
     });
@@ -140,20 +162,23 @@
 
       // Send to offscreen document for detection
       return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          type: 'DETECT_FACES',
-          data: {
-            imageDataUrl: imageData,
-            imgId: imgId,
-            detector: config.detector
+        chrome.runtime.sendMessage(
+          {
+            type: 'DETECT_FACES',
+            data: {
+              imageDataUrl: imageData,
+              imgId: imgId,
+              detector: config.detector,
+            },
+          },
+          response => {
+            if (response && response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response?.error || 'Detection failed'));
+            }
           }
-        }, (response) => {
-          if (response && response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response?.error || 'Detection failed'));
-          }
-        });
+        );
       });
     } catch (error) {
       throw error;
@@ -207,7 +232,11 @@
 
     // If image not loaded yet, don't mark as processed - we need to check it again when it loads
     if (!img.complete) {
-      console.debug('Face Block Chromium Extension: Skipping image (not loaded yet):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
+      console.debug(
+        'Face Block Chromium Extension: Skipping image (not loaded yet):',
+        img.src.substring(0, 100),
+        `${displayWidth}x${displayHeight}`
+      );
       img.style.opacity = '';
 
       // Add load listener to process again when image loads
@@ -219,9 +248,17 @@
 
     // If image is loaded but too small (check BOTH display and natural dimensions)
     // This catches 1x1 placeholders that are scaled up by CSS
-    if (displayWidth < MIN_SIZE || displayHeight < MIN_SIZE ||
-        naturalWidth < MIN_SIZE || naturalHeight < MIN_SIZE) {
-      console.debug('Face Block Chromium Extension: Skipping image (too small):', img.src.substring(0, 100), `display:${displayWidth}x${displayHeight} natural:${naturalWidth}x${naturalHeight}`);
+    if (
+      displayWidth < MIN_SIZE ||
+      displayHeight < MIN_SIZE ||
+      naturalWidth < MIN_SIZE ||
+      naturalHeight < MIN_SIZE
+    ) {
+      console.debug(
+        'Face Block Chromium Extension: Skipping image (too small):',
+        img.src.substring(0, 100),
+        `display:${displayWidth}x${displayHeight} natural:${naturalWidth}x${naturalHeight}`
+      );
       processedImages.set(img, img.src); // Store src to detect changes
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
@@ -230,7 +267,10 @@
 
     // Additional check for invalid dimensions
     if (img.naturalWidth === 0 || img.naturalHeight === 0) {
-      console.debug('Face Block Chromium Extension: Skipping image with 0 dimensions:', img.src.substring(0, 100));
+      console.debug(
+        'Face Block Chromium Extension: Skipping image with 0 dimensions:',
+        img.src.substring(0, 100)
+      );
       processedImages.set(img, img.src);
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
@@ -238,8 +278,10 @@
     }
 
     // Skip if this is our own replacement SVG (has face-blurred class and data/blob URI)
-    if ((img.src.startsWith('data:') || img.src.startsWith('blob:')) &&
-        img.classList.contains('face-blurred')) {
+    if (
+      (img.src.startsWith('data:') || img.src.startsWith('blob:')) &&
+      img.classList.contains('face-blurred')
+    ) {
       return;
     }
 
@@ -257,7 +299,9 @@
 
     try {
       // Log image dimensions for debugging
-      console.log(`Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`);
+      console.log(
+        `Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`
+      );
 
       // Detect faces using offscreen document
       let result;
@@ -265,13 +309,17 @@
         result = await detectFacesOffscreen(img, imgId);
       } catch (detectionError) {
         // Handle CORS errors silently
-        if (detectionError.message && (
-          detectionError.message.includes('texImage2D') ||
-          detectionError.message.includes('Tainted canvas') ||
-          detectionError.message.includes('cross-origin') ||
-          detectionError.message.includes('Failed to load image')
-        )) {
-          console.debug('Face Block Chromium Extension: CORS-restricted image, skipping:', img.src.substring(0, 100));
+        if (
+          detectionError.message &&
+          (detectionError.message.includes('texImage2D') ||
+            detectionError.message.includes('Tainted canvas') ||
+            detectionError.message.includes('cross-origin') ||
+            detectionError.message.includes('Failed to load image'))
+        ) {
+          console.debug(
+            'Face Block Chromium Extension: CORS-restricted image, skipping:',
+            img.src.substring(0, 100)
+          );
           // Restore visibility for CORS-restricted images
           if (img.dataset.wasHidden) {
             img.setAttribute('data-face-block-processed', 'true');
@@ -285,12 +333,16 @@
       }
 
       // Log detection results
-      console.log(`Face Block Chromium Extension: [${imgId}] Detected ${result.facesDetected} face(s)`);
+      console.log(
+        `Face Block Chromium Extension: [${imgId}] Detected ${result.facesDetected} face(s)`
+      );
 
       if (result.facesDetected > 0 && result.matches && result.matches.length > 0) {
         // Log all matches
         result.matches.forEach((match, idx) => {
-          console.log(`Face Block Chromium Extension: [${imgId}] Face ${idx + 1}: ${match.label} (distance: ${match.distance.toFixed(3)}, threshold: ${config.matchThreshold})`);
+          console.log(
+            `Face Block Chromium Extension: [${imgId}] Face ${idx + 1}: ${match.label} (distance: ${match.distance.toFixed(3)}, threshold: ${config.matchThreshold})`
+          );
         });
 
         // Check if should block
@@ -300,13 +352,17 @@
           // Match found - replace image with blank
           blurImage(img, bgRgb);
           const matchedPerson = result.matches.find(m => m.label !== 'unknown');
-          console.log(`Face Block Chromium Extension: [${imgId}] ✓ BLOCKED (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`);
+          console.log(
+            `Face Block Chromium Extension: [${imgId}] ✓ BLOCKED (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`
+          );
         } else {
           // No match - restore visibility
           img.setAttribute('data-face-block-processed', 'true');
           img.style.opacity = '';
           delete img.dataset.wasHidden;
-          console.log(`Face Block Chromium Extension: [${imgId}] No match - faces detected but distances too high or all unknown`);
+          console.log(
+            `Face Block Chromium Extension: [${imgId}] No match - faces detected but distances too high or all unknown`
+          );
         }
       } else {
         // No faces detected - restore visibility
@@ -322,11 +378,15 @@
       processedImages.set(img, img.src);
     } catch (error) {
       // Log all errors for debugging
-      console.warn(`Face Block Chromium Extension: [${imgId}] Error processing image:`, error.name, error.message);
+      console.warn(
+        `Face Block Chromium Extension: [${imgId}] Error processing image:`,
+        error.name,
+        error.message
+      );
       // Restore visibility on error
       if (img.dataset.wasHidden) {
         img.setAttribute('data-face-block-processed', 'true');
-            img.style.opacity = '';
+        img.style.opacity = '';
         delete img.dataset.wasHidden;
       }
       processedImages.set(img, img.src); // Mark as processed to avoid retry
@@ -376,15 +436,11 @@
       return [
         Math.min(255, Math.floor(r * 1.3)),
         Math.min(255, Math.floor(g * 1.3)),
-        Math.min(255, Math.floor(b * 1.3))
+        Math.min(255, Math.floor(b * 1.3)),
       ];
     } else {
       // Light background - darken by 15%
-      return [
-        Math.floor(r * 0.85),
-        Math.floor(g * 0.85),
-        Math.floor(b * 0.85)
-      ];
+      return [Math.floor(r * 0.85), Math.floor(g * 0.85), Math.floor(b * 0.85)];
     }
   }
 
@@ -395,7 +451,10 @@
     const width = img.naturalWidth || img.width || 100;
     const height = img.naturalHeight || img.height || 100;
 
-    console.log(`Face Block Chromium Extension: Replacing image (${width}x${height}):`, img.src.substring(0, 100));
+    console.log(
+      `Face Block Chromium Extension: Replacing image (${width}x${height}):`,
+      img.src.substring(0, 100)
+    );
 
     // Use pre-detected background color
     const borderRgb = getBorderColor(bgRgb);
@@ -403,7 +462,9 @@
     const bgColorStr = `rgb(${bgRgb[0]}, ${bgRgb[1]}, ${bgRgb[2]})`;
     const borderColorStr = `rgb(${borderRgb[0]}, ${borderRgb[1]}, ${borderRgb[2]})`;
 
-    console.log(`Face Block Chromium Extension: Background color: ${bgColorStr}, Border color: ${borderColorStr}`);
+    console.log(
+      `Face Block Chromium Extension: Background color: ${bgColorStr}, Border color: ${borderColorStr}`
+    );
 
     // Create SVG with matching background color and subtle border
     const borderWidth = Math.max(2, Math.min(8, Math.floor(Math.min(width, height) * 0.02))); // 2% of smallest dimension, min 2px, max 8px
@@ -423,7 +484,7 @@
     // Restore visibility now that we have the replacement
     if (img.dataset.wasHidden) {
       img.setAttribute('data-face-block-processed', 'true');
-            img.style.opacity = '';
+      img.style.opacity = '';
       delete img.dataset.wasHidden;
     }
 
@@ -439,7 +500,7 @@
     let debounceTimer;
     const debounceDelay = 100;
 
-    const callback = (mutations) => {
+    const callback = mutations => {
       clearTimeout(debounceTimer);
 
       debounceTimer = setTimeout(async () => {
@@ -488,13 +549,15 @@
         });
 
         if (newImages.length > 0) {
-          console.log(`Face Block Chromium Extension: Processing ${newImages.length} new/updated image(s)`);
+          console.log(
+            `Face Block Chromium Extension: Processing ${newImages.length} new/updated image(s)`
+          );
 
           // Process new/updated images
           for (const img of newImages) {
             // Wait for image to load if not loaded yet
             if (!img.complete) {
-              await new Promise((resolve) => {
+              await new Promise(resolve => {
                 img.addEventListener('load', resolve, { once: true });
                 img.addEventListener('error', resolve, { once: true });
                 // Timeout after 5 seconds
@@ -515,7 +578,7 @@
       subtree: true,
       attributes: true,
       attributeFilter: ['src', 'srcset', 'style', 'class', 'width', 'height'],
-      attributeOldValue: false
+      attributeOldValue: false,
     });
 
     console.log('Face Block Chromium Extension: MutationObserver started (watching attributes)');
@@ -554,7 +617,9 @@
       if (message.settings.detector !== undefined) {
         const oldDetector = config.detector;
         config.detector = message.settings.detector;
-        console.log(`Face Block Chromium Extension: Detector changed from ${oldDetector} to ${config.detector}`);
+        console.log(
+          `Face Block Chromium Extension: Detector changed from ${oldDetector} to ${config.detector}`
+        );
 
         // Reset models to force reload with new detector
         modelsLoaded = false;

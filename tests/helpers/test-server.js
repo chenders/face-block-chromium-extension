@@ -27,7 +27,7 @@ export async function startTestServer() {
 
             res.writeHead(200, {
               'Content-Type': contentType,
-              'Access-Control-Allow-Origin': '*'
+              'Access-Control-Allow-Origin': '*',
             });
             fs.createReadStream(imagePath).pipe(res);
             return;
@@ -79,7 +79,7 @@ export async function startTestServer() {
 }
 
 export async function stopTestServer() {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (server) {
       server.close(() => {
         console.log('Test server stopped');

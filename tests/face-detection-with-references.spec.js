@@ -45,7 +45,7 @@ test.describe('Face Detection with Reference Data', () => {
         id: img.id,
         isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
         src: img.src.substring(0, 50),
-        hasProcessed: img.hasAttribute('data-face-block-processed')
+        hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
 
@@ -61,7 +61,7 @@ test.describe('Face Detection with Reference Data', () => {
       imgs.map(img => ({
         id: img.id,
         isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed')
+        hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
 
@@ -81,7 +81,7 @@ test.describe('Face Detection with Reference Data', () => {
         id: img.id,
         isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
         opacity: window.getComputedStyle(img).opacity,
-        hasProcessed: img.hasAttribute('data-face-block-processed')
+        hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
 
@@ -107,7 +107,9 @@ test.describe('Face Detection with Reference Data', () => {
     await clearTestReferenceData(browser);
 
     // Load reference data for both Einstein and Sagan
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein', 'carl_sagan'] });
+    testPageUrl = await loadTestReferenceData(browser, {
+      people: ['albert_einstein', 'carl_sagan'],
+    });
 
     // Navigate to test page
     await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
@@ -116,12 +118,14 @@ test.describe('Face Detection with Reference Data', () => {
     await page.waitForTimeout(6000);
 
     // Check both Einstein and Sagan images are blocked
-    const blockedImages = await page.$$eval('[id^="einstein-"]:not([id$="-tiny"]), [id^="sagan-"]', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed')
-      }))
+    const blockedImages = await page.$$eval(
+      '[id^="einstein-"]:not([id$="-tiny"]), [id^="sagan-"]',
+      imgs =>
+        imgs.map(img => ({
+          id: img.id,
+          isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+          hasProcessed: img.hasAttribute('data-face-block-processed'),
+        }))
     );
 
     console.log('All potentially blocked images:', blockedImages);
@@ -136,7 +140,7 @@ test.describe('Face Detection with Reference Data', () => {
     const nonMatchingImages = await page.$$eval('#monroe, #pruitt', imgs =>
       imgs.map(img => ({
         id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension'
+        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
       }))
     );
 
@@ -151,18 +155,22 @@ test.describe('Face Detection with Reference Data', () => {
 
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein', 'carl_sagan'] });
+    testPageUrl = await loadTestReferenceData(browser, {
+      people: ['albert_einstein', 'carl_sagan'],
+    });
 
     await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
     await page.waitForTimeout(6000);
 
     // Check inline images
-    const inlineImages = await page.$$eval('#einstein-inline, #monroe-inline, #sagan-inline, #pruitt-inline', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed')
-      }))
+    const inlineImages = await page.$$eval(
+      '#einstein-inline, #monroe-inline, #sagan-inline, #pruitt-inline',
+      imgs =>
+        imgs.map(img => ({
+          id: img.id,
+          isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+          hasProcessed: img.hasAttribute('data-face-block-processed'),
+        }))
     );
 
     console.log('Inline images:', inlineImages);

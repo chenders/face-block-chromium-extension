@@ -3,7 +3,7 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { startTestServer, stopTestServer } from './test-server.js';
+import { startTestServer } from './test-server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +65,7 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
     // Load the face detection models
     console.log('Loading face-api models...');
-    await tempPage.evaluate(async (extId) => {
+    await tempPage.evaluate(async extId => {
       // Build model path using extension ID
       const modelPath = `chrome-extension://${extId}/models`;
       await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
@@ -76,126 +76,139 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
     const fs = await import('fs');
 
-  // Get absolute paths to all reference images
-  const referencePaths = [];
-  for (const person of people) {
-    const personDir = path.join(fixturesPath, person);
+    // Get absolute paths to all reference images
+    const referencePaths = [];
+    for (const person of people) {
+      const personDir = path.join(fixturesPath, person);
 
-    // Get all jpg files in the person's directory
-    const files = fs.readdirSync(personDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png'));
+      // Get all jpg files in the person's directory
+      const files = fs.readdirSync(personDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png'));
 
-    for (const file of files) {
-      referencePaths.push({
-        person,
-        path: path.join(personDir, file)
-      });
+      for (const file of files) {
+        referencePaths.push({
+          person,
+          path: path.join(personDir, file),
+        });
+      }
     }
-  }
 
-  console.log(`Loading ${referencePaths.length} reference images for: ${people.join(', ')}`);
+    console.log(`Loading ${referencePaths.length} reference images for: ${people.join(', ')}`);
 
-  // Group descriptors by person to batch storage calls
-  // Multiple descriptors per person improve matching accuracy across different angles/lighting
-  const descriptorsByPerson = {};
-  for (const person of people) {
-    descriptorsByPerson[person] = [];
-  }
+    // Group descriptors by person to batch storage calls
+    // Multiple descriptors per person improve matching accuracy across different angles/lighting
+    const descriptorsByPerson = {};
+    for (const person of people) {
+      descriptorsByPerson[person] = [];
+    }
 
-  // Process each reference image to extract face descriptors
-  for (const { person, path: imgPath } of referencePaths) {
-    // Convert image to base64 data URL
-    const imageBuffer = fs.readFileSync(imgPath);
-    const base64 = imageBuffer.toString('base64');
-    const ext = imgPath.endsWith('.png') ? 'png' : 'jpeg';
-    const dataUrl = `data:image/${ext};base64,${base64}`;
+    // Process each reference image to extract face descriptors
+    for (const { person, path: imgPath } of referencePaths) {
+      // Convert image to base64 data URL
+      const imageBuffer = fs.readFileSync(imgPath);
+      const base64 = imageBuffer.toString('base64');
+      const ext = imgPath.endsWith('.png') ? 'png' : 'jpeg';
+      const dataUrl = `data:image/${ext};base64,${base64}`;
 
-    // Process the image to get face descriptor (in page context)
-    const detection = await tempPage.evaluate(async ({ dataUrl }) => {
-      // Create an image element
-      const img = document.createElement('img');
-      img.src = dataUrl;
+      // Process the image to get face descriptor (in page context)
+      const detection = await tempPage.evaluate(
+        async ({ dataUrl }) => {
+          // Create an image element
+          const img = document.createElement('img');
+          img.src = dataUrl;
 
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        setTimeout(reject, 5000); // 5 second timeout
-      });
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            setTimeout(reject, 5000); // 5 second timeout
+          });
 
-      // Detect face and get descriptor
-      // Use same options as content script for consistency
-      const result = await faceapi
-        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
+          // Detect face and get descriptor
+          // Use same options as content script for consistency
+          const result = await faceapi
+            .detectSingleFace(
+              img,
+              new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 })
+            )
+            .withFaceLandmarks()
+            .withFaceDescriptor();
 
-      if (!result) {
-        return { success: false, error: 'No face detected' };
+          if (!result) {
+            return { success: false, error: 'No face detected' };
+          }
+
+          // Return the descriptor (convert Float32Array to regular array for message passing)
+          return {
+            success: true,
+            descriptor: Array.from(result.descriptor),
+          };
+        },
+        { dataUrl }
+      );
+
+      if (!detection.success) {
+        console.warn(
+          `Failed to detect face for ${person} in ${imgPath.split('/').pop()}:`,
+          detection.error
+        );
+        console.warn('Skipping this image and continuing...');
+        continue; // Skip this image and try the next one
       }
 
-      // Return the descriptor (convert Float32Array to regular array for message passing)
-      return {
-        success: true,
-        descriptor: Array.from(result.descriptor)
-      };
-    }, { dataUrl });
-
-    if (!detection.success) {
-      console.warn(`Failed to detect face for ${person} in ${imgPath.split('/').pop()}:`, detection.error);
-      console.warn('Skipping this image and continuing...');
-      continue; // Skip this image and try the next one
+      // Accumulate descriptor for this person
+      descriptorsByPerson[person].push(detection.descriptor);
+      console.log(
+        `Processed reference image for ${person} (${descriptorsByPerson[person].length} total)`
+      );
     }
 
-    // Accumulate descriptor for this person
-    descriptorsByPerson[person].push(detection.descriptor);
-    console.log(`Processed reference image for ${person} (${descriptorsByPerson[person].length} total)`);
-  }
-
-  // Store all descriptors for each person in extension storage
-  // Must use service worker context because chrome.storage is not available in page context
-  const serviceWorker = context.serviceWorkers()[0];
-  if (!serviceWorker) {
-    throw new Error('No service worker found');
-  }
-
-  for (const person of people) {
-    if (descriptorsByPerson[person].length === 0) {
-      console.warn(`No valid reference images for ${person}, skipping storage`);
-      continue;
+    // Store all descriptors for each person in extension storage
+    // Must use service worker context because chrome.storage is not available in page context
+    const serviceWorker = context.serviceWorkers()[0];
+    if (!serviceWorker) {
+      throw new Error('No service worker found');
     }
 
-    const backgroundResult = await serviceWorker.evaluate(async ({ personName, descriptors }) => {
-      // Import storage and create instance
-      // This is a service worker context, so we can use importScripts
-      if (typeof FaceStorage === 'undefined') {
-        self.importScripts('storage.js');
+    for (const person of people) {
+      if (descriptorsByPerson[person].length === 0) {
+        console.warn(`No valid reference images for ${person}, skipping storage`);
+        continue;
       }
 
-      // Create or get storage instance
-      if (!self._testStorage) {
-        self._testStorage = new FaceStorage();
-        await self._testStorage.init();
+      const backgroundResult = await serviceWorker.evaluate(
+        async ({ personName, descriptors }) => {
+          // Import storage and create instance
+          // This is a service worker context, so we can use importScripts
+          if (typeof FaceStorage === 'undefined') {
+            self.importScripts('storage.js');
+          }
+
+          // Create or get storage instance
+          if (!self._testStorage) {
+            self._testStorage = new FaceStorage();
+            await self._testStorage.init();
+          }
+
+          const storage = self._testStorage;
+          const float32Descriptors = descriptors.map(d => new Float32Array(d));
+          await storage.addPerson(personName, float32Descriptors, []);
+
+          return { success: true };
+        },
+        { personName: person, descriptors: descriptorsByPerson[person] }
+      );
+
+      if (!backgroundResult.success) {
+        console.error(`Failed to add reference faces for ${person}`);
+        throw new Error(`Failed to add reference faces for ${person}`);
       }
 
-      const storage = self._testStorage;
-      const float32Descriptors = descriptors.map(d => new Float32Array(d));
-      await storage.addPerson(personName, float32Descriptors, []);
-
-      return { success: true };
-    }, { personName: person, descriptors: descriptorsByPerson[person] });
-
-    if (!backgroundResult.success) {
-      console.error(`Failed to add reference faces for ${person}`);
-      throw new Error(`Failed to add reference faces for ${person}`);
+      console.log(`Added ${descriptorsByPerson[person].length} reference face(s) for ${person}`);
     }
 
-    console.log(`Added ${descriptorsByPerson[person].length} reference face(s) for ${person}`);
-  }
+    console.log(`Successfully loaded reference data for ${people.length} people`);
 
-  console.log(`Successfully loaded reference data for ${people.length} people`);
-
-  // Return the test server URL
-  return testServerUrl;
-
+    // Return the test server URL
+    return testServerUrl;
   } catch (error) {
     console.error('Error loading test reference data:', error);
     throw error;

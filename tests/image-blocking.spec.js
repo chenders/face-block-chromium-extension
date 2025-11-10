@@ -116,9 +116,7 @@ test.describe('Image Blocking Functionality', () => {
     await page.waitForTimeout(3000);
 
     // Check if background color detection logged
-    const hasColorLog = logs.some(log =>
-      log.includes('Background color') || log.includes('rgb(')
-    );
+    const hasColorLog = logs.some(log => log.includes('Background color') || log.includes('rgb('));
 
     // This might not always be true if no faces are detected
     // Just verify the page loaded successfully
@@ -145,9 +143,7 @@ test.describe('Image Blocking Functionality', () => {
     await page.waitForTimeout(2000);
 
     // Small images should be skipped
-    const hasSkipLog = logs.some(log =>
-      log.includes('Skipping') || log.includes('too small')
-    );
+    const hasSkipLog = logs.some(log => log.includes('Skipping') || log.includes('too small'));
 
     // Small images might still be processed, just verify no errors
     expect(logs.some(log => log.includes('Error'))).toBe(false);
@@ -169,13 +165,11 @@ test.describe('Image Blocking Functionality', () => {
     await page.waitForTimeout(3000);
 
     // Even if CORS errors occur, they should be handled
-    const hasCorsLog = logs.some(log =>
-      log.includes('CORS') || log.includes('cross-origin')
-    );
+    const hasCorsLog = logs.some(log => log.includes('CORS') || log.includes('cross-origin'));
 
     // Just verify no unhandled errors
-    const hasUnhandledError = logs.some(log =>
-      log.toLowerCase().includes('uncaught') && log.toLowerCase().includes('error')
+    const hasUnhandledError = logs.some(
+      log => log.toLowerCase().includes('uncaught') && log.toLowerCase().includes('error')
     );
     expect(hasUnhandledError).toBe(false);
 

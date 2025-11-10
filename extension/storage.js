@@ -24,7 +24,7 @@ class FaceStorage {
         resolve(this.db);
       };
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = event => {
         const db = event.target.result;
 
         // Create object store if it doesn't exist
@@ -50,7 +50,7 @@ class FaceStorage {
 
       const transaction = this.db.transaction([STORE_NAME], 'readwrite');
 
-      transaction.onerror = (event) => {
+      transaction.onerror = event => {
         console.error('Storage: Transaction error:', event.target.error);
         reject(event.target.error);
       };
@@ -66,7 +66,7 @@ class FaceStorage {
         personName,
         descriptors: descriptors.map(d => Array.from(d)), // Convert Float32Array to regular arrays for storage
         photoCount: descriptors.length,
-        dateAdded: new Date().toISOString()
+        dateAdded: new Date().toISOString(),
       };
 
       // Add quality metadata if provided
@@ -76,7 +76,7 @@ class FaceStorage {
           confidence: item.quality.confidence,
           category: item.quality.category,
           issues: item.quality.issues,
-          photoIndex: item.photoIndex
+          photoIndex: item.photoIndex,
         }));
 
         // Calculate aggregate metrics
@@ -90,7 +90,7 @@ class FaceStorage {
           frontalCount,
           angleCount,
           profileCount,
-          totalPhotos: data.quality.length
+          totalPhotos: data.quality.length,
         };
       }
 
@@ -98,7 +98,7 @@ class FaceStorage {
         personName,
         descriptorCount: data.descriptors.length,
         photoCount: data.photoCount,
-        hasQuality: !!data.quality
+        hasQuality: !!data.quality,
       });
 
       const request = objectStore.put(data);
@@ -108,7 +108,7 @@ class FaceStorage {
         resolve({ success: true });
       };
 
-      request.onerror = (event) => {
+      request.onerror = event => {
         console.error('Storage: Error adding person:', event.target.error);
         reject(event.target.error);
       };
@@ -162,7 +162,14 @@ class FaceStorage {
           console.log(`Storage: Processing ${person.personName}, descriptors:`, person.descriptors);
 
           person.descriptors = person.descriptors.map((d, idx) => {
-            console.log(`Storage: Descriptor ${idx} type:`, typeof d, 'isArray:', Array.isArray(d), 'length:', d?.length);
+            console.log(
+              `Storage: Descriptor ${idx} type:`,
+              typeof d,
+              'isArray:',
+              Array.isArray(d),
+              'length:',
+              d?.length
+            );
 
             // Handle case where d might be an object with numeric keys
             let arrayData;
@@ -177,7 +184,10 @@ class FaceStorage {
             }
 
             const float32 = new Float32Array(arrayData);
-            console.log(`Storage: Converted descriptor ${idx} to Float32Array, length:`, float32.length);
+            console.log(
+              `Storage: Converted descriptor ${idx} to Float32Array, length:`,
+              float32.length
+            );
             return float32;
           });
         });

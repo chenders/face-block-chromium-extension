@@ -17,13 +17,22 @@ function parseTestUrls(filepath) {
 }
 
 const einsteinUrls = {
-  withImages: parseTestUrls(path.join(__dirname, 'fixtures/images/albert_einstein/test_urls.md')).slice(0, 4),
-  withoutImages: parseTestUrls(path.join(__dirname, 'fixtures/images/albert_einstein/test_urls.md')).slice(4, 8)
+  withImages: parseTestUrls(
+    path.join(__dirname, 'fixtures/images/albert_einstein/test_urls.md')
+  ).slice(0, 4),
+  withoutImages: parseTestUrls(
+    path.join(__dirname, 'fixtures/images/albert_einstein/test_urls.md')
+  ).slice(4, 8),
 };
 
 const saganUrls = {
-  withImages: parseTestUrls(path.join(__dirname, 'fixtures/images/carl_sagan/test_urls.md')).slice(0, 4),
-  withoutImages: parseTestUrls(path.join(__dirname, 'fixtures/images/carl_sagan/test_urls.md')).slice(4, 8)
+  withImages: parseTestUrls(path.join(__dirname, 'fixtures/images/carl_sagan/test_urls.md')).slice(
+    0,
+    4
+  ),
+  withoutImages: parseTestUrls(
+    path.join(__dirname, 'fixtures/images/carl_sagan/test_urls.md')
+  ).slice(4, 8),
 };
 
 test.describe('Real-World URL Testing', () => {
@@ -59,15 +68,16 @@ test.describe('Real-World URL Testing', () => {
       await page.waitForTimeout(8000);
 
       // Check if any images were blocked
-      const blockedImages = await page.$$eval('img', imgs =>
-        imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length
+      const blockedImages = await page.$$eval(
+        'img',
+        imgs =>
+          imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length
       );
 
       console.log(`Blocked ${blockedImages} image(s) on ${testUrl}`);
 
       // Should block at least some images on Einstein pages
       expect(blockedImages).toBeGreaterThan(0);
-
     } catch (error) {
       console.log(`Error loading ${testUrl}:`, error.message);
       // Some URLs might fail to load - skip test
@@ -94,15 +104,16 @@ test.describe('Real-World URL Testing', () => {
       await page.waitForTimeout(8000);
 
       // Check blocked images
-      const blockedImages = await page.$$eval('img', imgs =>
-        imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length
+      const blockedImages = await page.$$eval(
+        'img',
+        imgs =>
+          imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length
       );
 
       console.log(`Blocked ${blockedImages} image(s) on ${testUrl}`);
 
       // Should not block any images on pages without Einstein
       expect(blockedImages).toBe(0);
-
     } catch (error) {
       console.log(`Error loading ${testUrl}:`, error.message);
       test.skip();
@@ -129,15 +140,16 @@ test.describe('Real-World URL Testing', () => {
 
       await page.waitForTimeout(8000);
 
-      const blockedImages = await page.$$eval('img', imgs =>
-        imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length
+      const blockedImages = await page.$$eval(
+        'img',
+        imgs =>
+          imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length
       );
 
       console.log(`Blocked ${blockedImages} image(s) on ${testUrl}`);
 
       // Should block at least some images on Sagan pages
       expect(blockedImages).toBeGreaterThan(0);
-
     } catch (error) {
       console.log(`Error loading ${testUrl}:`, error.message);
       test.skip();
@@ -165,13 +177,17 @@ test.describe('Real-World URL Testing', () => {
       // Count total and processed images
       const imageStats = await page.$$eval('img:not([src^="data:"]):not([src^="blob:"])', imgs => ({
         total: imgs.length,
-        processed: imgs.filter(img => img.hasAttribute('data-face-block-processed') ||
-                                      img.alt === 'Image blocked by Face Block Chromium Extension').length,
-        blocked: imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension').length,
+        processed: imgs.filter(
+          img =>
+            img.hasAttribute('data-face-block-processed') ||
+            img.alt === 'Image blocked by Face Block Chromium Extension'
+        ).length,
+        blocked: imgs.filter(img => img.alt === 'Image blocked by Face Block Chromium Extension')
+          .length,
         visible: imgs.filter(img => {
           const style = window.getComputedStyle(img);
           return style.opacity !== '0' && style.display !== 'none';
-        }).length
+        }).length,
       }));
 
       console.log('Image stats:', imageStats);
@@ -181,7 +197,6 @@ test.describe('Real-World URL Testing', () => {
 
       // Some images should be blocked on Einstein page
       expect(imageStats.blocked).toBeGreaterThan(0);
-
     } catch (error) {
       console.log(`Error loading ${testUrl}:`, error.message);
       test.skip();
