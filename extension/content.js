@@ -186,8 +186,21 @@
     // Minimum size threshold - lowered to 30x30 to catch Google Images thumbnails
     const MIN_SIZE = 30;
 
-    if (!img.complete || displayWidth < MIN_SIZE || displayHeight < MIN_SIZE) {
-      console.debug('Face Block Chromium Extension: Skipping image (not loaded or too small):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
+    // If image not loaded yet, don't mark as processed - we need to check it again when it loads
+    if (!img.complete) {
+      console.debug('Face Block Chromium Extension: Skipping image (not loaded yet):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
+      img.style.opacity = '';
+
+      // Add load listener to process again when image loads
+      img.addEventListener('load', () => processImage(img), { once: true });
+      img.addEventListener('error', () => processImage(img), { once: true });
+
+      return;
+    }
+
+    // If image is loaded but too small, mark as processed to avoid retrying
+    if (displayWidth < MIN_SIZE || displayHeight < MIN_SIZE) {
+      console.debug('Face Block Chromium Extension: Skipping image (too small):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
       processedImages.add(img); // Mark as processed to avoid retrying
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
