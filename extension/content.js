@@ -7,7 +7,8 @@
   let config = {
     blurIntensity: 20,
     matchThreshold: 0.6,
-    enabled: true
+    enabled: true,
+    detector: 'ssdMobilenetv1' // 'tinyFaceDetector' or 'ssdMobilenetv1'
   };
 
   let modelsLoaded = false;
@@ -65,12 +66,20 @@
     try {
       const MODEL_URL = chrome.runtime.getURL('models');
 
-      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      // Load the appropriate detector based on config
+      if (config.detector === 'ssdMobilenetv1') {
+        console.log('Face Block Chromium Extension: Loading SsdMobilenetv1 detector...');
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+      } else {
+        console.log('Face Block Chromium Extension: Loading TinyFaceDetector...');
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      }
+
       await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
       await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
 
       modelsLoaded = true;
-      console.log('Face Block Chromium Extension: Models loaded');
+      console.log(`Face Block Chromium Extension: Models loaded (detector: ${config.detector})`);
     } catch (error) {
       console.error('Face Block Chromium Extension: Error loading models:', error);
       throw error;
@@ -226,12 +235,16 @@
       // Log image dimensions for debugging
       console.log(`Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`);
 
-      // Detect faces in image with higher inputSize for better small face detection
-      // inputSize 320 provides better detection for faces that are small relative to image size
+      // Detect faces in image using configured detector
       let detections;
       try {
+        // Choose detector options based on configuration
+        const detectorOptions = config.detector === 'ssdMobilenetv1'
+          ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 })
+          : new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
+
         detections = await faceapi
-          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
+          .detectAllFaces(img, detectorOptions)
           .withFaceLandmarks()
           .withFaceDescriptors();
       } catch (detectionError) {
