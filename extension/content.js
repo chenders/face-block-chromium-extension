@@ -181,10 +181,12 @@
     }
 
     // Skip if image not loaded or too small
-    // Use display dimensions (offsetWidth/Height) instead of natural dimensions
-    // to properly handle CSS-scaled images (e.g., thumbnails)
+    // Check BOTH display dimensions (CSS-scaled) AND natural dimensions (actual image size)
+    // Google uses 1x1 placeholders scaled to 46x46, we need to catch these
     const displayWidth = img.offsetWidth || img.width;
     const displayHeight = img.offsetHeight || img.height;
+    const naturalWidth = img.naturalWidth || 0;
+    const naturalHeight = img.naturalHeight || 0;
 
     // Minimum size threshold - lowered to 30x30 to catch Google Images thumbnails
     const MIN_SIZE = 30;
@@ -201,10 +203,11 @@
       return;
     }
 
-    // If image is loaded but too small, mark as processed with current src
-    // If src changes later (e.g., Google Images replacing placeholder), we'll re-process
-    if (displayWidth < MIN_SIZE || displayHeight < MIN_SIZE) {
-      console.debug('Face Block Chromium Extension: Skipping image (too small):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
+    // If image is loaded but too small (check BOTH display and natural dimensions)
+    // This catches 1x1 placeholders that are scaled up by CSS
+    if (displayWidth < MIN_SIZE || displayHeight < MIN_SIZE ||
+        naturalWidth < MIN_SIZE || naturalHeight < MIN_SIZE) {
+      console.debug('Face Block Chromium Extension: Skipping image (too small):', img.src.substring(0, 100), `display:${displayWidth}x${displayHeight} natural:${naturalWidth}x${naturalHeight}`);
       processedImages.set(img, img.src); // Store src to detect changes
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
@@ -524,22 +527,34 @@
           // Handle attribute changes on images (e.g., src/size changes)
           if (mutation.type === 'attributes' && mutation.target.nodeName === 'IMG') {
             const img = mutation.target;
-            // Remove from processed set to allow re-processing
-            processedImages.delete(img);
-            newImages.push(img);
+            // Only care about src/srcset changes for re-processing
+            if (mutation.attributeName === 'src' || mutation.attributeName === 'srcset') {
+              const lastSrc = processedImages.get(img);
+              // Only re-process if src has actually changed
+              if (lastSrc !== img.src) {
+                processedImages.delete(img);
+                newImages.push(img);
+              }
+            }
           }
           // Handle new nodes being added
           else if (mutation.type === 'childList') {
             mutation.addedNodes.forEach(node => {
               // Check if node is an image
-              if (node.nodeName === 'IMG' && !processedImages.has(node)) {
-                newImages.push(node);
+              if (node.nodeName === 'IMG') {
+                const lastSrc = processedImages.get(node);
+                // Add if never processed, or if src has changed
+                if (!lastSrc || lastSrc !== node.src) {
+                  newImages.push(node);
+                }
               }
               // Check for images in added subtrees
               else if (node.querySelectorAll) {
                 const imgs = node.querySelectorAll('img');
                 imgs.forEach(img => {
-                  if (!processedImages.has(img)) {
+                  const lastSrc = processedImages.get(img);
+                  // Add if never processed, or if src has changed
+                  if (!lastSrc || lastSrc !== img.src) {
                     newImages.push(img);
                   }
                 });
