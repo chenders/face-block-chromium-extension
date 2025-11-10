@@ -188,7 +188,10 @@
     // Skip if src is data URL or blob (likely already processed)
     if (img.src.startsWith('data:') || img.src.startsWith('blob:')) return;
 
-    console.log('Face Block Chromium Extension: Processing image:', img.src.substring(0, 100));
+    // Create a short identifier for logging (last 50 chars of URL)
+    const imgId = img.src.length > 50 ? '...' + img.src.slice(-50) : img.src;
+
+    console.log(`Face Block Chromium Extension: Processing image: ${imgId}`);
 
     // Detect background color (image is already hidden by preload.js)
     const bgColor = getBackgroundColor(img.parentElement || img);
@@ -247,7 +250,7 @@
         throw detectionError; // Re-throw other errors
       }
 
-      console.log(`Face Block Chromium Extension: Detected ${detections.length} face(s) in image`);
+      console.log(`Face Block Chromium Extension: [${imgId}] Detected ${detections.length} face(s)`);
 
       if (detections && detections.length > 0) {
         try {
@@ -255,21 +258,21 @@
           const matches = detections.map(d => {
             // Validate descriptor before matching
             if (!d.descriptor || d.descriptor.length !== 128) {
-              console.error('Face Block Chromium Extension: Invalid detected descriptor length:', d.descriptor?.length);
+              console.error(`Face Block Chromium Extension: [${imgId}] Invalid detected descriptor length:`, d.descriptor?.length);
               return null;
             }
             return faceMatcher.findBestMatch(d.descriptor);
           }).filter(m => m !== null);
 
           if (matches.length === 0) {
-            console.log('Face Block Chromium Extension: No valid matches (descriptor validation failed)');
+            console.log(`Face Block Chromium Extension: [${imgId}] No valid matches (descriptor validation failed)`);
             processedImages.add(img);
             return;
           }
 
           // Log all matches with distances
           matches.forEach((match, idx) => {
-            console.log(`Face Block Chromium Extension: Face ${idx + 1}: ${match.label} (distance: ${match.distance.toFixed(3)}, threshold: ${config.matchThreshold})`);
+            console.log(`Face Block Chromium Extension: [${imgId}] Face ${idx + 1}: ${match.label} (distance: ${match.distance.toFixed(3)}, threshold: ${config.matchThreshold})`);
           });
 
           // Check if any match is not "unknown"
@@ -281,16 +284,16 @@
             // Match found - replace image with blank
             blurImage(img, bgRgb);
             const matchedPerson = matches.find(m => m.label !== 'unknown');
-            console.log(`Face Block Chromium Extension: ✓ BLOCKED image (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`);
+            console.log(`Face Block Chromium Extension: [${imgId}] ✓ BLOCKED (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`);
           } else {
             // No match - restore visibility by marking as processed
             img.setAttribute('data-face-block-processed', 'true');
             img.style.opacity = '';
             delete img.dataset.wasHidden;
-            console.log('Face Block Chromium Extension: No match - faces detected but distances too high or all unknown');
+            console.log(`Face Block Chromium Extension: [${imgId}] No match - faces detected but distances too high or all unknown`);
           }
         } catch (matchError) {
-          console.error('Face Block Chromium Extension: Error matching faces:', matchError.message);
+          console.error(`Face Block Chromium Extension: [${imgId}] Error matching faces:`, matchError.message);
           // Restore visibility on error
           if (img.dataset.wasHidden) {
             img.setAttribute('data-face-block-processed', 'true');
@@ -307,14 +310,14 @@
             img.style.opacity = '';
           delete img.dataset.wasHidden;
         }
-        console.log('Face Block Chromium Extension: No faces detected in image');
+        console.log(`Face Block Chromium Extension: [${imgId}] No faces detected`);
       }
 
       // Mark as processed
       processedImages.add(img);
     } catch (error) {
       // Log all errors for debugging
-      console.warn('Face Block Chromium Extension: Error processing image:', error.name, error.message, 'URL:', img.src.substring(0, 100));
+      console.warn(`Face Block Chromium Extension: [${imgId}] Error processing image:`, error.name, error.message);
       // Restore visibility on error
       if (img.dataset.wasHidden) {
         img.setAttribute('data-face-block-processed', 'true');
