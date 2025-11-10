@@ -118,6 +118,12 @@
   async function imageToDataURL(img) {
     return new Promise((resolve, reject) => {
       try {
+        // If image is already a data URL, use it directly
+        if (img.src.startsWith('data:')) {
+          resolve(img.src);
+          return;
+        }
+
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth || img.width;
         canvas.height = img.naturalHeight || img.height;
