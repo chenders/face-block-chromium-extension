@@ -512,8 +512,9 @@
     if (observer) return;
 
     // Debounce function to limit processing frequency
+    // Reduced to 100ms for faster response on Google Images dynamic loading
     let debounceTimer;
-    const debounceDelay = 500;
+    const debounceDelay = 100;
 
     const callback = (mutations) => {
       clearTimeout(debounceTimer);
