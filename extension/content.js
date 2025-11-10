@@ -282,51 +282,17 @@
       // Log image dimensions for debugging
       console.log(`Face Block Chromium Extension: [${imgId}] Image dimensions: ${img.naturalWidth}x${img.naturalHeight}, display: ${img.offsetWidth}x${img.offsetHeight}`);
 
-      // Detect faces in image using configured detector
-      let detections;
+      // Detect faces using offscreen document
+      let result;
       try {
-        if (config.detector === 'hybrid') {
-          // Hybrid mode: try TinyFaceDetector first (fast), then SsdMobilenetv1 (thorough)
-          const tinyDetectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
-
-          detections = await faceapi
-            .detectAllFaces(img, tinyDetectorOptions)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
-
-          if (!detections || detections.length === 0) {
-            // No faces found with TinyFaceDetector, try SsdMobilenetv1
-            console.log(`Face Block Chromium Extension: [${imgId}] TinyFace found nothing, trying SsdMobilenet...`);
-            const ssdDetectorOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
-
-            detections = await faceapi
-              .detectAllFaces(img, ssdDetectorOptions)
-              .withFaceLandmarks()
-              .withFaceDescriptors();
-
-            if (detections && detections.length > 0) {
-              console.log(`Face Block Chromium Extension: [${imgId}] SsdMobilenet detected ${detections.length} face(s) in hybrid fallback`);
-            }
-          } else {
-            console.log(`Face Block Chromium Extension: [${imgId}] TinyFace detected ${detections.length} face(s) in hybrid mode`);
-          }
-        } else {
-          // Single detector mode
-          const detectorOptions = config.detector === 'ssdMobilenetv1'
-            ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 })
-            : new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 });
-
-          detections = await faceapi
-            .detectAllFaces(img, detectorOptions)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
-        }
+        result = await detectFacesOffscreen(img, imgId);
       } catch (detectionError) {
-        // Handle WebGL/CORS errors silently
+        // Handle CORS errors silently
         if (detectionError.message && (
           detectionError.message.includes('texImage2D') ||
           detectionError.message.includes('Tainted canvas') ||
-          detectionError.message.includes('cross-origin')
+          detectionError.message.includes('cross-origin') ||
+          detectionError.message.includes('Failed to load image')
         )) {
           console.debug('Face Block Chromium Extension: CORS-restricted image, skipping:', img.src.substring(0, 100));
           // Restore visibility for CORS-restricted images
@@ -341,70 +307,35 @@
         throw detectionError; // Re-throw other errors
       }
 
-      // Log detection details
-      if (detections && detections.length > 0) {
-        const scores = detections.map(d => d.detection.score.toFixed(3)).join(', ');
-        console.log(`Face Block Chromium Extension: [${imgId}] Detected ${detections.length} face(s) with scores: ${scores}`);
-      } else {
-        console.log(`Face Block Chromium Extension: [${imgId}] Detected 0 face(s)`);
-      }
+      // Log detection results
+      console.log(`Face Block Chromium Extension: [${imgId}] Detected ${result.facesDetected} face(s)`);
 
-      if (detections && detections.length > 0) {
-        try {
-          // Match detected faces against reference descriptors
-          const matches = detections.map(d => {
-            // Validate descriptor before matching
-            if (!d.descriptor || d.descriptor.length !== 128) {
-              console.error(`Face Block Chromium Extension: [${imgId}] Invalid detected descriptor length:`, d.descriptor?.length);
-              return null;
-            }
-            return faceMatcher.findBestMatch(d.descriptor);
-          }).filter(m => m !== null);
+      if (result.facesDetected > 0 && result.matches && result.matches.length > 0) {
+        // Log all matches
+        result.matches.forEach((match, idx) => {
+          console.log(`Face Block Chromium Extension: [${imgId}] Face ${idx + 1}: ${match.label} (distance: ${match.distance.toFixed(3)}, threshold: ${config.matchThreshold})`);
+        });
 
-          if (matches.length === 0) {
-            console.log(`Face Block Chromium Extension: [${imgId}] No valid matches (descriptor validation failed)`);
-            processedImages.set(img, img.src);
-            return;
-          }
+        // Check if should block
+        const shouldBlur = result.matches.some(match => match.label !== 'unknown');
 
-          // Log all matches with distances
-          matches.forEach((match, idx) => {
-            console.log(`Face Block Chromium Extension: [${imgId}] Face ${idx + 1}: ${match.label} (distance: ${match.distance.toFixed(3)}, threshold: ${config.matchThreshold})`);
-          });
-
-          // Check if any match is not "unknown"
-          const shouldBlur = matches.some(match => {
-            return match.label !== 'unknown' && match.distance < config.matchThreshold;
-          });
-
-          if (shouldBlur) {
-            // Match found - replace image with blank
-            blurImage(img, bgRgb);
-            const matchedPerson = matches.find(m => m.label !== 'unknown');
-            console.log(`Face Block Chromium Extension: [${imgId}] ✓ BLOCKED (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`);
-          } else {
-            // No match - restore visibility by marking as processed
-            img.setAttribute('data-face-block-processed', 'true');
-            img.style.opacity = '';
-            delete img.dataset.wasHidden;
-            console.log(`Face Block Chromium Extension: [${imgId}] No match - faces detected but distances too high or all unknown`);
-          }
-        } catch (matchError) {
-          console.error(`Face Block Chromium Extension: [${imgId}] Error matching faces:`, matchError.message);
-          // Restore visibility on error
-          if (img.dataset.wasHidden) {
-            img.setAttribute('data-face-block-processed', 'true');
-            img.style.opacity = '';
-            delete img.dataset.wasHidden;
-          }
-          processedImages.set(img, img.src);
-          return;
+        if (shouldBlur) {
+          // Match found - replace image with blank
+          blurImage(img, bgRgb);
+          const matchedPerson = result.matches.find(m => m.label !== 'unknown');
+          console.log(`Face Block Chromium Extension: [${imgId}] ✓ BLOCKED (matched: ${matchedPerson.label}, distance: ${matchedPerson.distance.toFixed(3)})`);
+        } else {
+          // No match - restore visibility
+          img.setAttribute('data-face-block-processed', 'true');
+          img.style.opacity = '';
+          delete img.dataset.wasHidden;
+          console.log(`Face Block Chromium Extension: [${imgId}] No match - faces detected but distances too high or all unknown`);
         }
       } else {
         // No faces detected - restore visibility
         if (img.dataset.wasHidden) {
           img.setAttribute('data-face-block-processed', 'true');
-            img.style.opacity = '';
+          img.style.opacity = '';
           delete img.dataset.wasHidden;
         }
         console.log(`Face Block Chromium Extension: [${imgId}] No faces detected`);
