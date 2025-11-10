@@ -10,8 +10,6 @@ const selectedFilesDiv = document.getElementById('selectedFiles');
 const previewImagesDiv = document.getElementById('previewImages');
 const addPersonBtn = document.getElementById('addPersonBtn');
 const peopleListDiv = document.getElementById('peopleList');
-const blurIntensitySlider = document.getElementById('blurIntensity');
-const blurValueSpan = document.getElementById('blurValue');
 const matchThresholdSlider = document.getElementById('matchThreshold');
 const thresholdValueSpan = document.getElementById('thresholdValue');
 const detectorRadios = document.querySelectorAll('input[name="detector"]');
@@ -55,7 +53,6 @@ function setupEventListeners() {
   personNameInput.addEventListener('input', validateForm);
   photoUploadInput.addEventListener('change', handleFileSelection);
   addPersonBtn.addEventListener('click', handleAddPerson);
-  blurIntensitySlider.addEventListener('input', handleBlurIntensityChange);
   matchThresholdSlider.addEventListener('input', handleThresholdChange);
   detectorRadios.forEach(radio => {
     radio.addEventListener('change', handleDetectorChange);
@@ -451,11 +448,7 @@ function handleDeletePerson(personName) {
 
 // Load settings
 function loadSettings() {
-  chrome.storage.sync.get(['blurIntensity', 'matchThreshold', 'detector'], (result) => {
-    if (result.blurIntensity) {
-      blurIntensitySlider.value = result.blurIntensity;
-      blurValueSpan.textContent = `${result.blurIntensity}px`;
-    }
+  chrome.storage.sync.get(['matchThreshold', 'detector'], (result) => {
     if (result.matchThreshold) {
       matchThresholdSlider.value = result.matchThreshold;
       thresholdValueSpan.textContent = result.matchThreshold.toFixed(2);
@@ -466,26 +459,6 @@ function loadSettings() {
       if (radio.value === detector) {
         radio.checked = true;
       }
-    });
-  });
-}
-
-// Handle blur intensity change
-function handleBlurIntensityChange(e) {
-  const value = e.target.value;
-  blurValueSpan.textContent = `${value}px`;
-
-  chrome.storage.sync.set({ blurIntensity: parseInt(value) }, () => {
-    // Notify content scripts of setting change
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'SETTINGS_CHANGED',
-          settings: { blurIntensity: parseInt(value) }
-        }).catch(() => {
-          // Ignore errors for tabs that don't have content script
-        });
-      });
     });
   });
 }
@@ -548,14 +521,17 @@ function handleClearData() {
       loadPeopleList();
 
       // Reset settings to defaults
-      blurIntensitySlider.value = 20;
-      blurValueSpan.textContent = '20px';
       matchThresholdSlider.value = 0.6;
       thresholdValueSpan.textContent = '0.60';
 
+      // Reset detector to hybrid
+      detectorRadios.forEach(radio => {
+        radio.checked = radio.value === 'hybrid';
+      });
+
       chrome.storage.sync.set({
-        blurIntensity: 20,
-        matchThreshold: 0.6
+        matchThreshold: 0.6,
+        detector: 'hybrid'
       });
     } else {
       showStatus('Error clearing data', 'error');
@@ -572,12 +548,18 @@ async function handleExportData() {
     // Get all data from IndexedDB via background script
     chrome.runtime.sendMessage({ type: 'EXPORT_DATA' }, (response) => {
       if (response && response.success) {
+        // Get current detector setting
+        let currentDetector = 'hybrid';
+        detectorRadios.forEach(radio => {
+          if (radio.checked) currentDetector = radio.value;
+        });
+
         const exportData = {
           version: 1,
           exportDate: new Date().toISOString(),
           settings: {
-            blurIntensity: parseInt(blurIntensitySlider.value),
-            matchThreshold: parseFloat(matchThresholdSlider.value)
+            matchThreshold: parseFloat(matchThresholdSlider.value),
+            detector: currentDetector
           },
           people: response.data
         };

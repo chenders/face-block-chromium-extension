@@ -5,7 +5,6 @@
 
   // Configuration
   let config = {
-    blurIntensity: 20,
     matchThreshold: 0.6,
     enabled: true,
     detector: 'hybrid' // 'tinyFaceDetector', 'ssdMobilenetv1', or 'hybrid'
@@ -50,8 +49,7 @@
   // Load settings from chrome.storage
   async function loadSettings() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get(['blurIntensity', 'matchThreshold', 'enabled', 'detector'], (result) => {
-        if (result.blurIntensity) config.blurIntensity = result.blurIntensity;
+      chrome.storage.sync.get(['matchThreshold', 'enabled', 'detector'], (result) => {
         if (result.matchThreshold) config.matchThreshold = result.matchThreshold;
         if (result.enabled !== undefined) config.enabled = result.enabled;
         if (result.detector) config.detector = result.detector;
@@ -550,12 +548,6 @@
   // Listen for messages from popup/background
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'SETTINGS_CHANGED') {
-      if (message.settings.blurIntensity !== undefined) {
-        config.blurIntensity = message.settings.blurIntensity;
-        // Note: blur intensity no longer applies since we replace images
-        // Kept for backward compatibility in case user switches back to CSS blur
-      }
-
       if (message.settings.matchThreshold !== undefined) {
         config.matchThreshold = message.settings.matchThreshold;
 
