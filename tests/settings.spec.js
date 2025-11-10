@@ -44,14 +44,14 @@ test.describe('Settings and Configuration', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Check add person section exists
-    const addSection = await page.$('#addPersonSection');
+    const addSection = await page.$('.add-person-section');
     expect(addSection).toBeTruthy();
 
     // Check required fields
     const nameInput = await page.$('#personName');
     expect(nameInput).toBeTruthy();
 
-    const photoInput = await page.$('#photoInput');
+    const photoInput = await page.$('#photoUpload');
     expect(photoInput).toBeTruthy();
 
     const addButton = await page.$('#addPersonBtn');
@@ -65,7 +65,7 @@ test.describe('Settings and Configuration', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Check stored people section
-    const storedSection = await page.$('#storedPeopleSection');
+    const storedSection = await page.$('.people-list');
     expect(storedSection).toBeTruthy();
 
     const peopleList = await page.$('#peopleList');
@@ -79,7 +79,7 @@ test.describe('Settings and Configuration', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Check data management section
-    const dataSection = await page.$('#dataManagementSection');
+    const dataSection = await page.$('.settings-section');
     expect(dataSection).toBeTruthy();
 
     // Check buttons
@@ -89,7 +89,7 @@ test.describe('Settings and Configuration', () => {
     const importBtn = await page.$('#importDataBtn');
     expect(importBtn).toBeTruthy();
 
-    const clearBtn = await page.$('#clearAllDataBtn');
+    const clearBtn = await page.$('#clearDataBtn');
     expect(clearBtn).toBeTruthy();
 
     await page.close();
