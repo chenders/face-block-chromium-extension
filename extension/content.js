@@ -182,8 +182,12 @@
     // to properly handle CSS-scaled images (e.g., thumbnails)
     const displayWidth = img.offsetWidth || img.width;
     const displayHeight = img.offsetHeight || img.height;
-    if (!img.complete || displayWidth < 50 || displayHeight < 50) {
-      console.debug('Face Block Chromium Extension: Skipping image (not loaded or too small):', img.src.substring(0, 100));
+
+    // Minimum size threshold - lowered to 30x30 to catch Google Images thumbnails
+    const MIN_SIZE = 30;
+
+    if (!img.complete || displayWidth < MIN_SIZE || displayHeight < MIN_SIZE) {
+      console.debug('Face Block Chromium Extension: Skipping image (not loaded or too small):', img.src.substring(0, 100), `${displayWidth}x${displayHeight}`);
       processedImages.add(img); // Mark as processed to avoid retrying
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
