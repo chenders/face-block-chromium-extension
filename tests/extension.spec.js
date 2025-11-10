@@ -1,54 +1,22 @@
 // tests/extension.spec.js
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
 test.describe('Face Block Chromium Extension', () => {
   let browser;
-  let context;
   let extensionId;
   let userDataDir;
 
   test.beforeAll(async () => {
-    // Create temporary directory for user data
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    // Launch browser with extension
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false, // Extensions don't work in headless mode
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    // Wait for extension to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Find extension ID from chrome://extensions
-    const pages = browser.pages();
-    let serviceWorker;
-
-    // Get service worker
-    for (const worker of browser.serviceWorkers()) {
-      if (worker.url().includes('chrome-extension://')) {
-        serviceWorker = worker;
-        extensionId = new URL(serviceWorker.url()).host;
-        break;
-      }
-    }
-
-    console.log('Extension ID:', extensionId);
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    extensionId = context.extensionId;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    // Clean up temporary directory
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('extension loads successfully', async () => {
