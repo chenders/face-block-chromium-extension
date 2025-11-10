@@ -1,75 +1,90 @@
 # Changelog
 
+All notable changes to the Face Block Chrome Extension will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
 
 ### Added
-- Test infrastructure for face detection with actual reference images
-- Test helpers for loading reference data into extension storage
-- Local HTTP test server for serving test fixtures
-- Test fixtures with images of Einstein, Sagan, Monroe, and Pruitt
-- Comprehensive test suite (`face-detection-with-references.spec.js`) with 5 test cases
-- Documentation for testing (`TESTING.md`)
+- ESLint and Prettier for code quality and consistent formatting
+- Chrome Web Store packaging script (`npm run build`)
+- Comprehensive privacy policy (PRIVACY.md)
+- Chrome Web Store listing template (STORE_LISTING.md)
+- Development documentation in README
+- This CHANGELOG file
 
 ### Changed
-- **content.js**: Modified to always process images even when no reference data exists
-  - Images are now restored to visible state when no face matcher is present
-  - This fixes issue where images would remain hidden forever without reference data
+- Formatted entire codebase with Prettier
+- Updated README with development workflow and build instructions
+- Improved code quality standards
 
-- **content.js**: Fixed small image detection logic
-  - Now uses display dimensions (offsetWidth/Height) instead of natural dimensions
-  - Properly handles CSS-scaled thumbnails and small images
-  - Minimum size check: 50x50 pixels (display size)
+## [1.0.0] - 2025-11-10
 
-- **test-data-loader.js**: Improved reference data loading
-  - Now accumulates multiple descriptors per person before storage
-  - Previous implementation was overwriting descriptors with each image
-  - Uses same TinyFaceDetector options as content script for consistency
-  - Gracefully skips images where face detection fails
+### Added
+- Initial release of Face Block Chrome Extension
+- Local face recognition using face-api.js
+- Three detection modes: Fast (TinyFaceDetector), Thorough (SsdMobilenet), and Hybrid
+- Adjustable match threshold (0.3-0.8)
+- Multiple reference photo support per person
+- Color-matched image replacement
+- Seamless flashing prevention
+- Dynamic content support (infinite scroll, SPAs, lazy loading)
+- Import/export functionality for face data
+- Comprehensive Playwright test suite
+- Offscreen document architecture for 25x faster performance
 
-- **test-data-loader.js**: Fixed clearTestReferenceData to use service worker context
-  - Previously tried to use chrome.runtime in page context (not available)
-  - Now correctly accesses extension storage via service worker.evaluate()
-
-- **face-detection-with-references.spec.js**: Fixed test expectations
-  - Uses browser.addInitScript() instead of page.evaluateOnNewDocument()
-  - Correctly expects 4/5 Einstein images to be blocked (profile view doesn't match)
-  - All tests now pass with threshold 0.6
-
-### Fixed
-- Image flashing issue on Wikipedia and other sites
-  - Added preload.js script running at document_start
-  - CSS hides images immediately before they load
-  - Content script then either blocks or restores visibility
-
-- Race condition with fast localhost responses in tests
-  - Added 100ms delay in test server responses
-  - Use goto() without waitUntil + waitForLoadState() pattern
-
-- Face detection not working on file:// URLs
-  - Test server serves images via HTTP with proper CORS headers
-  - Dynamically rewrites HTML to use HTTP URLs
-
-- False positives with high threshold values
-  - Tested thresholds 0.6, 0.75, 0.77
-  - Found that 0.75+ causes Sagan images to match Einstein
-  - Kept threshold at 0.6 for best accuracy
+### Features
+- 100% local processing - no cloud services
+- Privacy-first design with irreversible face descriptors
+- Smart color matching for replaced images
+- Automatic CORS handling
+- Small image filtering to preserve page functionality
+- Responsive image support (srcset)
+- Real-time settings changes without page reload
 
 ### Technical Details
+- Chrome Manifest V3
+- IndexedDB for face descriptor storage
+- chrome.storage.sync for settings
+- Debounced mutation observers for efficient DOM watching
+- Background service worker for CORS and messaging
+- Offscreen document for Canvas/WebGL-dependent face detection
 
-**Match Threshold**: 0.6
-- Lower values (< 0.6): May miss some matches
-- Higher values (> 0.6): Cause false positives
-- 0.6 provides best balance
+### Supported
+- Chrome 88+ and Chromium-based browsers
+- All standard `<img>` elements
+- Dynamic content (SPA frameworks, infinite scroll)
+- Lazy-loaded images
+- Responsive images with srcset
 
-**Minimum Image Size**: 50x50 pixels (display dimensions)
-- Prevents processing of tiny thumbnails and icons
-- Uses offsetWidth/Height to respect CSS sizing
+### Known Limitations
+- CORS-restricted images are skipped (browser security)
+- CSS background-image not supported
+- Video frames not supported
+- Animated GIFs (only first frame analyzed)
+- Canvas-rendered content not supported
+- Very small faces (<50x50 pixels) may not be detected
 
-**Multiple Descriptors**: 3+ per person recommended
-- Improves matching across different angles and lighting
-- Test infrastructure accumulates descriptors before storage
+## Version Number Format
 
-**Face Detection Options**: `{ inputSize: 160, scoreThreshold: 0.5 }`
-- Matches content script configuration
-- Works well for frontal faces and slight angles
-- Profile views (> 45°) may not be detected
+This project uses Semantic Versioning (MAJOR.MINOR.PATCH):
+- **MAJOR**: Breaking changes, major architecture updates
+- **MINOR**: New features, enhancements (backward compatible)
+- **PATCH**: Bug fixes, documentation updates
+
+## Categories
+
+Changes are grouped by:
+- **Added**: New features
+- **Changed**: Changes to existing functionality
+- **Deprecated**: Soon-to-be removed features
+- **Removed**: Removed features
+- **Fixed**: Bug fixes
+- **Security**: Security fixes
+
+---
+
+[Unreleased]: https://github.com/chenders/face-block-chromium-extension/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/chenders/face-block-chromium-extension/releases/tag/v1.0.0

@@ -1,5 +1,8 @@
 # Face Block Chromium Extension
 
+[![CI](https://github.com/chenders/face-block-chromium-extension/workflows/CI/badge.svg)](https://github.com/chenders/face-block-chromium-extension/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A privacy-focused Chromium extension that automatically blocks images of specified people on web pages using client-side face recognition. Matched images are replaced with blank placeholders.
 
 ## Features
@@ -210,13 +213,87 @@ Contributions welcome! Ways to help:
 - 📝 Improve documentation
 - 🔧 Submit pull requests
 
-### Development
+### Development Setup
 
-1. Clone repository
-2. Make changes in `extension/` directory
-3. Run tests: `npm test`
-4. Test manually in Chrome (`chrome://extensions/` → Load unpacked)
-5. Submit PR
+1. **Clone repository:**
+   ```bash
+   git clone https://github.com/chenders/face-block-chromium-extension.git
+   cd face-block-chromium-extension
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Development workflow:**
+   ```bash
+   # Run linter
+   npm run lint
+
+   # Auto-fix linting issues
+   npm run lint:fix
+
+   # Format code
+   npm run format
+
+   # Check formatting
+   npm run format:check
+
+   # Run tests
+   npm test
+
+   # Run tests in headed mode (see browser)
+   npm run test:headed
+
+   # Run tests with debugger
+   npm run test:debug
+
+   # Run tests with UI
+   npm run test:ui
+   ```
+
+4. **Make changes in `extension/` directory**
+
+5. **Test manually in Chrome:**
+   - Go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `extension` folder
+
+6. **Before submitting PR:**
+   ```bash
+   npm run lint        # Must pass
+   npm run format      # Format all code
+   npm test           # All tests must pass
+   ```
+
+### Code Quality
+
+This project uses:
+- **ESLint** for code linting (enforces code standards)
+- **Prettier** for code formatting (consistent style)
+- **Playwright** for end-to-end testing
+
+All code is automatically checked for style and quality. Run `npm run lint:fix` and `npm run format` before committing.
+
+### Building for Chrome Web Store
+
+To package the extension for distribution:
+
+```bash
+npm run build
+```
+
+This will:
+1. Run linter and formatter checks
+2. Copy extension files to `build/` directory
+3. Remove development artifacts
+4. Create ZIP file in `dist/` directory
+
+Output: `dist/face-block-chromium-extension-v1.0.0.zip`
+
+See **[STORE_LISTING.md](STORE_LISTING.md)** for Chrome Web Store submission guidelines.
 
 **Test on:** Wikipedia (works well), news sites, check console for errors.
 
