@@ -50,6 +50,7 @@ Productivity
 
 ## Privacy Policy URL
 https://github.com/YOUR_USERNAME/block-images/blob/main/PRIVACY.md
+<!-- TODO: Replace YOUR_USERNAME with your actual GitHub username -->
 
 ## Language
 English (United States)
@@ -62,17 +63,29 @@ English (United States)
 - 128x128: extension/icons/icon128.png
 
 ### Screenshots (1280x800 or 640x400)
-You'll need to create screenshots showing:
-1. The extension popup with settings
-2. The "Add Person" interface with photo upload
-3. Before/after comparison showing blocked image
-4. The detector mode selection options
-5. The people list management interface
+Generated screenshots are available in `store-assets/screenshots/`:
+1. **01-popup-main.png** - Extension popup with settings interface
+2. **02-add-person.png** - "Add Person" interface showing name input
+3. **03-detector-modes.png** - Detector mode selection (Fast/Thorough/Hybrid)
+4. **04-settings.png** - Match threshold configuration
+5. **05-example-page.png** - Real-world usage example on Wikipedia
+
+**Next steps:**
+- Review and edit these screenshots to add annotations (arrows, highlights, text labels)
+- Create a before/after comparison screenshot showing image blocking in action
+- Ensure all screenshots are properly formatted at 1280x800 pixels
+- See `store-assets/SCREENSHOT_GUIDE.md` for detailed editing instructions
 
 ### Promotional Images
-**Small Promo Tile (440x280)**: Optional
-**Large Promo Tile (920x680)**: Optional
-**Marquee Promo Tile (1400x560)**: Required for featured placement
+**Small Promo Tile (440x280)**: Optional - Use `store-assets/templates/small-tile-template.html`
+**Large Promo Tile (920x680)**: Optional - Use `store-assets/templates/large-tile-template.html`
+**Marquee Promo Tile (1400x560)**: Required for featured placement - Use `store-assets/templates/marquee-tile-template.html`
+
+**To create promotional images:**
+1. Open the HTML templates in a web browser
+2. Customize the text, colors, and content
+3. Take a screenshot of the tile at the exact dimensions
+4. See `store-assets/PROMO_GUIDE.md` for detailed design guidelines
 
 ## Version Information
 
@@ -117,12 +130,15 @@ All regions
 
 ### Website
 https://github.com/YOUR_USERNAME/block-images
+<!-- TODO: Replace YOUR_USERNAME with your actual GitHub username -->
 
 ### Support URL
 https://github.com/YOUR_USERNAME/block-images/issues
+<!-- TODO: Replace YOUR_USERNAME with your actual GitHub username -->
 
 ### Support Email
 your-email@example.com
+<!-- TODO: Replace with your actual support email address -->
 
 ## Pricing
 
