@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Test - 200 Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #666;
+            padding-bottom: 10px;
+        }
+        .stats {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats strong {
+            color: #e74c3c;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .image-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .image-container img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        .image-label {
+            padding: 8px;
+            font-size: 12px;
+            color: #666;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+        }
+        #performance-stats {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            min-width: 250px;
+            z-index: 1000;
+        }
+        #performance-stats h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+        #performance-stats .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        #performance-stats .stat-label {
+            color: #666;
+        }
+        #performance-stats .stat-value {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="performance-stats">
+        <h3>⏱️ Performance Stats</h3>
+        <div class="stat-row">
+            <span class="stat-label">Total Images:</span>
+            <span class="stat-value" id="stat-total">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Processed:</span>
+            <span class="stat-value" id="stat-processed">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Blocked:</span>
+            <span class="stat-value" id="stat-blocked">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Processing Time:</span>
+            <span class="stat-value" id="stat-time">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Avg per Image:</span>
+            <span class="stat-value" id="stat-avg">-</span>
+        </div>
+    </div>
+
+    <h1>Performance Test Page</h1>
+
+    <div class="stats">
+        <p><strong>200 images</strong> on this page for performance testing.</p>
+        <p>Watch the performance stats in the top-right corner.</p>
+    </div>
+
+    <div class="image-grid" id="image-grid">
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-0"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 0">
+            <div class="image-label">#1</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-1"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 1">
+            <div class="image-label">#2</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-2"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 2">
+            <div class="image-label">#3</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-3"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 3">
+            <div class="image-label">#4</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-4"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 4">
+            <div class="image-label">#5</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-5"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 5">
+            <div class="image-label">#6</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-6"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 6">
+            <div class="image-label">#7</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-7"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 7">
+            <div class="image-label">#8</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-8"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 8">
+            <div class="image-label">#9</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-9"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 9">
+            <div class="image-label">#10</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-10"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 10">
+            <div class="image-label">#11</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-11"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 11">
+            <div class="image-label">#12</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-12"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 12">
+            <div class="image-label">#13</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-13"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 13">
+            <div class="image-label">#14</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-14"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 14">
+            <div class="image-label">#15</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-15"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 15">
+            <div class="image-label">#16</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-16"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 16">
+            <div class="image-label">#17</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-17"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 17">
+            <div class="image-label">#18</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-18"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 18">
+            <div class="image-label">#19</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-19"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 19">
+            <div class="image-label">#20</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-20"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 20">
+            <div class="image-label">#21</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-21"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 21">
+            <div class="image-label">#22</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-22"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 22">
+            <div class="image-label">#23</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-23"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 23">
+            <div class="image-label">#24</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-24"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 24">
+            <div class="image-label">#25</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-25"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 25">
+            <div class="image-label">#26</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-26"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 26">
+            <div class="image-label">#27</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-27"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 27">
+            <div class="image-label">#28</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-28"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 28">
+            <div class="image-label">#29</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-29"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 29">
+            <div class="image-label">#30</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-30"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 30">
+            <div class="image-label">#31</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-31"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 31">
+            <div class="image-label">#32</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-32"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 32">
+            <div class="image-label">#33</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-33"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 33">
+            <div class="image-label">#34</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-34"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 34">
+            <div class="image-label">#35</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-35"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 35">
+            <div class="image-label">#36</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-36"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 36">
+            <div class="image-label">#37</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-37"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 37">
+            <div class="image-label">#38</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-38"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 38">
+            <div class="image-label">#39</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-39"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 39">
+            <div class="image-label">#40</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-40"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 40">
+            <div class="image-label">#41</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-41"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 41">
+            <div class="image-label">#42</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-42"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 42">
+            <div class="image-label">#43</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-43"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 43">
+            <div class="image-label">#44</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-44"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 44">
+            <div class="image-label">#45</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-45"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 45">
+            <div class="image-label">#46</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-46"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 46">
+            <div class="image-label">#47</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-47"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 47">
+            <div class="image-label">#48</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-48"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 48">
+            <div class="image-label">#49</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-49"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 49">
+            <div class="image-label">#50</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-50"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 50">
+            <div class="image-label">#51</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-51"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 51">
+            <div class="image-label">#52</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-52"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 52">
+            <div class="image-label">#53</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-53"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 53">
+            <div class="image-label">#54</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-54"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 54">
+            <div class="image-label">#55</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-55"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 55">
+            <div class="image-label">#56</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-56"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 56">
+            <div class="image-label">#57</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-57"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 57">
+            <div class="image-label">#58</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-58"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 58">
+            <div class="image-label">#59</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-59"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 59">
+            <div class="image-label">#60</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-60"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 60">
+            <div class="image-label">#61</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-61"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 61">
+            <div class="image-label">#62</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-62"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 62">
+            <div class="image-label">#63</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-63"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 63">
+            <div class="image-label">#64</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-64"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 64">
+            <div class="image-label">#65</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-65"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 65">
+            <div class="image-label">#66</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-66"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 66">
+            <div class="image-label">#67</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-67"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 67">
+            <div class="image-label">#68</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-68"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 68">
+            <div class="image-label">#69</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-69"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 69">
+            <div class="image-label">#70</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-70"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 70">
+            <div class="image-label">#71</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-71"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 71">
+            <div class="image-label">#72</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-72"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 72">
+            <div class="image-label">#73</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-73"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 73">
+            <div class="image-label">#74</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-74"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 74">
+            <div class="image-label">#75</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-75"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 75">
+            <div class="image-label">#76</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-76"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 76">
+            <div class="image-label">#77</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-77"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 77">
+            <div class="image-label">#78</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-78"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 78">
+            <div class="image-label">#79</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-79"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 79">
+            <div class="image-label">#80</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-80"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 80">
+            <div class="image-label">#81</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-81"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 81">
+            <div class="image-label">#82</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-82"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 82">
+            <div class="image-label">#83</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-83"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 83">
+            <div class="image-label">#84</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-84"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 84">
+            <div class="image-label">#85</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-85"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 85">
+            <div class="image-label">#86</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-86"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 86">
+            <div class="image-label">#87</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-87"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 87">
+            <div class="image-label">#88</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-88"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 88">
+            <div class="image-label">#89</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-89"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 89">
+            <div class="image-label">#90</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-90"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 90">
+            <div class="image-label">#91</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-91"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 91">
+            <div class="image-label">#92</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-92"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 92">
+            <div class="image-label">#93</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-93"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 93">
+            <div class="image-label">#94</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-94"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 94">
+            <div class="image-label">#95</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-95"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 95">
+            <div class="image-label">#96</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-96"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 96">
+            <div class="image-label">#97</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-97"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 97">
+            <div class="image-label">#98</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-98"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 98">
+            <div class="image-label">#99</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-99"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 99">
+            <div class="image-label">#100</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-100"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 100">
+            <div class="image-label">#101</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-101"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 101">
+            <div class="image-label">#102</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-102"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 102">
+            <div class="image-label">#103</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-103"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 103">
+            <div class="image-label">#104</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-104"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 104">
+            <div class="image-label">#105</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-105"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 105">
+            <div class="image-label">#106</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-106"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 106">
+            <div class="image-label">#107</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-107"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 107">
+            <div class="image-label">#108</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-108"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 108">
+            <div class="image-label">#109</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-109"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 109">
+            <div class="image-label">#110</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-110"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 110">
+            <div class="image-label">#111</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-111"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 111">
+            <div class="image-label">#112</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-112"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 112">
+            <div class="image-label">#113</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-113"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 113">
+            <div class="image-label">#114</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-114"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 114">
+            <div class="image-label">#115</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-115"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 115">
+            <div class="image-label">#116</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-116"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 116">
+            <div class="image-label">#117</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-117"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 117">
+            <div class="image-label">#118</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-118"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 118">
+            <div class="image-label">#119</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-119"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 119">
+            <div class="image-label">#120</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-120"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 120">
+            <div class="image-label">#121</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-121"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 121">
+            <div class="image-label">#122</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-122"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 122">
+            <div class="image-label">#123</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-123"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 123">
+            <div class="image-label">#124</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-124"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 124">
+            <div class="image-label">#125</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-125"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 125">
+            <div class="image-label">#126</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-126"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 126">
+            <div class="image-label">#127</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-127"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 127">
+            <div class="image-label">#128</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-128"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 128">
+            <div class="image-label">#129</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-129"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 129">
+            <div class="image-label">#130</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-130"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 130">
+            <div class="image-label">#131</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-131"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 131">
+            <div class="image-label">#132</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-132"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 132">
+            <div class="image-label">#133</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-133"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 133">
+            <div class="image-label">#134</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-134"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 134">
+            <div class="image-label">#135</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-135"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 135">
+            <div class="image-label">#136</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-136"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 136">
+            <div class="image-label">#137</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-137"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 137">
+            <div class="image-label">#138</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-138"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 138">
+            <div class="image-label">#139</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-139"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 139">
+            <div class="image-label">#140</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-140"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 140">
+            <div class="image-label">#141</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-141"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 141">
+            <div class="image-label">#142</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-142"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 142">
+            <div class="image-label">#143</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-143"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 143">
+            <div class="image-label">#144</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-144"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 144">
+            <div class="image-label">#145</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-145"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 145">
+            <div class="image-label">#146</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-146"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 146">
+            <div class="image-label">#147</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-147"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 147">
+            <div class="image-label">#148</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-148"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 148">
+            <div class="image-label">#149</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-149"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 149">
+            <div class="image-label">#150</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-150"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 150">
+            <div class="image-label">#151</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-151"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 151">
+            <div class="image-label">#152</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-152"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 152">
+            <div class="image-label">#153</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-153"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 153">
+            <div class="image-label">#154</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-154"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 154">
+            <div class="image-label">#155</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-155"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 155">
+            <div class="image-label">#156</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-156"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 156">
+            <div class="image-label">#157</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-157"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 157">
+            <div class="image-label">#158</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-158"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 158">
+            <div class="image-label">#159</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-159"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 159">
+            <div class="image-label">#160</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-160"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 160">
+            <div class="image-label">#161</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-161"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 161">
+            <div class="image-label">#162</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-162"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 162">
+            <div class="image-label">#163</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-163"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 163">
+            <div class="image-label">#164</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-164"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 164">
+            <div class="image-label">#165</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-165"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 165">
+            <div class="image-label">#166</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-166"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 166">
+            <div class="image-label">#167</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-167"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 167">
+            <div class="image-label">#168</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-168"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 168">
+            <div class="image-label">#169</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-169"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 169">
+            <div class="image-label">#170</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-170"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 170">
+            <div class="image-label">#171</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-171"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 171">
+            <div class="image-label">#172</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-172"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 172">
+            <div class="image-label">#173</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-173"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 173">
+            <div class="image-label">#174</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-174"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 174">
+            <div class="image-label">#175</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-175"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 175">
+            <div class="image-label">#176</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-176"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 176">
+            <div class="image-label">#177</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-177"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 177">
+            <div class="image-label">#178</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-178"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 178">
+            <div class="image-label">#179</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-179"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 179">
+            <div class="image-label">#180</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-180"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 180">
+            <div class="image-label">#181</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-181"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 181">
+            <div class="image-label">#182</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-182"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 182">
+            <div class="image-label">#183</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-183"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 183">
+            <div class="image-label">#184</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-184"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 184">
+            <div class="image-label">#185</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-185"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 185">
+            <div class="image-label">#186</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-186"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 186">
+            <div class="image-label">#187</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-187"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 187">
+            <div class="image-label">#188</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-188"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 188">
+            <div class="image-label">#189</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-189"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 189">
+            <div class="image-label">#190</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-190"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 190">
+            <div class="image-label">#191</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-191"
+                 src="/images/albert_einstein/einstein3.jpg"
+                 alt="Test image 191">
+            <div class="image-label">#192</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-192"
+                 src="/images/albert_einstein/einstein4.jpg"
+                 alt="Test image 192">
+            <div class="image-label">#193</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-193"
+                 src="/images/carl_sagan/carl_sagan1.jpg"
+                 alt="Test image 193">
+            <div class="image-label">#194</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-194"
+                 src="/images/carl_sagan/carl_sagan2.jpg"
+                 alt="Test image 194">
+            <div class="image-label">#195</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-195"
+                 src="/images/carl_sagan/carl_sagan3.jpg"
+                 alt="Test image 195">
+            <div class="image-label">#196</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-196"
+                 src="/images/marilyn_monroe.jpg"
+                 alt="Test image 196">
+            <div class="image-label">#197</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-197"
+                 src="/images/steven_pruitt.jpg"
+                 alt="Test image 197">
+            <div class="image-label">#198</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-198"
+                 src="/images/albert_einstein/einstein1.jpg"
+                 alt="Test image 198">
+            <div class="image-label">#199</div>
+        </div>
+        <div class="image-container">
+            <img class="test-image"
+                 id="perf-img-199"
+                 src="/images/albert_einstein/einstein2.jpg"
+                 alt="Test image 199">
+            <div class="image-label">#200</div>
+        </div>
+
+    </div>
+
+    <script>
+        const startTime = performance.now();
+        const totalImages = 200;
+
+        document.getElementById('stat-total').textContent = totalImages;
+
+        // Monitor for processed images
+        const observer = new MutationObserver(() => {
+            updateStats();
+        });
+
+        // Observe all images
+        const images = document.querySelectorAll('.test-image');
+        images.forEach(img => {
+            observer.observe(img, {
+                attributes: true,
+                attributeFilter: ['data-face-block-processed', 'alt', 'src']
+            });
+        });
+
+        function updateStats() {
+            const processedImages = document.querySelectorAll('[data-face-block-processed="true"]');
+            const blockedImages = document.querySelectorAll('[alt="Image blocked by Face Block Chromium Extension"]');
+
+            const processed = processedImages.length;
+            const blocked = blockedImages.length;
+
+            document.getElementById('stat-processed').textContent = processed;
+            document.getElementById('stat-blocked').textContent = blocked;
+
+            if (processed === totalImages) {
+                const endTime = performance.now();
+                const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+                const avgTime = ((endTime - startTime) / totalImages).toFixed(0);
+
+                document.getElementById('stat-time').textContent = totalTime + 's';
+                document.getElementById('stat-avg').textContent = avgTime + 'ms';
+
+                console.log('PERFORMANCE_COMPLETE:', {
+                    totalImages,
+                    processed,
+                    blocked,
+                    totalTimeSeconds: totalTime,
+                    avgTimePerImageMs: avgTime
+                });
+            }
+        }
+
+        // Initial update
+        setTimeout(updateStats, 100);
+
+        // Periodic updates
+        const interval = setInterval(() => {
+            updateStats();
+            if (document.querySelectorAll('[data-face-block-processed="true"]').length === totalImages) {
+                clearInterval(interval);
+            }
+        }, 500);
+
+        console.log('Test page loaded with', totalImages, 'images');
+    </script>
+</body>
+</html>

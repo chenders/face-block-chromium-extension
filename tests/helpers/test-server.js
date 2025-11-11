@@ -34,19 +34,26 @@ export async function startTestServer() {
           }
         }
 
-        // Serve test page HTML
-        if (req.url === '/' || req.url === '/test-page.html') {
-          const testPagePath = path.join(__dirname, '..', 'fixtures', 'test-page.html');
+        // Serve test page HTML (test-page.html and performance-test-*.html)
+        if (
+          req.url === '/' ||
+          req.url === '/test-page.html' ||
+          req.url.startsWith('/performance-test-')
+        ) {
+          let htmlFileName = req.url === '/' ? 'test-page.html' : req.url.substring(1);
+          const testPagePath = path.join(__dirname, '..', 'fixtures', htmlFileName);
 
-          // Read and modify the HTML to use HTTP URLs instead of file:// URLs
-          let html = fs.readFileSync(testPagePath, 'utf-8');
+          if (fs.existsSync(testPagePath)) {
+            // Read and modify the HTML to use HTTP URLs instead of file:// URLs
+            let html = fs.readFileSync(testPagePath, 'utf-8');
 
-          // Replace relative image paths with absolute HTTP paths
-          html = html.replace(/src="images\//g, `src="http://localhost:${serverPort}/images/`);
+            // Replace relative image paths with absolute HTTP paths
+            html = html.replace(/src="\/images\//g, `src="http://localhost:${serverPort}/images/`);
 
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(html);
-          return;
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(html);
+            return;
+          }
         }
 
         // Default response
