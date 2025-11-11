@@ -49,8 +49,7 @@ Face Block is a privacy-focused Chrome extension that gives you control over wha
 Productivity
 
 ## Privacy Policy URL
-https://github.com/YOUR_USERNAME/block-images/blob/main/PRIVACY.md
-<!-- TODO: Replace YOUR_USERNAME with your actual GitHub username -->
+https://github.com/chenders/face-block-chromium-extension/blob/main/PRIVACY.md
 
 ## Language
 English (United States)
@@ -129,12 +128,10 @@ All regions
 ## Support
 
 ### Website
-https://github.com/YOUR_USERNAME/block-images
-<!-- TODO: Replace YOUR_USERNAME with your actual GitHub username -->
+https://github.com/chenders/face-block-chromium-extension
 
 ### Support URL
-https://github.com/YOUR_USERNAME/block-images/issues
-<!-- TODO: Replace YOUR_USERNAME with your actual GitHub username -->
+https://github.com/chenders/face-block-chromium-extension/issues
 
 ### Support Email
 your-email@example.com
