@@ -1,0 +1,20 @@
+[project]
+name = "test-image-curator"
+version = "1.0.0"
+description = "Intelligent test image curation for face recognition testing"
+authors = [
+    {name = "Chris", email = "chris@waitingforthefuture.org"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pillow>=10.0.0",
+    "numpy>=1.24.0",
+    "requests>=2.31.0"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false

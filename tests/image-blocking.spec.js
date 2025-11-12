@@ -29,7 +29,7 @@ test.describe('Image Blocking Functionality', () => {
     page.on('console', msg => logs.push(msg.text()));
 
     // Load test page
-    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-page.html')}`;
+    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-pages', 'test-page.html')}`;
     await page.goto(testPagePath, { waitUntil: 'load' });
 
     // Wait for images to load and extension to process
@@ -47,7 +47,7 @@ test.describe('Image Blocking Functionality', () => {
   test('images have correct attributes after processing', async () => {
     const page = await browser.newPage();
 
-    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-page.html')}`;
+    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-pages', 'test-page.html')}`;
     await page.goto(testPagePath, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
 
@@ -87,7 +87,7 @@ test.describe('Image Blocking Functionality', () => {
   test('responsive images (srcset) are handled', async () => {
     const page = await browser.newPage();
 
-    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'responsive-images.html')}`;
+    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-pages', 'responsive-images.html')}`;
     await page.goto(testPagePath, { waitUntil: 'load' });
     await page.waitForTimeout(3000);
 
@@ -105,7 +105,7 @@ test.describe('Image Blocking Functionality', () => {
   test('background color detection works', async () => {
     const page = await browser.newPage();
 
-    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-page.html')}`;
+    const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-pages', 'test-page.html')}`;
     await page.goto(testPagePath);
 
     // Capture console logs about background colors

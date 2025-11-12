@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Test - 50 Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #666;
+            padding-bottom: 10px;
+        }
+        .info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #status {
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Face Block Performance Test - 50 Images</h1>
+
+    <div class="info">
+        <p><strong>Test Configuration:</strong></p>
+        <ul>
+            <li>Total Images: 50</li>
+            <li>Image Source: Trump test set (cycling through 22 unique images)</li>
+            <li>Purpose: Measure face detection and blocking performance</li>
+        </ul>
+        <div id="status">Page loaded. Extension processing images...</div>
+    </div>
+
+    <div class="image-grid">
+            <img src="/test-data/trump/source/donald_trump_1964_FileDonald_Trump_NYMAjpg.jpg" alt="Trump 1" class="test-image" id="img-1">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_J_Trump_1985jpg.jpg" alt="Trump 2" class="test-image" id="img-2">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_Trump_1985jpg.jpg" alt="Trump 3" class="test-image" id="img-3">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_Trump_with_an_architectural_m.jpg" alt="Trump 4" class="test-image" id="img-4">
+            <img src="/test-data/trump/source/donald_trump_1985_FileNancy_Reagan_accepting_an_award_with.jpg" alt="Trump 5" class="test-image" id="img-5">
+            <img src="/test-data/trump/source/donald_trump_1999_FileDonald_Trump_in_1999_3x4_cropjpg.jpg" alt="Trump 6" class="test-image" id="img-6">
+            <img src="/test-data/trump/source/donald_trump_2005_FileDONALD_TRUMP__Bobsin_New_York_2005_c.jpg" alt="Trump 7" class="test-image" id="img-7">
+            <img src="/test-data/trump/source/donald_trump_2008_FileDonald_Trump_and_Eric_Rhoads_cropped.jpg" alt="Trump 8" class="test-image" id="img-8">
+            <img src="/test-data/trump/source/donald_trump_2015_FileDonald_Trump_August_19_2015_croppedj.jpg" alt="Trump 9" class="test-image" id="img-9">
+            <img src="/test-data/trump/source/donald_trump_2016_FileDonald_Trump_29273256122_-_Cropped_t.jpg" alt="Trump 10" class="test-image" id="img-10">
+            <img src="/test-data/trump/source/donald_trump_2016_FileDonald_Trump_29273256122_-_Croppedjp.jpg" alt="Trump 11" class="test-image" id="img-11">
+            <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_2017_cropped_2jpg.jpg" alt="Trump 12" class="test-image" id="img-12">
+            <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_January_2017jpg.jpg" alt="Trump 13" class="test-image" id="img-13">
+            <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_in_the_Oval_Office_June.jpg" alt="Trump 14" class="test-image" id="img-14">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53066688047_croppedjpg.jpg" alt="Trump 15" class="test-image" id="img-15">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53067468124_croppedjpg.jpg" alt="Trump 16" class="test-image" id="img-16">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53067668020_croppedjpg.jpg" alt="Trump 17" class="test-image" id="img-17">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53299404971_croppedjpg.jpg" alt="Trump 18" class="test-image" id="img-18">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53787934031_croppedjpg.jpg" alt="Trump 19" class="test-image" id="img-19">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53787934031_double_crop.jpg" alt="Trump 20" class="test-image" id="img-20">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53788351205_croppedjpg.jpg" alt="Trump 21" class="test-image" id="img-21">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53807946692_croppedjpg.jpg" alt="Trump 22" class="test-image" id="img-22">
+            <img src="/test-data/trump/source/donald_trump_1964_FileDonald_Trump_NYMAjpg.jpg" alt="Trump 23" class="test-image" id="img-23">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_J_Trump_1985jpg.jpg" alt="Trump 24" class="test-image" id="img-24">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_Trump_1985jpg.jpg" alt="Trump 25" class="test-image" id="img-25">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_Trump_with_an_architectural_m.jpg" alt="Trump 26" class="test-image" id="img-26">
+            <img src="/test-data/trump/source/donald_trump_1985_FileNancy_Reagan_accepting_an_award_with.jpg" alt="Trump 27" class="test-image" id="img-27">
+            <img src="/test-data/trump/source/donald_trump_1999_FileDonald_Trump_in_1999_3x4_cropjpg.jpg" alt="Trump 28" class="test-image" id="img-28">
+            <img src="/test-data/trump/source/donald_trump_2005_FileDONALD_TRUMP__Bobsin_New_York_2005_c.jpg" alt="Trump 29" class="test-image" id="img-29">
+            <img src="/test-data/trump/source/donald_trump_2008_FileDonald_Trump_and_Eric_Rhoads_cropped.jpg" alt="Trump 30" class="test-image" id="img-30">
+            <img src="/test-data/trump/source/donald_trump_2015_FileDonald_Trump_August_19_2015_croppedj.jpg" alt="Trump 31" class="test-image" id="img-31">
+            <img src="/test-data/trump/source/donald_trump_2016_FileDonald_Trump_29273256122_-_Cropped_t.jpg" alt="Trump 32" class="test-image" id="img-32">
+            <img src="/test-data/trump/source/donald_trump_2016_FileDonald_Trump_29273256122_-_Croppedjp.jpg" alt="Trump 33" class="test-image" id="img-33">
+            <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_2017_cropped_2jpg.jpg" alt="Trump 34" class="test-image" id="img-34">
+            <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_January_2017jpg.jpg" alt="Trump 35" class="test-image" id="img-35">
+            <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_in_the_Oval_Office_June.jpg" alt="Trump 36" class="test-image" id="img-36">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53066688047_croppedjpg.jpg" alt="Trump 37" class="test-image" id="img-37">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53067468124_croppedjpg.jpg" alt="Trump 38" class="test-image" id="img-38">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53067668020_croppedjpg.jpg" alt="Trump 39" class="test-image" id="img-39">
+            <img src="/test-data/trump/source/donald_trump_2023_FileDonald_Trump_53299404971_croppedjpg.jpg" alt="Trump 40" class="test-image" id="img-40">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53787934031_croppedjpg.jpg" alt="Trump 41" class="test-image" id="img-41">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53787934031_double_crop.jpg" alt="Trump 42" class="test-image" id="img-42">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53788351205_croppedjpg.jpg" alt="Trump 43" class="test-image" id="img-43">
+            <img src="/test-data/trump/source/donald_trump_2024_FileDonald_Trump_53807946692_croppedjpg.jpg" alt="Trump 44" class="test-image" id="img-44">
+            <img src="/test-data/trump/source/donald_trump_1964_FileDonald_Trump_NYMAjpg.jpg" alt="Trump 45" class="test-image" id="img-45">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_J_Trump_1985jpg.jpg" alt="Trump 46" class="test-image" id="img-46">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_Trump_1985jpg.jpg" alt="Trump 47" class="test-image" id="img-47">
+            <img src="/test-data/trump/source/donald_trump_1985_FileDonald_Trump_with_an_architectural_m.jpg" alt="Trump 48" class="test-image" id="img-48">
+            <img src="/test-data/trump/source/donald_trump_1985_FileNancy_Reagan_accepting_an_award_with.jpg" alt="Trump 49" class="test-image" id="img-49">
+            <img src="/test-data/trump/source/donald_trump_1999_FileDonald_Trump_in_1999_3x4_cropjpg.jpg" alt="Trump 50" class="test-image" id="img-50">
+    </div>
+
+    <script>
+        // Performance tracking
+        const startTime = performance.now();
+        let processedCount = 0;
+
+        // Log when page is fully loaded
+        window.addEventListener('load', () => {
+            const loadTime = performance.now() - startTime;
+            console.log(`Page loaded with 50 images in ${loadTime.toFixed(2)}ms`);
+
+            // Update status
+            document.getElementById('status').innerHTML =
+                `Page loaded in ${loadTime.toFixed(0)}ms. Extension processing 50 images...`;
+
+            // Count how many images are actually loaded
+            const imgs = document.querySelectorAll('.test-image');
+            let loadedImages = 0;
+            imgs.forEach(img => {
+                if (img.complete) loadedImages++;
+            });
+            console.log(`${loadedImages}/${imgs.length} images loaded`);
+        });
+
+        // Listen for extension processing
+        document.addEventListener('faceBlockProcessingComplete', (e) => {
+            const totalTime = performance.now() - startTime;
+            console.log(`Extension processing complete in ${totalTime.toFixed(2)}ms`);
+            console.log(`Processed: ${e.detail.processed}, Blocked: ${e.detail.blocked}`);
+
+            document.getElementById('status').innerHTML =
+                `✅ Complete! Processed ${e.detail.processed} images in ${totalTime.toFixed(0)}ms (Blocked: ${e.detail.blocked})`;
+        });
+    </script>
+</body>
+</html>

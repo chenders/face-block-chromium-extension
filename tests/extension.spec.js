@@ -39,7 +39,7 @@ test.describe('Face Block Chromium Extension', () => {
     const page = await browser.newPage();
 
     // Navigate to test fixture page (content scripts run on http/https pages)
-    const fixturePath = path.join(process.cwd(), 'tests/fixtures/test-page.html');
+    const fixturePath = path.join(process.cwd(), 'tests/fixtures/test-pages/test-page.html');
     await page.goto(`file://${fixturePath}`);
 
     // Wait for content script to inject

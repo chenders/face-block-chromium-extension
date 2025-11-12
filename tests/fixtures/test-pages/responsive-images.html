@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Images Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .dark-section {
+            background: #222;
+            color: white;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Responsive Images Test Page</h1>
+
+    <div class="test-section">
+        <h2>1. srcset with pixel density descriptors</h2>
+        <img id="density-srcset"
+             src="https://via.placeholder.com/300x200/FF6B6B/FFFFFF?text=1x"
+             srcset="https://via.placeholder.com/600x400/FF6B6B/FFFFFF?text=2x 2x,
+                     https://via.placeholder.com/900x600/FF6B6B/FFFFFF?text=3x 3x"
+             alt="Density Srcset"
+             width="300">
+    </div>
+
+    <div class="test-section">
+        <h2>2. srcset with width descriptors and sizes</h2>
+        <img id="width-srcset"
+             src="https://via.placeholder.com/400x300/4ECDC4/FFFFFF?text=Small"
+             srcset="https://via.placeholder.com/400x300/4ECDC4/FFFFFF?text=Small 400w,
+                     https://via.placeholder.com/800x600/4ECDC4/FFFFFF?text=Medium 800w,
+                     https://via.placeholder.com/1200x900/4ECDC4/FFFFFF?text=Large 1200w"
+             sizes="(max-width: 600px) 400px,
+                    (max-width: 1000px) 800px,
+                    1200px"
+             alt="Width Srcset">
+    </div>
+
+    <div class="test-section">
+        <h2>3. Picture element with media queries</h2>
+        <picture id="picture-media">
+            <source media="(min-width: 1000px)"
+                    srcset="https://via.placeholder.com/1200x800/45B7D1/FFFFFF?text=Desktop">
+            <source media="(min-width: 600px)"
+                    srcset="https://via.placeholder.com/800x600/45B7D1/FFFFFF?text=Tablet">
+            <img src="https://via.placeholder.com/400x300/45B7D1/FFFFFF?text=Mobile"
+                 alt="Picture Media">
+        </picture>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Picture element with type attribute (WebP)</h2>
+        <picture id="picture-type">
+            <source type="image/webp"
+                    srcset="https://via.placeholder.com/600x400/96CEB4/FFFFFF?text=WebP.webp">
+            <source type="image/jpeg"
+                    srcset="https://via.placeholder.com/600x400/96CEB4/FFFFFF?text=JPEG.jpg">
+            <img src="https://via.placeholder.com/600x400/96CEB4/FFFFFF?text=PNG.png"
+                 alt="Picture Type">
+        </picture>
+    </div>
+
+    <div class="test-section dark-section">
+        <h2>5. Responsive image on dark background</h2>
+        <img id="dark-responsive"
+             src="https://via.placeholder.com/300x200/FFEAA7/333333?text=1x"
+             srcset="https://via.placeholder.com/600x400/FFEAA7/333333?text=2x 2x,
+                     https://via.placeholder.com/900x600/FFEAA7/333333?text=3x 3x"
+             alt="Dark Responsive">
+    </div>
+
+    <div class="test-section">
+        <h2>6. Picture with multiple source elements</h2>
+        <picture id="picture-complex">
+            <source media="(min-width: 1200px)"
+                    srcset="https://via.placeholder.com/1200x800/DFE6E9/000000?text=XL 1200w,
+                            https://via.placeholder.com/2400x1600/DFE6E9/000000?text=XL@2x 2400w"
+                    sizes="1200px">
+            <source media="(min-width: 800px)"
+                    srcset="https://via.placeholder.com/800x600/DFE6E9/000000?text=L 800w,
+                            https://via.placeholder.com/1600x1200/DFE6E9/000000?text=L@2x 1600w"
+                    sizes="800px">
+            <source media="(min-width: 400px)"
+                    srcset="https://via.placeholder.com/400x300/DFE6E9/000000?text=M 400w,
+                            https://via.placeholder.com/800x600/DFE6E9/000000?text=M@2x 800w"
+                    sizes="400px">
+            <img src="https://via.placeholder.com/300x200/DFE6E9/000000?text=S"
+                 alt="Complex Picture">
+        </picture>
+    </div>
+
+    <div class="test-section">
+        <h2>7. Image with both srcset and sizes</h2>
+        <img id="srcset-sizes"
+             src="https://via.placeholder.com/320x240/74B9FF/FFFFFF?text=320w"
+             srcset="https://via.placeholder.com/320x240/74B9FF/FFFFFF?text=320w 320w,
+                     https://via.placeholder.com/640x480/74B9FF/FFFFFF?text=640w 640w,
+                     https://via.placeholder.com/960x720/74B9FF/FFFFFF?text=960w 960w,
+                     https://via.placeholder.com/1280x960/74B9FF/FFFFFF?text=1280w 1280w"
+             sizes="(max-width: 320px) 280px,
+                    (max-width: 640px) 600px,
+                    (max-width: 960px) 920px,
+                    1240px"
+             alt="Srcset Sizes">
+    </div>
+
+    <div class="test-section">
+        <h2>8. Art direction with picture</h2>
+        <picture id="picture-art-direction">
+            <source media="(orientation: portrait)"
+                    srcset="https://via.placeholder.com/400x600/A29BFE/FFFFFF?text=Portrait">
+            <source media="(orientation: landscape)"
+                    srcset="https://via.placeholder.com/600x400/A29BFE/FFFFFF?text=Landscape">
+            <img src="https://via.placeholder.com/400x400/A29BFE/FFFFFF?text=Square"
+                 alt="Art Direction">
+        </picture>
+    </div>
+
+    <script>
+        // Log loaded images
+        window.addEventListener('load', () => {
+            console.log('Responsive images page loaded');
+            const images = document.querySelectorAll('img');
+            console.log(`Total img elements: ${images.length}`);
+
+            images.forEach((img, index) => {
+                console.log(`Image ${index + 1}:`, {
+                    id: img.id || 'no-id',
+                    currentSrc: img.currentSrc,
+                    hasSrcset: img.hasAttribute('srcset'),
+                    inPicture: img.parentElement.tagName === 'PICTURE'
+                });
+            });
+        });
+
+        window.responsiveTestReady = true;
+    </script>
+</body>
+</html>
