@@ -52,22 +52,7 @@ git push origin v1.0.0
 
 ---
 
-### Code Quality
-
-#### `pr-labeler.yml` - Auto-label Pull Requests
-**Triggers**: PR opened, synchronized, or reopened
-
-Automatically adds labels to PRs based on changed files:
-- `extension` - Changes to extension code
-- `tests` - Changes to test files
-- `documentation` - Changes to markdown/docs
-- `ci-cd` - Changes to GitHub Actions or Husky
-- `configuration` - Changes to config files
-- `dependencies` - Changes to package.json
-- `build` - Changes to build scripts
-- `store-assets` - Changes to Chrome Web Store assets
-
-Configuration in `.github/labeler.yml`
+### Issue Management
 
 #### `stale.yml` - Stale Issue Management
 **Triggers**: Daily at midnight UTC, Manual dispatch
