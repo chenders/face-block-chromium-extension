@@ -52,16 +52,7 @@ git push origin v1.0.0
 
 ---
 
-### Code Quality & Security
-
-#### `codeql.yml` - Security Analysis
-**Triggers**: Push to `main`/`dev`, PRs to `main`/`dev`, Weekly schedule (Mondays 8am UTC)
-
-Performs automated security vulnerability scanning using GitHub CodeQL:
-- Scans JavaScript code for security issues
-- Runs extended security queries
-- Results visible in Security tab
-- Weekly scheduled scans to catch new vulnerabilities
+### Code Quality
 
 #### `pr-labeler.yml` - Auto-label Pull Requests
 **Triggers**: PR opened, synchronized, or reopened
@@ -201,8 +192,7 @@ The project uses semantic versioning (MAJOR.MINOR.PATCH):
 
 ## Monitoring
 
-### Security
-- View CodeQL results: Repository → Security → Code scanning alerts
+### Dependencies
 - Review Dependabot PRs: Pull Requests tab (filtered by `dependencies` label)
 
 ### Build Status
