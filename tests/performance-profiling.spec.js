@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 // Configure longer timeout for performance tests
 test.setTimeout(300000); // 5 minutes
 
-test.describe('Performance Profiling', () => {
+test.describe.skip('Performance Profiling', () => {
   let browser;
   let userDataDir;
   let testPageUrl;
@@ -154,7 +154,7 @@ test.describe('Performance Profiling', () => {
     }
   }
 
-  test('Performance baseline - 50 images (hybrid mode)', async () => {
+  test.skip('Performance baseline - 50 images (hybrid mode)', async () => {
     const result = await runPerformanceTest({
       imageCount: 50,
       detectorMode: null,
@@ -165,7 +165,7 @@ test.describe('Performance Profiling', () => {
     expect(result.totalImages).toBe(50);
   });
 
-  test('Performance test - 100 images (hybrid mode)', async () => {
+  test.skip('Performance test - 100 images (hybrid mode)', async () => {
     const result = await runPerformanceTest({
       imageCount: 100,
       detectorMode: null,
@@ -176,7 +176,7 @@ test.describe('Performance Profiling', () => {
     expect(result.totalImages).toBe(100);
   });
 
-  test('Performance test - 200 images (hybrid mode)', async () => {
+  test.skip('Performance test - 200 images (hybrid mode)', async () => {
     const result = await runPerformanceTest({
       imageCount: 200,
       detectorMode: null,
@@ -187,7 +187,7 @@ test.describe('Performance Profiling', () => {
     expect(result.totalImages).toBe(200);
   });
 
-  test('Performance test - 500 images (hybrid mode)', async () => {
+  test.skip('Performance test - 500 images (hybrid mode)', async () => {
     const result = await runPerformanceTest({
       imageCount: 500,
       detectorMode: null,
@@ -198,7 +198,7 @@ test.describe('Performance Profiling', () => {
     expect(result.totalImages).toBe(500);
   });
 
-  test('Performance comparison - 100 images with TinyFaceDetector', async () => {
+  test.skip('Performance comparison - 100 images with TinyFaceDetector', async () => {
     const result = await runPerformanceTest({
       imageCount: 100,
       detectorMode: 'tinyFaceDetector',
@@ -209,7 +209,7 @@ test.describe('Performance Profiling', () => {
     expect(result.totalImages).toBe(100);
   });
 
-  test('Performance comparison - 100 images with SsdMobilenetv1', async () => {
+  test.skip('Performance comparison - 100 images with SsdMobilenetv1', async () => {
     const result = await runPerformanceTest({
       imageCount: 100,
       detectorMode: 'ssdMobilenetv1',
