@@ -32,9 +32,9 @@ test.describe('Performance Profiling', () => {
   async function runPerformanceTest(config) {
     const { imageCount, detectorMode, testName } = config;
 
-    // Load reference data (Einstein only for consistent testing)
+    // Load reference data (Trump only for consistent testing)
     testPageUrl = await loadTestReferenceData(browser, {
-      people: ['albert_einstein'],
+      people: ['trump'],
     });
 
     // Set detector mode if specified (via popup page which has access to chrome.storage)

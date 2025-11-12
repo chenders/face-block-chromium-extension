@@ -1,307 +1,90 @@
 # Test Fixtures Guide
 
-This guide documents the test image requirements for comprehensive face detection testing under various conditions.
+**Note:** This project has migrated from Einstein/Sagan test images to a comprehensive Trump-based test set.
 
-## Current Test Coverage
+## Current Test Infrastructure
 
-### Existing Fixtures (tests/fixtures/images/)
-- **Albert Einstein**: 4 images (mostly frontal views)
-- **Carl Sagan**: 3 images (mostly frontal views)
-- **Marilyn Monroe**: 1 image (non-matching control)
-- **Steven Pruitt**: 1 image (non-matching control)
+The test infrastructure now uses real-world public domain images of Donald Trump spanning 60 years (1964-2024) to test face recognition across age variations, lighting conditions, and quality variations.
 
-### Current Limitations
-- Primarily frontal face views
-- Similar lighting conditions (well-lit, indoor/studio)
-- Limited angle variation
-- No edge cases (partial faces, multiple faces per image, occlusions)
+### Documentation
 
-## Required Test Fixtures
+For complete information about the current test infrastructure, see:
 
-### 1. Face Angles
+- **[tests/TESTING_GUIDE.md](../TESTING_GUIDE.md)** - Comprehensive testing guide
+- **[test-data/trump/README.md](test-data/trump/README.md)** - Complete test data reference and usage
+- **[generators/image-curator/CURATION_PHILOSOPHY.md](generators/image-curator/CURATION_PHILOSOPHY.md)** - Philosophy behind test image curation
+- **[generators/image-curator/README.md](generators/image-curator/README.md)** - Image curator tool documentation
 
-Face detection accuracy varies significantly with face angle. We need test images covering:
+### Quick Start
 
-#### Frontal Views (0°) ✅
-- **Current:** Well covered with existing Einstein/Sagan images
-- **Status:** Complete
+To generate test images:
 
-#### 3/4 Views (45° left/right)
-- **Description:** Face turned approximately 45° to the side
-- **Both sides needed:** Left 3/4 and right 3/4
-- **Purpose:** Test detection when one side of face is less visible
-- **Expected:** Should still detect with TinyFace or SSD
-- **Files needed:**
-  - `albert_einstein/einstein_threequarter_left.jpg`
-  - `albert_einstein/einstein_threequarter_right.jpg`
-  - `carl_sagan/sagan_threequarter_left.jpg`
-  - `carl_sagan/sagan_threequarter_right.jpg`
-
-#### Profile Views (90° left/right)
-- **Description:** Face turned completely to the side
-- **Purpose:** Test detection limits - profiles are challenging
-- **Expected:** May not detect (acceptable limitation)
-- **Files needed:**
-  - `albert_einstein/einstein_profile_left.jpg`
-  - `albert_einstein/einstein_profile_right.jpg`
-  - `carl_sagan/sagan_profile_left.jpg`
-  - `carl_sagan/sagan_profile_right.jpg`
-
-#### Looking Up/Down
-- **Description:** Face tilted up (looking at ceiling) or down (looking at floor)
-- **Purpose:** Test pitch angle tolerance
-- **Expected:** Should detect at moderate angles (±30°)
-- **Files needed:**
-  - `albert_einstein/einstein_looking_up.jpg`
-  - `albert_einstein/einstein_looking_down.jpg`
-
-### 2. Lighting Conditions
-
-Lighting significantly affects face detection accuracy.
-
-#### Well-Lit (Indoor/Studio) ✅
-- **Current:** Well covered with existing images
-- **Status:** Complete
-
-#### Backlit/Silhouette
-- **Description:** Strong light source behind person (face in shadow)
-- **Purpose:** Test detection with low face contrast
-- **Expected:** Challenging - may require SSD detector
-- **Files needed:**
-  - `lighting_variations/einstein_backlit.jpg`
-  - `lighting_variations/sagan_backlit.jpg`
-
-#### Strong Shadows (Directional Light)
-- **Description:** One side of face well-lit, other in shadow
-- **Purpose:** Test detection with partial face visibility
-- **Expected:** Should detect if features are visible
-- **Files needed:**
-  - `lighting_variations/einstein_shadows.jpg`
-  - `lighting_variations/sagan_shadows.jpg`
-
-#### Low Light
-- **Description:** Dim lighting, low overall brightness
-- **Purpose:** Test detection in poor lighting
-- **Expected:** Reduced accuracy, but should detect prominent features
-- **Files needed:**
-  - `lighting_variations/einstein_lowlight.jpg`
-  - `lighting_variations/sagan_lowlight.jpg`
-
-#### Overexposed/Bright
-- **Description:** Very bright lighting, potential washout
-- **Purpose:** Test detection when facial features are less defined
-- **Expected:** Should handle moderate overexposure
-- **Files needed:**
-  - `lighting_variations/einstein_bright.jpg`
-  - `lighting_variations/sagan_bright.jpg`
-
-### 3. Edge Cases
-
-#### Multiple Faces
-- **Description:** Multiple people in same image
-- **Purpose:** Verify extension can detect and block specific person among others
-- **Expected:** Should only block targeted person
-- **Files needed:**
-  - `edge_cases/einstein_with_others.jpg` (Einstein + non-targets)
-  - `edge_cases/group_photo.jpg` (Mix of blocked and non-blocked people)
-
-#### Partial Faces
-- **Description:** Face partially cropped or occluded
-- **Purpose:** Test detection with incomplete face data
-- **Expected:** May not detect (acceptable)
-- **Files needed:**
-  - `edge_cases/einstein_partial_top.jpg` (forehead cropped)
-  - `edge_cases/einstein_partial_side.jpg` (side of face cropped)
-
-#### Occluded Faces
-- **Description:** Face partially covered (glasses, hands, objects)
-- **Purpose:** Test detection with obstructions
-- **Expected:** Should detect if key features visible
-- **Files needed:**
-  - `edge_cases/einstein_with_glasses.jpg`
-  - `edge_cases/einstein_hand_on_face.jpg`
-
-#### Small Faces
-- **Description:** Face occupies small portion of image
-- **Purpose:** Test minimum size threshold
-- **Expected:** Extension already filters <50px images
-- **Files needed:**
-  - `edge_cases/einstein_distant.jpg` (face <100px)
-  - `edge_cases/einstein_far.jpg` (face ~50px threshold)
-
-#### Age Variations
-- **Description:** Same person at different ages
-- **Purpose:** Test temporal consistency of recognition
-- **Expected:** May not match across large age gaps
-- **Files needed:**
-  - `age_variations/einstein_young.jpg`
-  - `age_variations/einstein_old.jpg`
-
-## Directory Structure
-
-```
-tests/fixtures/images/
-├── albert_einstein/
-│   ├── einstein1.jpg              # Existing: frontal view
-│   ├── einstein2.jpg              # Existing: frontal view
-│   ├── einstein3.jpg              # Existing: side angle
-│   ├── einstein4.jpg              # Existing: frontal view
-│   ├── einstein_threequarter_left.jpg    # NEW
-│   ├── einstein_threequarter_right.jpg   # NEW
-│   ├── einstein_profile_left.jpg         # NEW
-│   ├── einstein_profile_right.jpg        # NEW
-│   ├── einstein_looking_up.jpg           # NEW
-│   ├── einstein_looking_down.jpg         # NEW
-│   └── test_urls.md               # Existing
-├── carl_sagan/
-│   ├── carl_sagan1.jpg            # Existing
-│   ├── carl_sagan2.jpg            # Existing
-│   ├── carl_sagan3.jpg            # Existing
-│   ├── sagan_threequarter_left.jpg       # NEW
-│   ├── sagan_threequarter_right.jpg      # NEW
-│   ├── sagan_profile_left.jpg            # NEW
-│   ├── sagan_profile_right.jpg           # NEW
-│   └── test_urls.md               # Existing
-├── lighting_variations/           # NEW
-│   ├── einstein_backlit.jpg
-│   ├── einstein_shadows.jpg
-│   ├── einstein_lowlight.jpg
-│   ├── einstein_bright.jpg
-│   ├── sagan_backlit.jpg
-│   ├── sagan_shadows.jpg
-│   ├── sagan_lowlight.jpg
-│   ├── sagan_bright.jpg
-│   └── README.md
-├── edge_cases/                    # NEW
-│   ├── einstein_with_others.jpg
-│   ├── group_photo.jpg
-│   ├── einstein_partial_top.jpg
-│   ├── einstein_partial_side.jpg
-│   ├── einstein_with_glasses.jpg
-│   ├── einstein_hand_on_face.jpg
-│   ├── einstein_distant.jpg
-│   ├── einstein_far.jpg
-│   └── README.md
-├── age_variations/                # NEW
-│   ├── einstein_young.jpg
-│   ├── einstein_old.jpg
-│   ├── sagan_young.jpg
-│   ├── sagan_old.jpg
-│   └── README.md
-├── marilyn_monroe.jpg             # Existing
-└── steven_pruitt.jpg              # Existing
+```bash
+cd tests/fixtures/generators/image-curator
+./curate_trump_images.sh
 ```
 
-## Sourcing Test Images
+This downloads:
+- 22+ Trump source images from 1964-2024
+- 50 negative examples (Biden, Obama, Pence, etc.)
+- 20 lighting variations
+- 15 quality variations
+- **Total: 109+ test images**
 
-### Legal Requirements
-All test images must be:
-- Public domain, OR
-- Creative Commons licensed (CC0, CC BY, CC BY-SA), OR
-- Fair use for testing purposes
-
-### Recommended Sources
-
-#### 1. Wikimedia Commons
-- URL: https://commons.wikimedia.org
-- License: Mix of public domain and CC licenses
-- Filter by license: Search → Advanced → License filter
-
-#### 2. Library of Congress
-- URL: https://www.loc.gov/pictures/
-- License: Many public domain historical images
-- Good for historical figures (Einstein, etc.)
-
-#### 3. NASA Images
-- URL: https://images.nasa.gov
-- License: Public domain (U.S. government work)
-- Good for Carl Sagan (astronomer)
-
-#### 4. Creating Test Images
-For edge cases that require specific conditions:
-- Use image editing tools to modify existing public domain images
-- Apply lighting adjustments, crops, rotations
-- Document transformations in README files
-
-### Attribution
-Track image sources in markdown files:
-- Original source URL
-- License type
-- Photographer/creator (if applicable)
-- Any modifications made
-
-## Test Implementation
-
-### Test Spec Structure
-
-Each test category should have a dedicated spec file:
+### Test Structure
 
 ```
-tests/
-├── face-angles.spec.js           # NEW: Test angle variations
-├── lighting-conditions.spec.js   # NEW: Test lighting variations
-├── edge-cases.spec.js            # NEW: Test edge cases
-├── age-variations.spec.js        # NEW: Test temporal consistency
+tests/fixtures/
+├── generators/
+│   └── image-curator/          - Tool for downloading and curating test images
+│       ├── curate_trump_images.sh
+│       ├── intelligent_test_curator.py
+│       ├── README.md
+│       └── CURATION_PHILOSOPHY.md
+├── test-data/
+│   └── trump/                  - Trump test images and metadata
+│       ├── source/             (22 files) - Original downloads spanning 60 years
+│       ├── by-age/             (24 files) - Categorized by age (young/middle/old)
+│       ├── by-lighting/        (20 files) - Backlit, lowlight, bright, shadows
+│       ├── by-quality/         (15 files) - Small, compressed, cropped
+│       ├── false_positives/    (50 files) - Other politicians (critical for testing)
+│       ├── image_metadata.json - Complete metadata for Trump images
+│       ├── CURATION_SUMMARY.md - Generated summary
+│       └── README.md           - Complete test data reference
+└── test-pages/                 - HTML test pages
+    ├── test-page.html
+    ├── performance-test-50.html
+    ├── performance-test-100.html
+    ├── performance-test-200.html
+    ├── performance-test-500.html
+    └── generate-performance-pages.js
 ```
 
-### Expected Results Matrix
+### Running Tests
 
-| Condition | TinyFace | SSD | Hybrid | Notes |
-|-----------|----------|-----|--------|-------|
-| Frontal (0°) | ✓ | ✓ | ✓ | Current baseline |
-| 3/4 View (45°) | ✓ | ✓ | ✓ | Should detect |
-| Profile (90°) | ✗ | ? | ? | May not detect |
-| Looking Up/Down | ✓ | ✓ | ✓ | Moderate angles |
-| Backlit | ✗ | ✓ | ✓ | Challenging |
-| Strong Shadows | ✓ | ✓ | ✓ | Depends on severity |
-| Low Light | ? | ✓ | ✓ | Reduced accuracy |
-| Overexposed | ✓ | ✓ | ✓ | Moderate tolerance |
-| Multiple Faces | ✓ | ✓ | ✓ | Should isolate target |
-| Partial Face | ✗ | ✗ | ✗ | Acceptable limitation |
-| Occluded | ? | ? | ? | Depends on occlusion |
-| Small Face | ✗ | ✗ | ✗ | Below threshold |
+```bash
+# Run all tests
+npm test
 
-✓ = Expected to detect
-✗ = Not expected to detect
-? = Uncertain, needs testing
+# Run comprehensive Trump tests
+npx playwright test trump-comprehensive
 
-## Next Steps
+# Run with coverage report
+npx playwright test trump-comprehensive --grep "Coverage Report"
+```
 
-1. **Create directory structure**
-   ```bash
-   mkdir -p tests/fixtures/images/{lighting_variations,edge_cases,age_variations}
-   ```
+## Historical Note
 
-2. **Source images**
-   - Search Wikimedia Commons for Einstein at different angles
-   - Search NASA archives for Sagan variations
-   - Document sources in README files
+The previous test infrastructure (documented in `TEST_FIXTURES_GUIDE.md.OLD`) used Einstein and Sagan images, but this approach had limitations:
+- Only a few reference images per person
+- Limited age variation coverage
+- Insufficient false positive testing
 
-3. **Create modified images**
-   - Use photo editing to create lighting variations
-   - Create cropped versions for edge cases
-   - Document transformations
+The new Trump-based system provides:
+- 60 years of age variation (1964-2024)
+- Real-world lighting and quality variations
+- Comprehensive false positive testing (50 negative examples)
+- Automated generation and updates
+- Complete metadata for analysis
 
-4. **Implement tests**
-   - Write test specs for each category
-   - Set appropriate expectations based on matrix
-   - Document known limitations
-
-5. **Update documentation**
-   - Update main README with test coverage
-   - Document any findings about detection limits
-   - Add recommendations for users
-
-## Performance Considerations
-
-- Keep test images under 500KB each
-- Total fixture size should remain under 10MB
-- Consider using lower resolution for edge case images
-- Profile all new tests to ensure reasonable execution time
-
-## Maintenance
-
-- Review test fixtures quarterly
-- Update if face-api.js models improve
-- Add new edge cases as discovered
-- Keep licenses up to date
+See the files mentioned above for detailed information about the current system.

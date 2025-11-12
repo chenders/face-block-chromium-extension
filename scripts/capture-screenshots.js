@@ -102,7 +102,7 @@ async function captureScreenshots() {
     // Screenshot 5: Example webpage (before/after comparison setup)
     console.log('📸 Capturing screenshot 5: Example usage...');
     const examplePage = await context.newPage();
-    await examplePage.goto('https://en.wikipedia.org/wiki/Albert_Einstein');
+    await examplePage.goto('https://en.wikipedia.org/wiki/Donald_Trump');
     await examplePage.waitForTimeout(3000);
     await examplePage.screenshot({
       path: path.join(SCREENSHOT_DIR, '05-example-page.png'),

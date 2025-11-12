@@ -14,12 +14,15 @@ let testServerUrl = null;
  * Load reference face descriptors from test images into the extension
  * @param {BrowserContext} context - Playwright browser context with extension loaded
  * @param {Object} config - Configuration for which faces to load
- * @param {Array<string>} config.people - Array of person names (folder names in tests/fixtures/images)
+ * @param {Array<string>} config.people - Array of person names
+ *   - For Trump: use 'donald_trump', 'trump', or 'Donald Trump' (uses test-data/trump/source/)
+ *   - For others: folder name in tests/fixtures/images/ (legacy system)
  * @param {string} config.extensionId - Optional extension ID (will be detected if not provided)
  * @returns {Promise<string>} The test server URL
  */
 export async function loadTestReferenceData(context, { people, extensionId: providedExtensionId }) {
-  const fixturesPath = path.join(__dirname, '..', 'fixtures', 'images');
+  const oldFixturesPath = path.join(__dirname, '..', 'fixtures', 'images');
+  const trumpTestSetPath = path.join(__dirname, '..', 'fixtures', 'test-data', 'trump');
 
   // Create a temporary page to process reference images
   const tempPage = await context.newPage();
@@ -79,14 +82,37 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
     // Get absolute paths to all reference images
     const referencePaths = [];
     for (const person of people) {
-      const personDir = path.join(fixturesPath, person);
+      let personDir;
+      let personName = person;
 
-      // Get all jpg files in the person's directory
+      // Check if this is Trump - support multiple variations
+      const isTrump = ['donald_trump', 'trump', 'donald trump'].includes(person.toLowerCase());
+
+      if (isTrump) {
+        // For Trump, use the test-data/trump/source directory
+        personDir = path.join(trumpTestSetPath, 'source');
+        personName = 'Donald Trump'; // Normalize name
+
+        if (!fs.existsSync(personDir)) {
+          console.warn(`Trump test set not found at ${personDir}. Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh`);
+          continue;
+        }
+      } else {
+        // Try old system for backwards compatibility
+        personDir = path.join(oldFixturesPath, person);
+
+        if (!fs.existsSync(personDir)) {
+          console.warn(`Test images not found for ${person} at ${personDir}. Skipping...`);
+          continue;
+        }
+      }
+
+      // Get all jpg/png files in the person's directory
       const files = fs.readdirSync(personDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png'));
 
       for (const file of files) {
         referencePaths.push({
-          person,
+          person: personName,
           path: path.join(personDir, file),
         });
       }
@@ -98,7 +124,10 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
     // Multiple descriptors per person improve matching accuracy across different angles/lighting
     const descriptorsByPerson = {};
     for (const person of people) {
-      descriptorsByPerson[person] = [];
+      // Normalize person name same way as above
+      const isTrump = ['donald_trump', 'trump', 'donald trump'].includes(person.toLowerCase());
+      const normalizedName = isTrump ? 'Donald Trump' : person;
+      descriptorsByPerson[normalizedName] = [];
     }
 
     // Process each reference image to extract face descriptors
@@ -169,8 +198,12 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
     }
 
     for (const person of people) {
-      if (descriptorsByPerson[person].length === 0) {
-        console.warn(`No valid reference images for ${person}, skipping storage`);
+      // Normalize person name same way as above
+      const isTrump = ['donald_trump', 'trump', 'donald trump'].includes(person.toLowerCase());
+      const normalizedName = isTrump ? 'Donald Trump' : person;
+
+      if (descriptorsByPerson[normalizedName].length === 0) {
+        console.warn(`No valid reference images for ${normalizedName}, skipping storage`);
         continue;
       }
 
@@ -194,15 +227,15 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
           return { success: true };
         },
-        { personName: person, descriptors: descriptorsByPerson[person] }
+        { personName: normalizedName, descriptors: descriptorsByPerson[normalizedName] }
       );
 
       if (!backgroundResult.success) {
-        console.error(`Failed to add reference faces for ${person}`);
-        throw new Error(`Failed to add reference faces for ${person}`);
+        console.error(`Failed to add reference faces for ${normalizedName}`);
+        throw new Error(`Failed to add reference faces for ${normalizedName}`);
       }
 
-      console.log(`Added ${descriptorsByPerson[person].length} reference face(s) for ${person}`);
+      console.log(`Added ${descriptorsByPerson[normalizedName].length} reference face(s) for ${normalizedName}`);
     }
 
     console.log(`Successfully loaded reference data for ${people.length} people`);

@@ -36,8 +36,14 @@ BUGFIX.md
 PROJECT_SUMMARY.md
 QUICK_TEST.md
 
-# Node modules (if added in future)
+# Node modules
 node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.image_cache/
 
 # Build artifacts (if added in future)
 dist/
@@ -49,6 +55,7 @@ build/
 /playwright-report/
 /playwright/.cache/
 .playwright/
+.temp-profile/
 
 # Logs
 *.log
