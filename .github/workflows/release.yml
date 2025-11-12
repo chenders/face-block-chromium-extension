@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    name: Build and Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate version consistency
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          MANIFEST_VERSION=$(node -p "require('./extension/manifest.json').version")
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+
+          echo "Package.json version: $PACKAGE_VERSION"
+          echo "Manifest.json version: $MANIFEST_VERSION"
+          echo "Git tag version: $TAG_VERSION"
+
+          if [ "$PACKAGE_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "Error: Version mismatch between package.json and manifest.json"
+            exit 1
+          fi
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Version mismatch between package.json and git tag"
+            exit 1
+          fi
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run tests
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm test
+
+      - name: Build extension package
+        run: npm run build
+
+      - name: Check package size
+        run: |
+          SIZE=$(stat -f%z dist/*.zip 2>/dev/null || stat -c%s dist/*.zip)
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Package size: ${SIZE_MB}MB"
+
+          if [ $SIZE_MB -gt 128 ]; then
+            echo "Error: Package size (${SIZE_MB}MB) exceeds Chrome Web Store limit (128MB)"
+            exit 1
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-release-${{ github.ref_name }}
+          path: dist/*.zip
+          retention-days: 90

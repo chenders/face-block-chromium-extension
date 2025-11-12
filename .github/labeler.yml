@@ -1,0 +1,57 @@
+# Extension code changes
+extension:
+  - changed-files:
+    - any-glob-to-any-file: 'extension/**/*'
+
+# Test changes
+tests:
+  - changed-files:
+    - any-glob-to-any-file: 'tests/**/*'
+
+# Documentation changes
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+# CI/CD changes
+ci-cd:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - '.husky/**/*'
+
+# Configuration changes
+configuration:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.json'
+      - '*.js'
+      - '*.yml'
+      - '*.yaml'
+      - '.eslintrc*'
+      - '.prettierrc*'
+      - 'playwright.config.js'
+
+# Dependency changes
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'package-lock.json'
+
+# Build/release changes
+build:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'build-for-store.sh'
+      - 'scripts/**/*'
+
+# Store assets changes
+store-assets:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'store-assets/**/*'
+      - 'STORE_LISTING.md'
+      - 'PRIVACY.md'
