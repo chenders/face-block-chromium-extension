@@ -35,7 +35,13 @@ function testImagesExist() {
 
 // Helper to load metadata
 function loadImageMetadata() {
-  const metadataPath = path.join(__dirname, 'fixtures', 'test-data', 'trump', 'image_metadata.json');
+  const metadataPath = path.join(
+    __dirname,
+    'fixtures',
+    'test-data',
+    'trump',
+    'image_metadata.json'
+  );
   if (!fs.existsSync(metadataPath)) {
     return null;
   }
@@ -53,7 +59,8 @@ function getImages(criteria) {
       const decade = Math.floor(img.year / 10) * 10;
       if (decade !== criteria.decade) return false;
     }
-    if (criteria.is_negative !== undefined && img.is_negative !== criteria.is_negative) return false;
+    if (criteria.is_negative !== undefined && img.is_negative !== criteria.is_negative)
+      return false;
     if (criteria.person && img.person !== criteria.person) return false;
     return true;
   });
@@ -61,7 +68,13 @@ function getImages(criteria) {
 
 // Helper to get false positive images by person (from directory, not metadata)
 function getFalsePositiveImages(personName) {
-  const falsePositivesPath = path.join(__dirname, 'fixtures', 'test-data', 'trump', 'false_positives');
+  const falsePositivesPath = path.join(
+    __dirname,
+    'fixtures',
+    'test-data',
+    'trump',
+    'false_positives'
+  );
   if (!fs.existsSync(falsePositivesPath)) return [];
 
   const allFiles = fs.readdirSync(falsePositivesPath).filter(f => f.endsWith('.jpg'));
@@ -75,7 +88,13 @@ function getFalsePositiveImages(personName) {
 
 // Helper to get all false positive images grouped by person
 function getAllFalsePositives() {
-  const falsePositivesPath = path.join(__dirname, 'fixtures', 'test-data', 'trump', 'false_positives');
+  const falsePositivesPath = path.join(
+    __dirname,
+    'fixtures',
+    'test-data',
+    'trump',
+    'false_positives'
+  );
   if (!fs.existsSync(falsePositivesPath)) return {};
 
   const allFiles = fs.readdirSync(falsePositivesPath).filter(f => f.endsWith('.jpg'));
@@ -87,9 +106,10 @@ function getAllFalsePositives() {
     if (match) {
       const personKey = match[1];
       // Convert to title case: "joe_biden" -> "Joe Biden"
-      const personName = personKey.split('_').map(word =>
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
+      const personName = personKey
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 
       if (!grouped[personName]) grouped[personName] = [];
       grouped[personName].push(filename);
@@ -111,7 +131,9 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
     hasTestImages = testImagesExist();
 
     if (!hasTestImages) {
-      console.log('\n⚠️  Test images not found. Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh\n');
+      console.log(
+        '\n⚠️  Test images not found. Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh\n'
+      );
     }
   });
 
@@ -156,11 +178,13 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
 
       // Group by decade
       const decades = {};
-      metadata.filter(m => !m.is_negative).forEach(img => {
-        const decade = Math.floor(img.year / 10) * 10;
-        if (!decades[decade]) decades[decade] = [];
-        decades[decade].push(img);
-      });
+      metadata
+        .filter(m => !m.is_negative)
+        .forEach(img => {
+          const decade = Math.floor(img.year / 10) * 10;
+          if (!decades[decade]) decades[decade] = [];
+          decades[decade].push(img);
+        });
 
       const decadeList = Object.keys(decades).sort();
 
@@ -292,10 +316,8 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
       if (!metadata) test.skip();
 
       // Filter for high-quality, likely official portraits
-      const portraits = metadata.filter(m =>
-        !m.is_negative &&
-        m.quality === 'high' &&
-        m.context === 'portrait'
+      const portraits = metadata.filter(
+        m => !m.is_negative && m.quality === 'high' && m.context === 'portrait'
       );
 
       console.log(`Testing ${portraits.length} high-quality official portraits`);
@@ -311,9 +333,8 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
       if (!metadata) test.skip();
 
       // Lower quality or different contexts
-      const candids = metadata.filter(m =>
-        !m.is_negative &&
-        (m.quality === 'medium' || m.quality === 'low')
+      const candids = metadata.filter(
+        m => !m.is_negative && (m.quality === 'medium' || m.quality === 'low')
       );
 
       console.log(`Testing ${candids.length} candid/event photos`);
@@ -366,9 +387,11 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
         decades[decade] = (decades[decade] || 0) + 1;
       });
       console.log('\n   Decade Distribution:');
-      Object.entries(decades).sort((a, b) => a[0] - b[0]).forEach(([decade, count]) => {
-        console.log(`     ${decade}s: ${count} images`);
-      });
+      Object.entries(decades)
+        .sort((a, b) => a[0] - b[0])
+        .forEach(([decade, count]) => {
+          console.log(`     ${decade}s: ${count} images`);
+        });
 
       // Quality distribution
       const qualities = {};
@@ -382,28 +405,37 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
 
       // Get false positives from directory (not in metadata)
       const falsePositives = getAllFalsePositives();
-      const totalFalsePositives = Object.values(falsePositives).reduce((sum, arr) => sum + arr.length, 0);
+      const totalFalsePositives = Object.values(falsePositives).reduce(
+        (sum, arr) => sum + arr.length,
+        0
+      );
 
       console.log(`\n❌ Negative Examples: ${totalFalsePositives}`);
       console.log('\n   By Person:');
-      Object.entries(falsePositives).sort((a, b) => b[1].length - a[1].length).forEach(([person, images]) => {
-        console.log(`     ${person.padEnd(20)}: ${images.length} images`);
-      });
+      Object.entries(falsePositives)
+        .sort((a, b) => b[1].length - a[1].length)
+        .forEach(([person, images]) => {
+          console.log(`     ${person.padEnd(20)}: ${images.length} images`);
+        });
 
       // Check variations
       const lightingPath = path.join(__dirname, 'fixtures', 'test-data', 'trump', 'by-lighting');
       const qualityPath = path.join(__dirname, 'fixtures', 'test-data', 'trump', 'by-quality');
 
-      const lightingCount = fs.existsSync(lightingPath) ?
-        fs.readdirSync(lightingPath).filter(f => f.endsWith('.jpg')).length : 0;
-      const qualityCount = fs.existsSync(qualityPath) ?
-        fs.readdirSync(qualityPath).filter(f => f.endsWith('.jpg')).length : 0;
+      const lightingCount = fs.existsSync(lightingPath)
+        ? fs.readdirSync(lightingPath).filter(f => f.endsWith('.jpg')).length
+        : 0;
+      const qualityCount = fs.existsSync(qualityPath)
+        ? fs.readdirSync(qualityPath).filter(f => f.endsWith('.jpg')).length
+        : 0;
 
       console.log(`\n🔆 Lighting Variations: ${lightingCount}`);
       console.log(`📐 Quality Variations: ${qualityCount}`);
 
       console.log('\n═══════════════════════════════════════');
-      console.log(`TOTAL TEST IMAGES: ${metadata.length + lightingCount + qualityCount + totalFalsePositives}`);
+      console.log(
+        `TOTAL TEST IMAGES: ${metadata.length + lightingCount + qualityCount + totalFalsePositives}`
+      );
       console.log('═══════════════════════════════════════\n');
 
       // Assertions to ensure minimum coverage

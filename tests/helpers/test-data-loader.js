@@ -94,7 +94,9 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
         personName = 'Donald Trump'; // Normalize name
 
         if (!fs.existsSync(personDir)) {
-          console.warn(`Trump test set not found at ${personDir}. Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh`);
+          console.warn(
+            `Trump test set not found at ${personDir}. Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh`
+          );
           continue;
         }
       } else {
@@ -235,7 +237,9 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
         throw new Error(`Failed to add reference faces for ${normalizedName}`);
       }
 
-      console.log(`Added ${descriptorsByPerson[normalizedName].length} reference face(s) for ${normalizedName}`);
+      console.log(
+        `Added ${descriptorsByPerson[normalizedName].length} reference face(s) for ${normalizedName}`
+      );
     }
 
     console.log(`Successfully loaded reference data for ${people.length} people`);

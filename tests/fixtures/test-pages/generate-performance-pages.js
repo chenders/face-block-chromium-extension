@@ -13,14 +13,17 @@ const __dirname = path.dirname(__filename);
 
 // Get Trump test images
 const trumpSourceDir = path.join(__dirname, '..', 'test-data', 'trump', 'source');
-const trumpImages = fs.readdirSync(trumpSourceDir)
+const trumpImages = fs
+  .readdirSync(trumpSourceDir)
   .filter(f => f.endsWith('.jpg') || f.endsWith('.png'))
   .map(f => `/test-data/trump/source/${f}`);
 
 console.log(`Found ${trumpImages.length} Trump images`);
 
 if (trumpImages.length === 0) {
-  console.error('No Trump test images found! Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh');
+  console.error(
+    'No Trump test images found! Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh'
+  );
   process.exit(1);
 }
 

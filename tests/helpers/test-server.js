@@ -18,7 +18,11 @@ export async function startTestServer() {
       // Add a small delay to avoid race condition with Playwright's event listeners
       setTimeout(() => {
         // Serve test images from /images/, /trump_test_set/ (legacy), or /test-data/
-        if (req.url.startsWith('/images/') || req.url.startsWith('/trump_test_set/') || req.url.startsWith('/test-data/')) {
+        if (
+          req.url.startsWith('/images/') ||
+          req.url.startsWith('/trump_test_set/') ||
+          req.url.startsWith('/test-data/')
+        ) {
           const imagePath = path.join(__dirname, '..', 'fixtures', req.url);
 
           if (fs.existsSync(imagePath)) {
@@ -49,8 +53,14 @@ export async function startTestServer() {
 
             // Replace relative image paths with absolute HTTP paths
             html = html.replace(/src="\/images\//g, `src="http://localhost:${serverPort}/images/`);
-            html = html.replace(/src="\/trump_test_set\//g, `src="http://localhost:${serverPort}/trump_test_set/`);
-            html = html.replace(/src="\/test-data\//g, `src="http://localhost:${serverPort}/test-data/`);
+            html = html.replace(
+              /src="\/trump_test_set\//g,
+              `src="http://localhost:${serverPort}/trump_test_set/`
+            );
+            html = html.replace(
+              /src="\/test-data\//g,
+              `src="http://localhost:${serverPort}/test-data/`
+            );
 
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(html);

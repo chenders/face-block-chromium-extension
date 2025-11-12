@@ -40,13 +40,15 @@ test.describe('Face Detection with Reference Data', () => {
     await page.waitForTimeout(12000);
 
     // Check Trump images are blocked
-    const trumpImages = await page.$$eval('[id^="trump-"]:not([id$="-tiny"]):not([id$="-inline"]):not([id$="-inline-2"])', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        src: img.src.substring(0, 50),
-        hasProcessed: img.hasAttribute('data-face-block-processed'),
-      }))
+    const trumpImages = await page.$$eval(
+      '[id^="trump-"]:not([id$="-tiny"]):not([id$="-inline"]):not([id$="-inline-2"])',
+      imgs =>
+        imgs.map(img => ({
+          id: img.id,
+          isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+          src: img.src.substring(0, 50),
+          hasProcessed: img.hasAttribute('data-face-block-processed'),
+        }))
     );
 
     console.log('Trump images:', trumpImages);
