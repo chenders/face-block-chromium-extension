@@ -201,11 +201,10 @@ The project includes comprehensive Playwright tests to verify functionality. See
 **Quick Start:**
 ```bash
 npm install
-npm test              # Run tests in headless mode (no visible browser)
-npm run test:headed   # Run tests with visible browser (for debugging)
+npm test
 ```
 
-**Note**: Tests run in headless mode by default to avoid interrupting your workflow. The browser runs in the background without stealing focus or blocking your screen.
+**Note**: Tests run with a visible browser (headed mode) for accurate extension testing, but the browser is configured to not steal focus or interrupt your workflow.
 
 ## Contributing
 
