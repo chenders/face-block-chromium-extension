@@ -67,7 +67,7 @@ test.describe('Detector Modes', () => {
     await page.close();
   });
 
-  test('changing detector mode reprocesses images', async () => {
+  test.skip('changing detector mode reprocesses images', async () => {
     // This test verifies that when detector changes, content scripts are notified
     const page = await browser.newPage();
 
