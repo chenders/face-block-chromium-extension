@@ -5,11 +5,27 @@
 (function () {
   'use strict';
 
-  // Quick check if this might be a React site (to avoid hydration errors)
+  // Quick check if this might be an SSR site with hydration (to avoid hydration errors)
   // We check early indicators that are available at document_start
-  function isLikelyReactSite() {
-    // Check for known React-heavy sites by domain
-    const knownReactSites = [
+  //
+  // Supported frameworks:
+  // - React/Next.js: Server-rendered React apps with hydration
+  // - Vue/Nuxt: Vue SSR framework
+  // - Angular Universal: Angular SSR
+  // - Svelte/SvelteKit: Svelte SSR framework
+  // - Solid.js: Solid SSR with hydration
+  // - Qwik: Resumable framework (uses serialization instead of hydration)
+  // - Astro: Static site generator with optional hydration islands
+  //
+  // Why we skip preload hiding on SSR sites:
+  // SSR frameworks render HTML on the server and hydrate it on the client.
+  // If we modify the DOM (hide images) before hydration completes, the framework
+  // detects a mismatch between server HTML and client state, causing warnings.
+  // Instead, we delay face detection until after hydration using requestIdleCallback.
+  function isLikelySsrSite() {
+    // Check for known SSR-heavy sites by domain
+    const knownSsrSites = [
+      // React/Next.js sites
       'unsplash.com',
       'airbnb.com',
       'netflix.com',
@@ -20,17 +36,23 @@
       'x.com',
       'github.com',
       'linkedin.com',
+      // Vue/Nuxt sites (common examples)
+      'nuxtjs.org',
+      'vuejs.org',
+      // Angular sites
+      'angular.io',
+      'angular.dev',
     ];
 
     const hostname = window.location.hostname.replace('www.', '');
-    if (knownReactSites.some(site => hostname.includes(site))) {
+    if (knownSsrSites.some(site => hostname.includes(site))) {
       return true;
     }
 
-    // Check for React meta tags or data attributes in the HTML
+    // Check for SSR framework indicators in the HTML
     const htmlContent = document.documentElement?.outerHTML || '';
 
-    // Look for common React/Next.js indicators in the HTML
+    // React/Next.js indicators
     if (
       htmlContent.includes('__NEXT_DATA__') ||
       htmlContent.includes('data-reactroot') ||
@@ -41,16 +63,55 @@
       return true;
     }
 
+    // Vue/Nuxt indicators
+    if (
+      htmlContent.includes('__NUXT__') ||
+      htmlContent.includes('data-n-head') ||
+      htmlContent.includes('data-v-') ||
+      htmlContent.includes('id="__nuxt"')
+    ) {
+      return true;
+    }
+
+    // Angular Universal indicators
+    if (
+      htmlContent.includes('ng-version') ||
+      htmlContent.includes('ng-state') ||
+      htmlContent.includes('<app-root')
+    ) {
+      return true;
+    }
+
+    // Svelte/SvelteKit indicators
+    if (htmlContent.includes('__SVELTEKIT__') || htmlContent.includes('data-sveltekit')) {
+      return true;
+    }
+
+    // Solid.js indicators
+    if (htmlContent.includes('data-hk')) {
+      return true;
+    }
+
+    // Qwik indicators (resumability, but better to be safe)
+    if (htmlContent.includes('q:id') || htmlContent.includes('q:key')) {
+      return true;
+    }
+
+    // Astro indicators (islands architecture)
+    if (htmlContent.includes('astro-island')) {
+      return true;
+    }
+
     return false;
   }
 
-  // Skip preload hiding on React sites to avoid hydration mismatches
-  // React sites will handle blocking with a slight delay instead
-  if (isLikelyReactSite()) {
+  // Skip preload hiding on SSR sites to avoid hydration mismatches
+  // SSR sites will handle blocking with a slight delay instead
+  if (isLikelySsrSite()) {
     return;
   }
 
-  // Inject CSS to hide all images initially (non-React sites only)
+  // Inject CSS to hide all images initially (non-SSR sites only)
   const style = document.createElement('style');
   style.id = 'face-block-preload-styles';
   style.textContent = `

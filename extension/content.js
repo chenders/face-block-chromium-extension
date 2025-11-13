@@ -18,19 +18,46 @@
 
   debugLog('Face Block Chromium Extension: Content script loaded');
 
-  // Detect if page uses React (check for React-specific attributes and globals)
-  function isReactSite() {
-    // Check for React dev tools markers
+  // Detect if page uses SSR with hydration (React, Vue, Angular, Svelte, etc.)
+  function isSsrSite() {
+    // Check for React/Next.js
     if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) return true;
-
-    // Check for React root attributes
-    const hasReactRoot = document.querySelector(
-      '[data-reactroot], [data-reactid], #__next, [id^="__react"]'
-    );
-    if (hasReactRoot) return true;
-
-    // Check for Next.js or other React frameworks
     if (window.__NEXT_DATA__ || window.next) return true;
+    if (document.querySelector('[data-reactroot], [data-reactid], #__next, [id^="__react"]')) {
+      return true;
+    }
+
+    // Check for Vue/Nuxt
+    if (window.__NUXT__ || window.$nuxt) return true;
+    if (document.querySelector('[data-v-], [data-n-head], #__nuxt')) {
+      return true;
+    }
+
+    // Check for Angular Universal
+    if (window.ng || document.querySelector('[ng-version], [ng-state], app-root')) {
+      return true;
+    }
+
+    // Check for Svelte/SvelteKit
+    if (window.__SVELTEKIT__) return true;
+    if (document.querySelector('[data-sveltekit]')) {
+      return true;
+    }
+
+    // Check for Solid.js
+    if (document.querySelector('[data-hk]')) {
+      return true;
+    }
+
+    // Check for Qwik
+    if (document.querySelector('[q\\:id], [q\\:key]')) {
+      return true;
+    }
+
+    // Check for Astro islands
+    if (document.querySelector('astro-island')) {
+      return true;
+    }
 
     return false;
   }
@@ -47,17 +74,17 @@
       // Get reference descriptors and send to offscreen document
       await loadReferenceDescriptors();
 
-      // Check if this is a React site that needs hydration time
-      const reactSite = isReactSite();
-      if (reactSite) {
+      // Check if this is an SSR site that needs hydration time
+      const ssrSite = isSsrSite();
+      if (ssrSite) {
         debugLog(
-          'Face Block Chromium Extension: React site detected, delaying processing for hydration'
+          'Face Block Chromium Extension: SSR site detected, delaying processing for hydration'
         );
       }
 
-      // Process existing images after hydration on React sites
-      if (reactSite) {
-        // Use requestIdleCallback to wait for React hydration to complete
+      // Process existing images after hydration on SSR sites
+      if (ssrSite) {
+        // Use requestIdleCallback to wait for SSR hydration to complete
         if (typeof requestIdleCallback !== 'undefined') {
           requestIdleCallback(
             async () => {
