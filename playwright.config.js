@@ -13,6 +13,9 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Run in headless mode by default (no visible browser)
+    // Set HEADED=1 environment variable to see the browser: HEADED=1 npm test
+    headless: !process.env.HEADED,
   },
 
   projects: [
@@ -25,6 +28,9 @@ export default defineConfig({
           args: [
             `--disable-extensions-except=${path.resolve('./extension')}`,
             `--load-extension=${path.resolve('./extension')}`,
+            // Prevent browser from stealing focus when in headed mode
+            '--no-startup-window',
+            '--disable-popup-blocking',
           ],
         },
       },

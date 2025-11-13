@@ -5,11 +5,11 @@
   "description": "Privacy-focused Chromium extension that blocks images of specified people",
   "scripts": {
     "test": "playwright test",
-    "test:headed": "playwright test --headed",
+    "test:headed": "HEADED=1 playwright test",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
     "test:perf": "npm run perf:generate && playwright test performance-profiling.spec.js",
-    "test:perf:headed": "npm run perf:generate && playwright test performance-profiling.spec.js --headed",
+    "test:perf:headed": "npm run perf:generate && HEADED=1 playwright test performance-profiling.spec.js",
     "perf:generate": "node scripts/generate-performance-test-page.js",
     "lint": "eslint extension/**/*.js tests/**/*.js scripts/**/*.js --no-warn-ignored",
     "lint:fix": "eslint extension/**/*.js tests/**/*.js scripts/**/*.js --fix --no-warn-ignored",
