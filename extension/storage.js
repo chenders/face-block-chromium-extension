@@ -1,4 +1,5 @@
 // storage.js - IndexedDB helper functions for face descriptors
+// Note: Requires config.js to be loaded first for logging functions
 
 const DB_NAME = 'FaceBlurDB';
 const DB_VERSION = 1;
@@ -15,7 +16,7 @@ class FaceStorage {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('Database error:', request.error);
+        errorLog('Database error:', request.error);
         reject(request.error);
       };
 
@@ -38,25 +39,25 @@ class FaceStorage {
 
   // Add or update a person's face descriptors
   async addPerson(personName, descriptors, photoBlobs = [], qualityData = null) {
-    console.log(`Storage.addPerson called: ${personName}, ${descriptors.length} descriptors`);
+    debugLog(`Storage.addPerson called: ${personName}, ${descriptors.length} descriptors`);
 
     if (!this.db) {
-      console.log('Storage: DB not initialized, initializing...');
+      debugLog('Storage: DB not initialized, initializing...');
       await this.init();
     }
 
     return new Promise((resolve, reject) => {
-      console.log('Storage: Creating transaction...');
+      debugLog('Storage: Creating transaction...');
 
       const transaction = this.db.transaction([STORE_NAME], 'readwrite');
 
       transaction.onerror = event => {
-        console.error('Storage: Transaction error:', event.target.error);
+        errorLog('Storage: Transaction error:', event.target.error);
         reject(event.target.error);
       };
 
       transaction.oncomplete = () => {
-        console.log('Storage: Transaction completed successfully');
+        debugLog('Storage: Transaction completed successfully');
       };
 
       const objectStore = transaction.objectStore(STORE_NAME);
@@ -94,7 +95,7 @@ class FaceStorage {
         };
       }
 
-      console.log('Storage: Data prepared:', {
+      debugLog('Storage: Data prepared:', {
         personName,
         descriptorCount: data.descriptors.length,
         photoCount: data.photoCount,
@@ -104,12 +105,12 @@ class FaceStorage {
       const request = objectStore.put(data);
 
       request.onsuccess = () => {
-        console.log(`Storage: Successfully added/updated person: ${personName}`);
+        debugLog(`Storage: Successfully added/updated person: ${personName}`);
         resolve({ success: true });
       };
 
       request.onerror = event => {
-        console.error('Storage: Error adding person:', event.target.error);
+        errorLog('Storage: Error adding person:', event.target.error);
         reject(event.target.error);
       };
     });
@@ -136,7 +137,7 @@ class FaceStorage {
       };
 
       request.onerror = () => {
-        console.error('Error getting person:', request.error);
+        errorLog('Error getting person:', request.error);
         reject(request.error);
       };
     });
@@ -155,14 +156,14 @@ class FaceStorage {
 
       request.onsuccess = () => {
         const results = request.result;
-        console.log('Storage: Retrieved from IndexedDB:', results);
+        debugLog('Storage: Retrieved from IndexedDB:', results);
 
         // Convert arrays back to Float32Array for each person
         results.forEach(person => {
-          console.log(`Storage: Processing ${person.personName}, descriptors:`, person.descriptors);
+          debugLog(`Storage: Processing ${person.personName}, descriptors:`, person.descriptors);
 
           person.descriptors = person.descriptors.map((d, idx) => {
-            console.log(
+            debugLog(
               `Storage: Descriptor ${idx} type:`,
               typeof d,
               'isArray:',
@@ -179,12 +180,12 @@ class FaceStorage {
               // Convert object to array
               arrayData = Object.values(d);
             } else {
-              console.error('Storage: Invalid descriptor format:', d);
+              errorLog('Storage: Invalid descriptor format:', d);
               return new Float32Array(0);
             }
 
             const float32 = new Float32Array(arrayData);
-            console.log(
+            debugLog(
               `Storage: Converted descriptor ${idx} to Float32Array, length:`,
               float32.length
             );
@@ -196,7 +197,7 @@ class FaceStorage {
       };
 
       request.onerror = () => {
-        console.error('Error getting all people:', request.error);
+        errorLog('Error getting all people:', request.error);
         reject(request.error);
       };
     });
@@ -214,12 +215,12 @@ class FaceStorage {
       const request = objectStore.delete(personName);
 
       request.onsuccess = () => {
-        console.log(`Deleted person: ${personName}`);
+        debugLog(`Deleted person: ${personName}`);
         resolve({ success: true });
       };
 
       request.onerror = () => {
-        console.error('Error deleting person:', request.error);
+        errorLog('Error deleting person:', request.error);
         reject(request.error);
       };
     });
@@ -237,12 +238,12 @@ class FaceStorage {
       const request = objectStore.clear();
 
       request.onsuccess = () => {
-        console.log('Cleared all data');
+        debugLog('Cleared all data');
         resolve({ success: true });
       };
 
       request.onerror = () => {
-        console.error('Error clearing data:', request.error);
+        errorLog('Error clearing data:', request.error);
         reject(request.error);
       };
     });

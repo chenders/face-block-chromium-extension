@@ -41,9 +41,9 @@ async function loadModels() {
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
 
     modelsLoaded = true;
-    console.log('Face-api.js models loaded in popup');
+    debugLog('Face-api.js models loaded in popup');
   } catch (error) {
-    console.error('Error loading models:', error);
+    errorLog('Error loading models:', error);
     showStatus('Error loading face recognition models', 'error');
   }
 }
@@ -138,7 +138,7 @@ async function handleFileSelection(e) {
           }
           container.appendChild(feedback);
         } catch (error) {
-          console.error('Error analyzing photo:', error);
+          errorLog('Error analyzing photo:', error);
         }
 
         previewImagesDiv.appendChild(container);
@@ -249,7 +249,7 @@ async function handleAddPerson() {
         if (analysis && analysis.valid && analysis.descriptor) {
           // Validate descriptor
           if (analysis.descriptor.length !== 128) {
-            console.error('Invalid descriptor length:', analysis.descriptor.length);
+            errorLog('Invalid descriptor length:', analysis.descriptor.length);
             continue;
           }
 
@@ -258,7 +258,7 @@ async function handleAddPerson() {
 
           // Double-check the array
           if (descriptorArray.length !== 128) {
-            console.error('Array conversion failed:', descriptorArray.length);
+            errorLog('Array conversion failed:', descriptorArray.length);
             continue;
           }
 
@@ -273,10 +273,10 @@ async function handleAddPerson() {
             photoIndex: processedCount,
           });
           processedCount++;
-          console.log(`Extracted descriptor ${processedCount}: quality=${analysis.score}/100`);
+          debugLog(`Extracted descriptor ${processedCount}: quality=${analysis.score}/100`);
         }
       } catch (error) {
-        console.error('Error processing photo:', error);
+        errorLog('Error processing photo:', error);
       }
     }
 
@@ -291,7 +291,7 @@ async function handleAddPerson() {
     }
 
     // Send descriptors with quality data to background script
-    console.log('Popup: Sending ADD_PERSON message to background...');
+    debugLog('Popup: Sending ADD_PERSON message to background...');
 
     chrome.runtime.sendMessage(
       {
@@ -303,10 +303,10 @@ async function handleAddPerson() {
         },
       },
       response => {
-        console.log('Popup: Received response from background:', response);
+        debugLog('Popup: Received response from background:', response);
 
         if (chrome.runtime.lastError) {
-          console.error('Popup: Runtime error:', chrome.runtime.lastError);
+          errorLog('Popup: Runtime error:', chrome.runtime.lastError);
           showStatus(`Error: ${chrome.runtime.lastError.message}`, 'error');
           addPersonBtn.disabled = false;
           addPersonBtn.textContent = 'Add Person';
@@ -314,7 +314,7 @@ async function handleAddPerson() {
         }
 
         if (response && response.success) {
-          console.log('Popup: Person added successfully');
+          debugLog('Popup: Person added successfully');
           showStatus(
             `Successfully added ${personName} with ${descriptorData.length} face descriptor(s)!`,
             'success'
@@ -322,7 +322,7 @@ async function handleAddPerson() {
           resetForm();
           loadPeopleList();
         } else {
-          console.error('Popup: Failed to add person:', response);
+          errorLog('Popup: Failed to add person:', response);
           showStatus(`Error: ${response?.error || 'Failed to add person'}`, 'error');
         }
         addPersonBtn.disabled = false;
@@ -330,7 +330,7 @@ async function handleAddPerson() {
       }
     );
   } catch (error) {
-    console.error('Error adding person:', error);
+    errorLog('Error adding person:', error);
     showStatus('Error processing photos', 'error');
     addPersonBtn.disabled = false;
     addPersonBtn.textContent = 'Add Person';
@@ -358,7 +358,7 @@ async function extractFaceDescriptor(imageDataUrl) {
           resolve(analyzePhotoQuality(null, img));
         }
       } catch (error) {
-        console.error('Face detection error:', error);
+        errorLog('Face detection error:', error);
         reject(error);
       }
     };
@@ -404,7 +404,7 @@ async function loadPeopleList() {
       }
     });
   } catch (error) {
-    console.error('Error loading people:', error);
+    errorLog('Error loading people:', error);
     peopleListDiv.innerHTML = '<div class="empty-state">Error loading data</div>';
   }
 }
@@ -499,7 +499,7 @@ function handleDetectorChange(e) {
   const detector = e.target.value;
 
   chrome.storage.sync.set({ detector }, () => {
-    console.log(`Detector changed to: ${detector}`);
+    infoLog(`Detector changed to: ${detector}`);
 
     // Notify all content scripts to reload models and settings
     chrome.tabs.query({}, tabs => {
@@ -606,7 +606,7 @@ async function handleExportData() {
       exportDataBtn.textContent = 'Export Data';
     });
   } catch (error) {
-    console.error('Export error:', error);
+    errorLog('Export error:', error);
     showStatus('Error exporting data', 'error');
     exportDataBtn.disabled = false;
     exportDataBtn.textContent = 'Export Data';
@@ -664,7 +664,7 @@ async function handleImportData(e) {
       }
     );
   } catch (error) {
-    console.error('Import error:', error);
+    errorLog('Import error:', error);
     showStatus('Error importing data: Invalid file', 'error');
     importDataBtn.disabled = false;
     importDataBtn.textContent = 'Import Data';

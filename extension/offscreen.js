@@ -1,7 +1,7 @@
 // offscreen.js - Offscreen document for face detection with pre-loaded models
 // This runs in a hidden document with DOM/Canvas access, allowing face-api.js to work
 
-console.log('Face Block: Offscreen document loaded');
+debugLog('Face Block: Offscreen document loaded');
 
 let modelsLoaded = false;
 let ssdMobilenetLoaded = false;
@@ -15,37 +15,37 @@ let config = {
 // Load models immediately when offscreen document loads
 (async function initializeModels() {
   try {
-    console.log('Face Block: Loading face-api.js models in offscreen document...');
+    debugLog('Face Block: Loading face-api.js models in offscreen document...');
     // Use relative path from offscreen document
     const MODEL_URL = './models';
-    console.log('Face Block: Model URL:', MODEL_URL);
+    debugLog('Face Block: Model URL:', MODEL_URL);
 
     // Always load TinyFaceDetector (fast, primary detector)
-    console.log('Face Block: Loading TinyFaceDetector...');
+    debugLog('Face Block: Loading TinyFaceDetector...');
     await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
 
     // Load shared models
-    console.log('Face Block: Loading shared models...');
+    debugLog('Face Block: Loading shared models...');
     await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
 
     modelsLoaded = true;
-    console.log('Face Block: TinyFaceDetector and shared models loaded');
+    debugLog('Face Block: TinyFaceDetector and shared models loaded');
 
     // Lazy-load SsdMobilenet for hybrid/thorough modes
     // This is loaded in background to be ready when needed
-    console.log('Face Block: Loading SsdMobilenetv1 in background...');
+    debugLog('Face Block: Loading SsdMobilenetv1 in background...');
     faceapi.nets.ssdMobilenetv1
       .loadFromUri('./models')
       .then(() => {
         ssdMobilenetLoaded = true;
-        console.log('Face Block: SsdMobilenetv1 loaded (available for fallback)');
+        debugLog('Face Block: SsdMobilenetv1 loaded (available for fallback)');
       })
       .catch(error => {
-        console.warn('Face Block: SsdMobilenet loading failed:', error);
+        warnLog('Face Block: SsdMobilenet loading failed:', error);
       });
   } catch (error) {
-    console.error('Face Block: Error loading models in offscreen document:', error);
+    errorLog('Face Block: Error loading models in offscreen document:', error);
   }
 })();
 
@@ -69,7 +69,7 @@ async function handleUpdateConfig(data, sendResponse) {
   if (data.enabled !== undefined) config.enabled = data.enabled;
   if (data.detector !== undefined) config.detector = data.detector;
 
-  console.log('Face Block: Config updated:', config);
+  debugLog('Face Block: Config updated:', config);
   sendResponse({ success: true });
 }
 
@@ -78,12 +78,12 @@ async function handleUpdateFaceMatcher(referenceData, sendResponse) {
   try {
     if (!referenceData || referenceData.length === 0) {
       faceMatcher = null;
-      console.log('Face Block: No reference data, matcher cleared');
+      debugLog('Face Block: No reference data, matcher cleared');
       sendResponse({ success: true });
       return;
     }
 
-    console.log('Face Block: Creating face matcher with', referenceData.length, 'person(s)');
+    debugLog('Face Block: Creating face matcher with', referenceData.length, 'person(s)');
 
     const labeledDescriptors = referenceData.map(person => {
       const descriptors = person.descriptors.map(d => new Float32Array(d));
@@ -91,11 +91,11 @@ async function handleUpdateFaceMatcher(referenceData, sendResponse) {
     });
 
     faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, config.matchThreshold);
-    console.log('Face Block: Face matcher created successfully');
+    debugLog('Face Block: Face matcher created successfully');
 
     sendResponse({ success: true });
   } catch (error) {
-    console.error('Face Block: Error creating face matcher:', error);
+    errorLog('Face Block: Error creating face matcher:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -105,7 +105,7 @@ async function handleDetectFaces(data, sendResponse) {
   try {
     // Wait for models to be loaded
     if (!modelsLoaded) {
-      console.log('Face Block: Waiting for models to load...');
+      debugLog('Face Block: Waiting for models to load...');
       // Wait up to 10 seconds for models
       for (let i = 0; i < 100; i++) {
         if (modelsLoaded) break;
@@ -132,9 +132,7 @@ async function handleDetectFaces(data, sendResponse) {
       img.src = imageDataUrl;
     });
 
-    console.log(
-      `Face Block: [${imgId}] Detecting faces with ${detector || config.detector} mode...`
-    );
+    debugLog(`Face Block: [${imgId}] Detecting faces with ${detector || config.detector} mode...`);
 
     let detections = null;
     const detectorMode = detector || config.detector;
@@ -154,7 +152,7 @@ async function handleDetectFaces(data, sendResponse) {
       if (!detections || detections.length === 0) {
         // Wait for SsdMobilenet if not loaded yet
         if (!ssdMobilenetLoaded) {
-          console.log(`Face Block: [${imgId}] Waiting for SsdMobilenet...`);
+          debugLog(`Face Block: [${imgId}] Waiting for SsdMobilenet...`);
           for (let i = 0; i < 50; i++) {
             if (ssdMobilenetLoaded) break;
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -162,7 +160,7 @@ async function handleDetectFaces(data, sendResponse) {
         }
 
         if (ssdMobilenetLoaded) {
-          console.log(`Face Block: [${imgId}] TinyFace found nothing, trying SsdMobilenet...`);
+          debugLog(`Face Block: [${imgId}] TinyFace found nothing, trying SsdMobilenet...`);
           const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
 
           detections = await faceapi
@@ -171,13 +169,11 @@ async function handleDetectFaces(data, sendResponse) {
             .withFaceDescriptors();
 
           if (detections && detections.length > 0) {
-            console.log(
-              `Face Block: [${imgId}] SsdMobilenet detected ${detections.length} face(s)`
-            );
+            debugLog(`Face Block: [${imgId}] SsdMobilenet detected ${detections.length} face(s)`);
           }
         }
       } else {
-        console.log(`Face Block: [${imgId}] TinyFace detected ${detections.length} face(s)`);
+        debugLog(`Face Block: [${imgId}] TinyFace detected ${detections.length} face(s)`);
       }
     } else {
       // Single detector mode
@@ -193,12 +189,12 @@ async function handleDetectFaces(data, sendResponse) {
     }
 
     if (!detections || detections.length === 0) {
-      console.log(`Face Block: [${imgId}] No faces detected`);
+      debugLog(`Face Block: [${imgId}] No faces detected`);
       sendResponse({ success: true, facesDetected: 0, matches: [] });
       return;
     }
 
-    console.log(`Face Block: [${imgId}] Found ${detections.length} face(s)`);
+    debugLog(`Face Block: [${imgId}] Found ${detections.length} face(s)`);
 
     // Match against reference faces
     const matches = [];
@@ -213,7 +209,7 @@ async function handleDetectFaces(data, sendResponse) {
             distance: bestMatch.distance,
             faceIndex: i,
           });
-          console.log(
+          debugLog(
             `Face Block: [${imgId}] Match found: ${bestMatch.label} (distance: ${bestMatch.distance.toFixed(3)})`
           );
         }
@@ -226,7 +222,7 @@ async function handleDetectFaces(data, sendResponse) {
       matches: matches,
     });
   } catch (error) {
-    console.error('Face Block: Detection error:', error);
+    errorLog('Face Block: Detection error:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
