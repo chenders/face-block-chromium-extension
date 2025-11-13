@@ -45,7 +45,7 @@ test.describe('Face Detection with Reference Data', () => {
       imgs =>
         imgs.map(img => ({
           id: img.id,
-          isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+          isBlocked: img.classList.contains('face-blocked'),
           src: img.src.substring(0, 50),
           hasProcessed: img.hasAttribute('data-face-block-processed'),
         }))
@@ -118,7 +118,7 @@ test.describe('Face Detection with Reference Data', () => {
       imgs =>
         imgs.map(img => ({
           id: img.id,
-          isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+          isBlocked: img.classList.contains('face-blocked'),
           hasProcessed: img.hasAttribute('data-face-block-processed'),
         }))
     );
@@ -163,7 +163,7 @@ test.describe('Face Detection with Reference Data', () => {
       imgs =>
         imgs.map(img => ({
           id: img.id,
-          isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+          isBlocked: img.classList.contains('face-blocked'),
           hasProcessed: img.hasAttribute('data-face-block-processed'),
         }))
     );
