@@ -15,6 +15,21 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     // Keep headed mode for accurate extension testing
     headless: false,
+    viewport: { width: 800, height: 600 },
+    // Position browser window offscreen to prevent stealing focus
+    launchOptions: {
+      args: [
+        '--window-position=-2000,-2000', // Move window offscreen
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-popup-blocking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-features=TranslateUI',
+        '--disable-extensions-except=' + path.resolve('./extension'),
+        '--load-extension=' + path.resolve('./extension'),
+      ],
+    },
   },
 
   projects: [
@@ -22,19 +37,6 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Load the extension
-        launchOptions: {
-          args: [
-            `--disable-extensions-except=${path.resolve('./extension')}`,
-            `--load-extension=${path.resolve('./extension')}`,
-            // Prevent browser from stealing focus
-            '--no-first-run',
-            '--no-default-browser-check',
-            '--disable-popup-blocking',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-          ],
-        },
       },
     },
   ],
