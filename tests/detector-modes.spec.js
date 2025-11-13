@@ -71,14 +71,7 @@ test.describe('Detector Modes', () => {
     // This test verifies that when detector changes, content scripts are notified
     const page = await browser.newPage();
 
-    await page.goto(`chrome-extension://${extensionId}/popup.html`);
-    await page.waitForTimeout(1000);
-
-    // Change detector mode in popup
-    await page.click('input[name="detector"][value="ssdMobilenetv1"]');
-    await page.waitForTimeout(2000);
-
-    // Open a new page to trigger content script with new detector
+    // Open a content page FIRST so it can receive the detector change message
     const contentPage = await browser.newPage();
     const logs = [];
     contentPage.on('console', msg => {
@@ -88,7 +81,15 @@ test.describe('Detector Modes', () => {
     });
 
     await contentPage.goto('https://example.com');
-    await contentPage.waitForTimeout(2000);
+    await contentPage.waitForTimeout(1000);
+
+    // Now change detector mode in popup - this will send message to existing tabs
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
+
+    // Change detector mode in popup
+    await page.click('input[name="detector"][value="ssdMobilenetv1"]');
+    await page.waitForTimeout(2000);
 
     const logText = logs.join('\n');
     console.log('Logs after detector change:', logText);
