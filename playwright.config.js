@@ -13,25 +13,6 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    // Keep headed mode for accurate extension testing
-    headless: false,
-    viewport: { width: 800, height: 600 },
-    // Minimize and position browser window to reduce visibility
-    launchOptions: {
-      args: [
-        '--window-size=1,1', // Make window as small as possible
-        '--window-position=0,9999', // Push window far down
-        '--start-minimized', // Start minimized (macOS compatible)
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--disable-popup-blocking',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-features=TranslateUI',
-        '--disable-extensions-except=' + path.resolve('./extension'),
-        '--load-extension=' + path.resolve('./extension'),
-      ],
-    },
   },
 
   projects: [
@@ -39,6 +20,13 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        // Load the extension
+        launchOptions: {
+          args: [
+            `--disable-extensions-except=${path.resolve('./extension')}`,
+            `--load-extension=${path.resolve('./extension')}`,
+          ],
+        },
       },
     },
   ],

@@ -70,12 +70,6 @@ test.describe('Detector Modes', () => {
   test('changing detector mode reprocesses images', async () => {
     // This test verifies that when detector changes, content scripts are notified
     const page = await browser.newPage();
-    const logs = [];
-    page.on('console', msg => {
-      if (msg.text().includes('Detector changed')) {
-        logs.push(msg.text());
-      }
-    });
 
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await page.waitForTimeout(1000);
@@ -86,6 +80,13 @@ test.describe('Detector Modes', () => {
 
     // Open a new page to trigger content script with new detector
     const contentPage = await browser.newPage();
+    const logs = [];
+    contentPage.on('console', msg => {
+      if (msg.text().includes('Detector changed')) {
+        logs.push(msg.text());
+      }
+    });
+
     await contentPage.goto('https://example.com');
     await contentPage.waitForTimeout(2000);
 
