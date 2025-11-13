@@ -16,10 +16,12 @@ export default defineConfig({
     // Keep headed mode for accurate extension testing
     headless: false,
     viewport: { width: 800, height: 600 },
-    // Position browser window offscreen to prevent stealing focus
+    // Minimize and position browser window to reduce visibility
     launchOptions: {
       args: [
-        '--window-position=-2000,-2000', // Move window offscreen
+        '--window-size=1,1', // Make window as small as possible
+        '--window-position=0,9999', // Push window far down
+        '--start-minimized', // Start minimized (macOS compatible)
         '--no-first-run',
         '--no-default-browser-check',
         '--disable-popup-blocking',
