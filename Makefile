@@ -152,12 +152,12 @@ check-curator-deps:
 	fi
 	@echo "✓ cmake found"
 
-## curate-images: Run image curator to download test images
+## curate-images: Run image curator to download test images (auto-approves in CI/non-interactive mode)
 curate-images: check-curator-deps
 	@echo ""
 	@echo "Running image curator..."
 	@echo "⚠ This will download ~50 Trump images + negative examples"
-	@cd tests/fixtures/generators/image-curator && bash curate_trump_images.sh
+	@cd tests/fixtures/generators/image-curator && bash curate_trump_images.sh --review
 	@echo "✓ Image curation complete"
 
 ## curate-images-review: Run image curator with interactive review
