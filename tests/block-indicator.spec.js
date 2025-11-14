@@ -29,6 +29,20 @@ test.describe('Block Indicator Feature', () => {
   });
 
   test('blocked images have face-blocked class and correct attributes', async () => {
+    // Skip if running in CI with potentially incomplete image download
+    // This test requires ~20 reference images for reliable face matching
+    const fs = await import('fs');
+    const path = await import('path');
+    const trumpSourceDir = path.join(process.cwd(), 'tests/fixtures/test-data/trump/source');
+    const imageCount = fs.existsSync(trumpSourceDir)
+      ? fs.readdirSync(trumpSourceDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png')).length
+      : 0;
+
+    test.skip(
+      imageCount < 15,
+      `Insufficient reference images (${imageCount} < 15), likely incomplete download in CI`
+    );
+
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
@@ -73,6 +87,19 @@ test.describe('Block Indicator Feature', () => {
   });
 
   test('blocked images display red icon indicator in SVG', async () => {
+    // Skip if insufficient reference images
+    const fs = await import('fs');
+    const path = await import('path');
+    const trumpSourceDir = path.join(process.cwd(), 'tests/fixtures/test-data/trump/source');
+    const imageCount = fs.existsSync(trumpSourceDir)
+      ? fs.readdirSync(trumpSourceDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png')).length
+      : 0;
+
+    test.skip(
+      imageCount < 15,
+      `Insufficient reference images (${imageCount} < 15), likely incomplete download in CI`
+    );
+
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
