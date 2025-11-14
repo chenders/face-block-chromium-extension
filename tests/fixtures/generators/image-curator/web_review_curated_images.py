@@ -31,7 +31,10 @@ class ReviewServer(BaseHTTPRequestHandler):
     output_base = None
     image_files = []
     current_index = 0
-    stats = {'kept': 0, 'rejected': 0}
+    stats = {'kept': 0, 'rejected': 0, 'duplicates': 0}
+    server_instance = None
+    chrome_process = None
+    temp_profile = None
 
     def do_GET(self):
         """Handle GET requests."""
@@ -92,9 +95,17 @@ class ReviewServer(BaseHTTPRequestHandler):
             # Reject current image and move to next
             self.handle_reject()
 
+        elif parsed_path.path == '/api/duplicate':
+            # Mark current image as duplicate and move to next
+            self.handle_duplicate()
+
         elif parsed_path.path == '/api/accept-all':
             # Accept all remaining images
             self.handle_accept_all()
+
+        elif parsed_path.path == '/api/shutdown':
+            # Shutdown the server
+            self.handle_shutdown()
 
         else:
             self.send_error(404, "Not found")
@@ -133,6 +144,23 @@ class ReviewServer(BaseHTTPRequestHandler):
 
         self.send_json_response({'success': True})
 
+    def handle_duplicate(self):
+        """Mark current image as duplicate and move to rejected directory."""
+        if ReviewServer.current_index < len(ReviewServer.image_files):
+            image_path = ReviewServer.image_files[ReviewServer.current_index]
+            rejected_dir = ReviewServer.output_base / 'rejected'
+            rejected_dir.mkdir(parents=True, exist_ok=True)
+
+            dest_path = rejected_dir / image_path.name
+            image_path.rename(dest_path)
+
+            ReviewServer.stats['duplicates'] += 1
+            ReviewServer.current_index += 1
+
+            print(f"⊘ Duplicate: {image_path.name}")
+
+        self.send_json_response({'success': True})
+
     def handle_accept_all(self):
         """Accept all remaining images."""
         approved_dir = ReviewServer.output_base / 'source_images'
@@ -150,6 +178,41 @@ class ReviewServer(BaseHTTPRequestHandler):
         print(f"✓ Accepted all {remaining} remaining images")
 
         self.send_json_response({'success': True, 'accepted': remaining})
+
+    def handle_shutdown(self):
+        """Shutdown the server gracefully."""
+        self.send_json_response({'success': True, 'message': 'Server shutting down'})
+
+        # Shutdown server in a separate thread to allow response to complete
+        def shutdown():
+            time.sleep(0.5)  # Give time for response to be sent
+
+            print("\n✓ Review complete, shutting down server...")
+
+            # Close Chrome browser
+            if ReviewServer.chrome_process:
+                try:
+                    ReviewServer.chrome_process.terminate()
+                    ReviewServer.chrome_process.wait(timeout=2)
+                except Exception as e:
+                    # Force kill if terminate doesn't work
+                    try:
+                        ReviewServer.chrome_process.kill()
+                    except:
+                        pass
+
+            # Clean up temp profile
+            if ReviewServer.temp_profile:
+                try:
+                    shutil.rmtree(ReviewServer.temp_profile, ignore_errors=True)
+                except:
+                    pass
+
+            # Shutdown server
+            if ReviewServer.server_instance:
+                ReviewServer.server_instance.shutdown()
+
+        threading.Thread(target=shutdown, daemon=True).start()
 
     def send_json_response(self, data):
         """Send JSON response."""
@@ -303,6 +366,15 @@ class ReviewServer(BaseHTTPRequestHandler):
             background: #da190b;
         }
 
+        .btn-duplicate {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-duplicate:hover {
+            background: #e68900;
+        }
+
         .btn-accept-all {
             background: #2196F3;
             color: white;
@@ -361,6 +433,7 @@ class ReviewServer(BaseHTTPRequestHandler):
             <div>Remaining: <span id="remaining">0</span></div>
             <div>Kept: <span id="kept">0</span></div>
             <div>Rejected: <span id="rejected">0</span></div>
+            <div>Duplicates: <span id="duplicates">0</span></div>
         </div>
     </div>
 
@@ -377,6 +450,17 @@ class ReviewServer(BaseHTTPRequestHandler):
                 const data = await response.json();
 
                 if (data.complete) {
+                    // Update stats to show 100% completion
+                    const total = data.stats.kept + data.stats.rejected + data.stats.duplicates;
+                    document.getElementById('currentIndex').textContent = total;
+                    document.getElementById('totalImages').textContent = total;
+                    document.getElementById('remaining').textContent = 0;
+                    document.getElementById('kept').textContent = data.stats.kept;
+                    document.getElementById('rejected').textContent = data.stats.rejected;
+                    document.getElementById('duplicates').textContent = data.stats.duplicates;
+                    document.getElementById('percentage').textContent = 100;
+                    document.getElementById('progressFill').style.width = '100%';
+
                     showComplete(data.stats);
                     autoAcceptOnClose = false;
                     return;
@@ -395,6 +479,7 @@ class ReviewServer(BaseHTTPRequestHandler):
             document.getElementById('remaining').textContent = data.remaining;
             document.getElementById('kept').textContent = data.stats.kept;
             document.getElementById('rejected').textContent = data.stats.rejected;
+            document.getElementById('duplicates').textContent = data.stats.duplicates;
 
             const percentage = Math.round(((data.index) / data.total) * 100);
             document.getElementById('percentage').textContent = percentage;
@@ -410,11 +495,12 @@ class ReviewServer(BaseHTTPRequestHandler):
                 <div class="filename">${data.filename}</div>
                 <div class="controls">
                     <button class="btn-reject" onclick="rejectImage()">Reject</button>
+                    <button class="btn-duplicate" onclick="duplicateImage()">Duplicate</button>
                     <button class="btn-keep" onclick="keepImage()">Keep</button>
                     <button class="btn-accept-all" onclick="acceptAll()">Accept All</button>
                 </div>
                 <div class="keyboard-hint">
-                    Keyboard: <kbd>K</kbd> Keep · <kbd>R</kbd> Reject · <kbd>A</kbd> Accept All
+                    Keyboard: <kbd>K</kbd> Keep · <kbd>R</kbd> Reject · <kbd>D</kbd> Duplicate · <kbd>A</kbd> Accept All
                 </div>
             `;
         }
@@ -424,10 +510,23 @@ class ReviewServer(BaseHTTPRequestHandler):
             mainContent.innerHTML = `
                 <div class="complete-message">
                     <h2>✓ Review Complete!</h2>
-                    <p>Kept: ${stats.kept} · Rejected: ${stats.rejected}</p>
-                    <p style="margin-top: 20px;">You can close this window now.</p>
+                    <p>Kept: ${stats.kept} · Rejected: ${stats.rejected} · Duplicates: ${stats.duplicates}</p>
+                    <p style="margin-top: 20px;">Closing browser and shutting down server...</p>
                 </div>
             `;
+
+            // Automatically shutdown server after completion
+            setTimeout(async () => {
+                try {
+                    await fetch('/api/shutdown');
+                    // Try to close the browser window gracefully
+                    setTimeout(() => {
+                        window.close();
+                    }, 500);
+                } catch (e) {
+                    // Ignore errors - server is shutting down
+                }
+            }, 1000);
         }
 
         async function keepImage() {
@@ -437,6 +536,11 @@ class ReviewServer(BaseHTTPRequestHandler):
 
         async function rejectImage() {
             await fetch('/api/reject');
+            await loadCurrentImage();
+        }
+
+        async function duplicateImage() {
+            await fetch('/api/duplicate');
             await loadCurrentImage();
         }
 
@@ -453,18 +557,25 @@ class ReviewServer(BaseHTTPRequestHandler):
                 keepImage();
             } else if (e.key === 'r' || e.key === 'R') {
                 rejectImage();
+            } else if (e.key === 'd' || e.key === 'D') {
+                duplicateImage();
             } else if (e.key === 'a' || e.key === 'A') {
                 acceptAll();
             }
         });
 
-        // Handle window close - accept remaining images
+        // Handle window close - accept remaining images and shutdown
         window.addEventListener('beforeunload', async (e) => {
             if (autoAcceptOnClose) {
                 // Use synchronous XHR for beforeunload (fetch may not complete)
                 const xhr = new XMLHttpRequest();
                 xhr.open('GET', '/api/accept-all', false);
                 xhr.send();
+
+                // Shutdown server
+                const xhr2 = new XMLHttpRequest();
+                xhr2.open('GET', '/api/shutdown', false);
+                xhr2.send();
             }
         });
 
@@ -494,23 +605,27 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
     print(f"\nInstructions:")
     print(f"   - Click 'Keep' to approve an image")
     print(f"   - Click 'Reject' to remove an image")
+    print(f"   - Click 'Duplicate' to mark as duplicate")
     print(f"   - Click 'Accept All' to approve all remaining images")
-    print(f"   - Close the browser window to auto-accept remaining images")
-    print(f"   - Use keyboard shortcuts: K (keep), R (reject), A (accept all)")
-    print(f"\nPress Ctrl+C to stop the server\n")
+    print(f"   - Close the browser window to auto-accept remaining images and shut down server")
+    print(f"   - Use keyboard shortcuts: K (keep), R (reject), D (duplicate), A (accept all)")
+    print(f"   - Server will automatically shut down when review is complete")
+    print(f"\n(You can also press Ctrl+C to stop the server manually)\n")
 
     # Set up server state
     ReviewServer.pending_dir = pending_dir
     ReviewServer.output_base = output_base
     ReviewServer.image_files = image_files
     ReviewServer.current_index = 0
-    ReviewServer.stats = {'kept': 0, 'rejected': 0}
+    ReviewServer.stats = {'kept': 0, 'rejected': 0, 'duplicates': 0}
 
     # Start server
     server = HTTPServer(('localhost', port), ReviewServer)
+    ReviewServer.server_instance = server
 
     # Create temporary profile directory for clean browser
     temp_profile = tempfile.mkdtemp(prefix='face-block-review-')
+    ReviewServer.temp_profile = temp_profile
 
     # Open browser with clean profile (no extensions)
     def open_browser():
@@ -544,13 +659,14 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
 
         if chrome_path:
             try:
-                subprocess.Popen([
+                chrome_process = subprocess.Popen([
                     chrome_path,
                     f'--user-data-dir={temp_profile}',
                     '--no-first-run',
                     '--no-default-browser-check',
                     url
                 ])
+                ReviewServer.chrome_process = chrome_process
                 print(f"Opened clean browser instance (no extensions)")
             except Exception as e:
                 print(f"Warning: Could not launch Chrome with clean profile: {e}")
@@ -580,21 +696,35 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
                 ReviewServer.stats['kept'] += 1
                 ReviewServer.current_index += 1
 
-        print(f"\n{'='*60}")
-        print(f"REVIEW SUMMARY")
-        print(f"{'='*60}")
-        print(f"Reviewed: {ReviewServer.current_index}/{len(image_files)}")
-        print(f"  Kept: {ReviewServer.stats['kept']}")
-        print(f"  Rejected: {ReviewServer.stats['rejected']}")
-        print(f"{'='*60}")
-
-        # Clean up temporary profile
+    # Close Chrome browser
+    if ReviewServer.chrome_process:
         try:
-            shutil.rmtree(temp_profile, ignore_errors=True)
+            ReviewServer.chrome_process.terminate()
+            ReviewServer.chrome_process.wait(timeout=2)
+        except:
+            try:
+                ReviewServer.chrome_process.kill()
+            except:
+                pass
+
+    # Clean up temporary profile
+    if ReviewServer.temp_profile:
+        try:
+            shutil.rmtree(ReviewServer.temp_profile, ignore_errors=True)
         except:
             pass
 
-        return 0
+    # Print summary (for both KeyboardInterrupt and normal completion)
+    print(f"\n{'='*60}")
+    print(f"REVIEW SUMMARY")
+    print(f"{'='*60}")
+    print(f"Reviewed: {ReviewServer.current_index}/{len(image_files)}")
+    print(f"  Kept: {ReviewServer.stats['kept']}")
+    print(f"  Rejected: {ReviewServer.stats['rejected']}")
+    print(f"  Duplicates: {ReviewServer.stats['duplicates']}")
+    print(f"{'='*60}")
+
+    return 0
 
 
 def main():

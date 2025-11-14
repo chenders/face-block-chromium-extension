@@ -40,7 +40,9 @@ test.describe('Flashing Prevention', () => {
     await page.waitForTimeout(100);
 
     // Should see the preload activation message
-    const hasPreloadLog = logs.some(log => log.includes('[Face Block Preload] Image hiding activated'));
+    const hasPreloadLog = logs.some(log =>
+      log.includes('[Face Block Preload] Image hiding activated')
+    );
 
     expect(hasPreloadLog).toBe(true);
 
@@ -66,7 +68,9 @@ test.describe('Flashing Prevention', () => {
     await page.waitForTimeout(100);
 
     // Verify preload activation happened
-    const hasPreloadLog = logs.some(log => log.includes('[Face Block Preload] Image hiding activated'));
+    const hasPreloadLog = logs.some(log =>
+      log.includes('[Face Block Preload] Image hiding activated')
+    );
     console.log('Preload activation logged:', hasPreloadLog);
 
     // Check that attribute was set

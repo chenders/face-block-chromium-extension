@@ -317,8 +317,8 @@
 
     // If image not loaded yet, don't mark as processed - we need to check it again when it loads
     if (!img.complete) {
-      console.debug(
-        'Face Block Chromium Extension: Skipping image (not loaded yet):',
+      debugLog(
+        'Skipping image (not loaded yet):',
         img.src.substring(0, 100),
         `${displayWidth}x${displayHeight}`
       );
@@ -339,8 +339,8 @@
       naturalWidth < MIN_SIZE ||
       naturalHeight < MIN_SIZE
     ) {
-      console.debug(
-        'Face Block Chromium Extension: Skipping image (too small):',
+      debugLog(
+        'Skipping image (too small):',
         img.src.substring(0, 100),
         `display:${displayWidth}x${displayHeight} natural:${naturalWidth}x${naturalHeight}`
       );
@@ -352,10 +352,7 @@
 
     // Additional check for invalid dimensions
     if (img.naturalWidth === 0 || img.naturalHeight === 0) {
-      console.debug(
-        'Face Block Chromium Extension: Skipping image with 0 dimensions:',
-        img.src.substring(0, 100)
-      );
+      debugLog('Skipping image with 0 dimensions:', img.src.substring(0, 100));
       processedImages.set(img, img.src);
       img.setAttribute('data-face-block-processed', 'true');
       img.style.opacity = '';
@@ -401,10 +398,7 @@
             detectionError.message.includes('cross-origin') ||
             detectionError.message.includes('Failed to load image'))
         ) {
-          console.debug(
-            'Face Block Chromium Extension: CORS-restricted image, skipping:',
-            img.src.substring(0, 100)
-          );
+          debugLog('CORS-restricted image, skipping:', img.src.substring(0, 100));
           // Restore visibility for CORS-restricted images
           if (img.dataset.wasHidden) {
             img.setAttribute('data-face-block-processed', 'true');
@@ -463,11 +457,7 @@
       processedImages.set(img, img.src);
     } catch (error) {
       // Log all errors for debugging
-      console.warn(
-        `Face Block Chromium Extension: [${imgId}] Error processing image:`,
-        error.name,
-        error.message
-      );
+      warnLog(`[${imgId}] Error processing image:`, error.name, error.message);
       // Restore visibility on error
       if (img.dataset.wasHidden) {
         img.setAttribute('data-face-block-processed', 'true');

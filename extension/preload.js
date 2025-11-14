@@ -22,6 +22,4 @@
 
   // Activate image hiding by setting the data attribute
   document.documentElement.setAttribute('data-face-block-active', 'true');
-
-  console.log('[Face Block Preload] Image hiding activated');
 })();

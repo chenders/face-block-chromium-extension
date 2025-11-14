@@ -39,6 +39,7 @@ DEBUGGING.md
 BUGFIX.md
 PROJECT_SUMMARY.md
 QUICK_TEST.md
+dev-notes/
 
 # Node modules
 node_modules/
@@ -69,6 +70,3 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
-
-# Etc
-.claude

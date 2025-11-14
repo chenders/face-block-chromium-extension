@@ -53,6 +53,77 @@ poetry run python -c "import PIL, numpy, requests, face_recognition, imagehash, 
 # Navigate to script directory
 cd "$(dirname "$0")"
 
+# Check for existing test images
+OUTPUT_DIR="../../test-data/trump"
+PENDING_DIR="$OUTPUT_DIR/pending_review"
+SOURCE_DIR="$OUTPUT_DIR/source_images"
+REJECTED_DIR="$OUTPUT_DIR/rejected"
+
+# Count existing images
+pending_count=0
+source_count=0
+rejected_count=0
+
+if [[ -d "$PENDING_DIR" ]]; then
+    pending_count=$(find "$PENDING_DIR" -type f \( -name "*.jpg" -o -name "*.png" \) 2>/dev/null | wc -l | tr -d ' ')
+fi
+
+if [[ -d "$SOURCE_DIR" ]]; then
+    source_count=$(find "$SOURCE_DIR" -type f \( -name "*.jpg" -o -name "*.png" \) 2>/dev/null | wc -l | tr -d ' ')
+fi
+
+if [[ -d "$REJECTED_DIR" ]]; then
+    rejected_count=$(find "$REJECTED_DIR" -type f \( -name "*.jpg" -o -name "*.png" \) 2>/dev/null | wc -l | tr -d ' ')
+fi
+
+total_existing=$((pending_count + source_count + rejected_count))
+
+# If existing images found, prompt user
+if [[ $total_existing -gt 0 ]]; then
+    echo ""
+    echo "⚠️  Existing test images found:"
+    [[ $pending_count -gt 0 ]] && echo "   - pending_review: $pending_count images"
+    [[ $source_count -gt 0 ]] && echo "   - source_images: $source_count images"
+    [[ $rejected_count -gt 0 ]] && echo "   - rejected: $rejected_count images"
+    echo ""
+    echo "What would you like to do?"
+    echo "  1) Remove all existing images and start fresh"
+    echo "  2) Keep existing images and add new ones"
+    echo "  3) Cancel"
+    echo ""
+    read -p "Choice [1-3]: " choice
+
+    case $choice in
+        1)
+            echo ""
+            echo "Removing existing images..."
+            [[ -d "$PENDING_DIR" ]] && rm -rf "$PENDING_DIR"
+            [[ -d "$SOURCE_DIR" ]] && rm -rf "$SOURCE_DIR"
+            [[ -d "$REJECTED_DIR" ]] && rm -rf "$REJECTED_DIR"
+            # Also remove metadata files
+            [[ -f "$OUTPUT_DIR/image_metadata.json" ]] && rm "$OUTPUT_DIR/image_metadata.json"
+            [[ -f "$OUTPUT_DIR/CURATION_SUMMARY.md" ]] && rm "$OUTPUT_DIR/CURATION_SUMMARY.md"
+            echo "✓ Removed $total_existing images"
+            echo ""
+            ;;
+        2)
+            echo ""
+            echo "Keeping existing images, will add new ones..."
+            echo ""
+            ;;
+        3)
+            echo ""
+            echo "Cancelled by user"
+            exit 0
+            ;;
+        *)
+            echo ""
+            echo "Invalid choice. Cancelled."
+            exit 1
+            ;;
+    esac
+fi
+
 # Run the curator
 echo ""
 echo "🚀 Starting image curation..."
