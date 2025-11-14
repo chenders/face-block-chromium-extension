@@ -16,7 +16,7 @@ Thumbs.db
 .claude/
 
 # Test and Debug Files
-test*.html
+/test*.html
 debug*.png
 wtf.png
 serve.sh
