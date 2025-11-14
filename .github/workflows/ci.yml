@@ -30,7 +30,7 @@ jobs:
         run: make format-check
 
   test:
-    name: Test
+    name: Test (${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' && 'Full' || 'Smoke' }})
     runs-on: ubuntu-latest
 
     steps:
@@ -75,7 +75,14 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" make test
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "Running full test suite..."
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" make test
+          else
+            echo "Running smoke tests only..."
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" make test-smoke
+          fi
         env:
           CI: true
       

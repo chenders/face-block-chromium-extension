@@ -7,7 +7,7 @@ import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-s
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-test.describe('Image Blocking Functionality', () => {
+test.describe('Image Blocking Functionality @smoke', () => {
   let browser;
   let userDataDir;
 

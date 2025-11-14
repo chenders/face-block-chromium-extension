@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test';
 import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
-test.describe('Settings and Configuration', () => {
+test.describe('Settings and Configuration @smoke', () => {
   let browser;
   let extensionId;
   let userDataDir;

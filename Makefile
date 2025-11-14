@@ -27,6 +27,11 @@ test: check-test-images
 	@echo "Running tests..."
 	npx playwright test
 
+## test-smoke: Run smoke tests only (fast subset for CI, auto-generates test images if missing)
+test-smoke: check-test-images
+	@echo "Running smoke tests..."
+	SMOKE_TESTS=1 npx playwright test
+
 # Internal target: Check if test images exist, generate if missing
 check-test-images:
 	@if [ ! -d "tests/fixtures/test-data/trump/source" ] || [ -z "$$(ls -A tests/fixtures/test-data/trump/source 2>/dev/null)" ]; then \

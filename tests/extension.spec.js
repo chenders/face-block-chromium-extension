@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
-test.describe('Face Block Chromium Extension', () => {
+test.describe('Face Block Chromium Extension @smoke', () => {
   let browser;
   let extensionId;
   let userDataDir;
