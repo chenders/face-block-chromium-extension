@@ -26,6 +26,19 @@ import argparse
 from dataclasses import dataclass, asdict
 from collections import defaultdict
 import re
+import face_recognition
+import imagehash
+import cv2
+
+# Keywords that indicate non-portrait images
+NON_PORTRAIT_KEYWORDS = [
+    'document', 'logo', 'signature', 'seal', 'emblem', 'coat of arms',
+    'architectural', 'building', 'house', 'office', 'tower',
+    'helmet', 'shoes', 'backpack', 'memo', 'letter', 'certificate',
+    'icon', 'speaker', 'diagram', 'chart', 'graph',
+    'accepting', 'receiving', 'award ceremony',  # Often group photos
+    'with', 'and',  # Often indicates multiple people
+]
 
 @dataclass
 class ImageMetadata:
@@ -256,6 +269,116 @@ class ImageAnalyzer:
         else:
             return 'low'
 
+    @staticmethod
+    def is_likely_portrait(item: Dict) -> bool:
+        """Check if image title/description suggests it's a portrait."""
+        title = item.get('title', '').lower()
+
+        # Check for non-portrait keywords
+        for keyword in NON_PORTRAIT_KEYWORDS:
+            if keyword in title:
+                return False
+
+        # If it has 'portrait' in the name, it's likely good
+        if 'portrait' in title or 'headshot' in title or 'official' in title:
+            return True
+
+        return True  # Default to accepting unless filtered out
+
+
+class ImageValidator:
+    """Validates images for face recognition testing."""
+
+    def __init__(self):
+        self.seen_hashes = set()
+        self.seen_urls = set()
+
+    def validate_has_face(self, image_path: str, min_face_size: float = 0.10) -> bool:
+        """
+        Check if image contains at least one detectable face.
+
+        Args:
+            image_path: Path to image file
+            min_face_size: Minimum face size relative to image (0.10 = 10% of image)
+
+        Returns:
+            True if at least one face is detected with sufficient size
+        """
+        try:
+            # Load image
+            image = face_recognition.load_image_file(image_path)
+            h, w = image.shape[:2]
+
+            # Detect faces
+            face_locations = face_recognition.face_locations(image)
+
+            if not face_locations:
+                return False
+
+            # Check if any face is prominent enough
+            for (top, right, bottom, left) in face_locations:
+                face_width = right - left
+                face_height = bottom - top
+                face_area = face_width * face_height
+                image_area = w * h
+
+                # Face should be at least min_face_size of the image
+                if face_area / image_area >= min_face_size:
+                    return True
+
+            return False
+
+        except Exception as e:
+            print(f"    ⚠ Face detection error: {str(e)[:50]}")
+            return False
+
+    def calculate_perceptual_hash(self, image_path: str) -> str:
+        """Calculate perceptual hash of image for duplicate detection."""
+        try:
+            img = Image.open(image_path)
+            # Use average hash (fast and effective for near-duplicates)
+            ahash = imagehash.average_hash(img, hash_size=16)
+            return str(ahash)
+        except Exception as e:
+            print(f"    ⚠ Hash calculation error: {str(e)[:50]}")
+            return ""
+
+    def is_duplicate(self, image_path: str, url: str, similarity_threshold: int = 5) -> bool:
+        """
+        Check if image is a duplicate based on URL and perceptual hash.
+
+        Args:
+            image_path: Path to image file
+            url: Source URL of image
+            similarity_threshold: Maximum hamming distance to consider duplicate
+
+        Returns:
+            True if image is likely a duplicate
+        """
+        # Check URL first (exact duplicate)
+        if url in self.seen_urls:
+            return True
+
+        # Calculate perceptual hash
+        img_hash = self.calculate_perceptual_hash(image_path)
+        if not img_hash:
+            return False
+
+        # Check against seen hashes
+        for seen_hash in self.seen_hashes:
+            try:
+                # Calculate hamming distance
+                distance = imagehash.hex_to_hash(img_hash) - imagehash.hex_to_hash(seen_hash)
+                if distance <= similarity_threshold:
+                    return True
+            except:
+                continue
+
+        # Not a duplicate - record it
+        self.seen_urls.add(url)
+        self.seen_hashes.add(img_hash)
+        return False
+
 
 class IntelligentTestCurator:
     """Main curator class using category-based discovery."""
@@ -266,6 +389,7 @@ class IntelligentTestCurator:
         self.cache_dir = Path('.image_cache')
         self.searcher = WikimediaSearcher()
         self.analyzer = ImageAnalyzer()
+        self.validator = ImageValidator()
 
         # Get person config
         self.person_config = PERSON_CATEGORIES.get(target_person, {
@@ -275,7 +399,9 @@ class IntelligentTestCurator:
 
         # Create directory structure
         self.dirs = {
-            'source': self.output_dir / 'source_images',
+            'raw': self.output_dir / 'raw',  # Initial downloads
+            'pending_review': self.output_dir / 'pending_review',  # After validation
+            'source': self.output_dir / 'source_images',  # Approved final images
             'age': self.output_dir / 'age_variations',
             'lighting': self.output_dir / 'lighting_variations',
             'quality': self.output_dir / 'quality_variations',
@@ -287,6 +413,13 @@ class IntelligentTestCurator:
             dir_path.mkdir(parents=True, exist_ok=True)
 
         self.metadata_log: List[ImageMetadata] = []
+        self.validation_stats = {
+            'downloaded': 0,
+            'no_face': 0,
+            'duplicate': 0,
+            'non_portrait': 0,
+            'passed': 0
+        }
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'TestImageCurator/2.0'
@@ -309,6 +442,13 @@ class IntelligentTestCurator:
         # Filter to public domain
         pd_results = [r for r in raw_results if self.analyzer.is_public_domain(r)]
         print(f"  ✓ {len(pd_results)} public domain/CC-BY images")
+
+        # Filter likely non-portrait images by title
+        portrait_results = [r for r in pd_results if self.analyzer.is_likely_portrait(r)]
+        filtered_count = len(pd_results) - len(portrait_results)
+        if filtered_count > 0:
+            print(f"  ✓ Filtered {filtered_count} likely non-portrait images")
+        pd_results = portrait_results
 
         if len(pd_results) < 10:
             print(f"  ⚠ Warning: Limited results. Trying subcategories...")
@@ -503,8 +643,8 @@ class IntelligentTestCurator:
             return None
 
     def _download_images(self, selected: List[Dict]) -> List[ImageMetadata]:
-        """Download all selected images."""
-        print(f"\n⬇️  Downloading {len(selected)} images...")
+        """Download and validate images."""
+        print(f"\n⬇️  Downloading and validating {len(selected)} images...")
 
         downloaded = []
         birth_year = self.person_config['birth_year']
@@ -517,23 +657,47 @@ class IntelligentTestCurator:
                 if not image:
                     continue
 
-                # Save to source directory
-                source_path = self.dirs['source'] / metadata.filename
-                image.save(source_path, 'JPEG', quality=95)
+                self.validation_stats['downloaded'] += 1
 
-                # Also categorize by age
-                age_path = self.dirs['age'] / f"{metadata.estimated_age}_{i:03d}.jpg"
-                image.save(age_path, 'JPEG', quality=95)
+                # Save to raw directory first
+                raw_path = self.dirs['raw'] / metadata.filename
+                image.save(raw_path, 'JPEG', quality=95)
 
+                # Validate: Check for duplicates
+                if self.validator.is_duplicate(str(raw_path), metadata.url):
+                    print(f"  [{i}/{len(selected)}] ⊘ DUPLICATE: {metadata.filename[:50]}")
+                    self.validation_stats['duplicate'] += 1
+                    raw_path.unlink()  # Delete duplicate
+                    continue
+
+                # Validate: Check for face
+                if not self.validator.validate_has_face(str(raw_path)):
+                    print(f"  [{i}/{len(selected)}] ⊘ NO_FACE: {metadata.filename[:50]}")
+                    self.validation_stats['no_face'] += 1
+                    raw_path.unlink()  # Delete non-face image
+                    continue
+
+                # Passed validation - move to pending_review
+                pending_path = self.dirs['pending_review'] / metadata.filename
+                raw_path.rename(pending_path)
+
+                self.validation_stats['passed'] += 1
                 downloaded.append(metadata)
-                self.metadata_log.append(metadata)
 
                 year_display = f"{metadata.year}" if metadata.year else "Unknown"
-                print(f"  [{i}/{len(selected)}] ✓ {year_display} - {metadata.filename[:60]}")
+                print(f"  [{i}/{len(selected)}] ✓ {year_display} - {metadata.filename[:50]}")
 
             except Exception as e:
                 print(f"  [{i}/{len(selected)}] ✗ Error: {str(e)[:50]}")
+                self.validation_stats['downloaded'] += 1  # Count as attempt
                 continue
+
+        # Print validation summary
+        print(f"\n📊 Validation Summary:")
+        print(f"   Downloaded: {self.validation_stats['downloaded']}")
+        print(f"   Passed: {self.validation_stats['passed']}")
+        print(f"   Rejected (duplicates): {self.validation_stats['duplicate']}")
+        print(f"   Rejected (no face): {self.validation_stats['no_face']}")
 
         return downloaded
 

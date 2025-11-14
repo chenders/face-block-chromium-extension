@@ -2,17 +2,31 @@
 # Curate comprehensive Trump test images
 # This script downloads ~50 Trump images from across decades (1980s-2024)
 # plus negative examples (Biden, Pence, etc.) for false positive testing
+#
+# Usage:
+#   ./curate_trump_images.sh          # Download and validate (auto-filter)
+#   ./curate_trump_images.sh --review # Download, validate, and launch interactive review
 
 set -e
+
+# Parse arguments
+REVIEW_MODE=0
+if [[ "$1" == "--review" ]]; then
+    REVIEW_MODE=1
+fi
 
 echo "=================================="
 echo "Trump Test Image Curator"
 echo "=================================="
 echo ""
-echo "This will download:"
-echo "  - ~50 Trump images spanning 1980s-2024"
-echo "  - ~40 negative examples (other politicians)"
-echo "  - Create lighting & quality variations"
+echo "This will:"
+echo "  - Download ~50 Trump images (1980s-2024)"
+echo "  - Download ~40 negative examples"
+echo "  - Auto-filter non-portrait & duplicate images"
+echo "  - Validate with face detection"
+if [[ $REVIEW_MODE -eq 1 ]]; then
+    echo "  - Launch interactive review tool"
+fi
 echo ""
 echo "Source: Wikimedia Commons (Public Domain)"
 echo "Output: tests/fixtures/test-data/trump/"
@@ -26,9 +40,9 @@ fi
 
 # Check dependencies
 echo "📦 Checking dependencies..."
-python3 -c "import PIL, numpy, requests" 2>/dev/null || {
+python3 -c "import PIL, numpy, requests, face_recognition, imagehash, cv2" 2>/dev/null || {
     echo "⚠  Missing dependencies. Installing..."
-    pip3 install pillow numpy requests
+    pip3 install pillow numpy requests face-recognition imagehash opencv-python
 }
 
 # Navigate to script directory
@@ -47,16 +61,34 @@ python3 intelligent_test_curator.py \
 
 echo ""
 echo "=================================="
-echo "✅ Curation Complete!"
+echo "✅ Download & Validation Complete!"
 echo "=================================="
 echo ""
-echo "Images saved to: tests/fixtures/test-data/trump/"
+
+# Launch review tool if requested
+if [[ $REVIEW_MODE -eq 1 ]]; then
+    echo "🖼️  Launching interactive review tool..."
+    echo ""
+    python3 review_curated_images.py \
+        --input "../../test-data/trump/pending_review" \
+        --output "../../test-data/trump"
+
+    echo ""
+    echo "=================================="
+    echo "✅ Review Complete!"
+    echo "=================================="
+    echo ""
+fi
+
+echo "Images in: tests/fixtures/test-data/trump/"
 echo ""
 echo "Next steps:"
-echo "  1. Review CURATION_SUMMARY.md for overview"
-echo "  2. Check image_metadata.json for details"
-echo "  3. Manually verify a few images for quality"
-echo "  4. Update test specs to use these images"
+if [[ $REVIEW_MODE -eq 0 ]]; then
+    echo "  1. Run './curate_trump_images.sh --review' to manually review images"
+    echo "  2. Or check pending_review/ directory and manually move approved images"
+fi
+echo "  Review CURATION_SUMMARY.md for overview"
+echo "  Check image_metadata.json for details"
 echo ""
 echo "Directory structure:"
 ls -lh ../../test-data/trump/ 2>/dev/null || true
