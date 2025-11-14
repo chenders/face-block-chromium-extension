@@ -25,7 +25,7 @@ echo "  - Download ~40 negative examples"
 echo "  - Auto-filter non-portrait & duplicate images"
 echo "  - Validate with face detection"
 if [[ $REVIEW_MODE -eq 1 ]]; then
-    echo "  - Launch interactive review tool"
+    echo "  - Launch web-based interactive review tool"
 fi
 echo ""
 echo "Source: Wikimedia Commons (Public Domain)"
@@ -72,9 +72,9 @@ echo ""
 
 # Launch review tool if requested
 if [[ $REVIEW_MODE -eq 1 ]]; then
-    echo "🖼️  Launching interactive review tool..."
+    echo "🖼️  Launching web-based review tool..."
     echo ""
-    poetry run python review_curated_images.py \
+    poetry run python web_review_curated_images.py \
         --input "../../test-data/trump/pending_review" \
         --output "../../test-data/trump"
 
