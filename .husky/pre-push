@@ -5,19 +5,19 @@ echo "🔍 Running pre-push checks..."
 echo ""
 
 echo "📝 Running ESLint..."
-npm run lint || {
+make lint || {
   echo "❌ ESLint failed. Please fix linting errors before pushing."
   exit 1
 }
 
 echo "✨ Running Prettier check..."
-npm run format:check || {
-  echo "❌ Prettier check failed. Run 'npm run format' to fix formatting."
+make format-check || {
+  echo "❌ Prettier check failed. Run 'make format' to fix formatting."
   exit 1
 }
 
 echo "🧪 Running tests..."
-npm test || {
+make test || {
   echo "❌ Tests failed. Please fix failing tests before pushing."
   exit 1
 }

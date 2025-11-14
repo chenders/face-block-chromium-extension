@@ -45,19 +45,19 @@ jobs:
           fi
 
       - name: Run linter
-        run: npm run lint
+        run: make lint
 
       - name: Check formatting
-        run: npm run format:check
+        run: make format-check
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
       - name: Run tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npm test
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" make test
 
       - name: Build extension package
-        run: npm run build
+        run: make build
 
       - name: Check package size
         run: |

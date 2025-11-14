@@ -17,7 +17,7 @@ Chrome Web Store requires at least **1 screenshot** (up to 5 screenshots).
 Run the automated screenshot tool:
 
 ```bash
-npm run screenshots
+make screenshots
 ```
 
 This will capture 5 base screenshots:
@@ -200,7 +200,7 @@ Before uploading to Chrome Web Store:
 
 ## Example Workflow
 
-1. **Capture** - Run `npm run screenshots`
+1. **Capture** - Run `make screenshots`
 2. **Review** - Check `store-assets/screenshots/` directory
 3. **Edit** - Add annotations in Figma/Canva
 4. **Export** - Save as PNG at 1280x800
@@ -226,4 +226,4 @@ Before uploading to Chrome Web Store:
 
 ---
 
-**Need help?** Run `npm run screenshots` to auto-generate base screenshots, then edit them using your preferred tool!
+**Need help?** Run `make screenshots` to auto-generate base screenshots, then edit them using your preferred tool!

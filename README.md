@@ -200,8 +200,8 @@ The project includes comprehensive Playwright tests to verify functionality. See
 
 **Quick Start:**
 ```bash
-npm install
-npm test
+make install
+make test
 ```
 
 **Note**: Tests run with a visible browser (headed mode) for accurate extension testing, but the browser is configured to not steal focus or interrupt your workflow.
@@ -225,34 +225,31 @@ Contributions welcome! Ways to help:
 
 2. **Install dependencies:**
    ```bash
-   npm install
+   make install
    ```
 
 3. **Development workflow:**
    ```bash
    # Run linter
-   npm run lint
+   make lint
 
    # Auto-fix linting issues
-   npm run lint:fix
+   make lint-fix
 
    # Format code
-   npm run format
+   make format
 
    # Check formatting
-   npm run format:check
+   make format-check
 
    # Run tests
-   npm test
-
-   # Run tests in headed mode (see browser)
-   npm run test:headed
+   make test
 
    # Run tests with debugger
-   npm run test:debug
+   make test-debug
 
    # Run tests with UI
-   npm run test:ui
+   make test-ui
    ```
 
 4. **Make changes in `extension/` directory**
@@ -265,9 +262,9 @@ Contributions welcome! Ways to help:
 
 6. **Before submitting PR:**
    ```bash
-   npm run lint        # Must pass
-   npm run format      # Format all code
-   npm test           # All tests must pass
+   make lint          # Must pass
+   make format        # Format all code
+   make test          # All tests must pass
    ```
 
 ### Code Quality
@@ -277,23 +274,23 @@ This project uses:
 - **Prettier** for code formatting (consistent style)
 - **Playwright** for end-to-end testing
 
-All code is automatically checked for style and quality. Run `npm run lint:fix` and `npm run format` before committing.
+All code is automatically checked for style and quality. Run `make lint-fix` and `make format` before committing.
 
 ### Building for Chrome Web Store
 
 To package the extension for distribution:
 
 ```bash
-npm run build
+make build
 ```
 
 This will:
 1. Run linter and formatter checks
 2. Copy extension files to `build/` directory
 3. Remove development artifacts
-4. Create ZIP file in `dist/` directory
+4. Create ZIP file ready for Chrome Web Store
 
-Output: `dist/face-block-chromium-extension-v1.0.0.zip`
+The packaged ZIP file will be created in the root directory.
 
 See **[STORE_LISTING.md](STORE_LISTING.md)** for Chrome Web Store submission guidelines.
 

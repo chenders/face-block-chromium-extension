@@ -30,11 +30,11 @@ cp -r extension/* "$BUILD_DIR/"
 
 # Run linter to ensure code quality
 echo -e "${YELLOW}Running linter...${NC}"
-npm run lint
+make lint
 
 # Run formatter check
 echo -e "${YELLOW}Checking code formatting...${NC}"
-npm run format:check
+make format-check
 
 # Remove any development files from build
 echo -e "${YELLOW}Cleaning development files...${NC}"
