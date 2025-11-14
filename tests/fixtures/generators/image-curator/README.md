@@ -75,36 +75,81 @@ Test against:
 
 ### `intelligent_test_curator.py` - Primary Tool
 
-Intelligently discovers and downloads comprehensive test sets.
+Intelligently discovers and downloads comprehensive test sets with automated validation.
 
 **Features:**
 - Searches Wikimedia Commons API for target person
 - Filters to public domain only
+- **Face Detection**: Validates images contain detectable faces (≥10% of image area)
+- **Duplicate Detection**: Uses perceptual hashing to filter near-duplicates
+- **Title Filtering**: Pre-filters non-portrait images (logos, documents, etc.)
 - Categorizes by decade, context, quality
 - Ensures diverse coverage across age ranges
 - Downloads negative examples for false positive testing
 - Creates synthetic variations where needed
 - Generates comprehensive metadata
 
+### `web_review_curated_images.py` - Interactive Web Review
+
+Modern web-based tool for manually reviewing validated images before final approval.
+
+**Features:**
+- 🖼️ **Visual Preview**: Large image display in browser
+- 📊 **Progress Tracking**: Real-time progress bar, percentage, and statistics
+- ⚡ **Auto-Save**: Decisions saved immediately (no save button needed)
+- ⌨️ **Keyboard Shortcuts**: K (keep), R (reject), A (accept all)
+- 🎯 **Batch Operations**: "Accept All" button for bulk approval
+- 🔒 **Auto-Accept on Close**: Remaining images auto-accepted when closing browser
+- 🌐 **Local Web Server**: Runs on `http://localhost:8765`
+
+**Why Use Web Review?**
+- Better visual inspection than CLI tool
+- Instant feedback with smooth animations
+- No need to remember commands or wait for saves
+- Progress tracking shows exactly how many images remain
+- Graceful handling of window close (auto-accepts remaining)
+
 **Usage:**
 
 ```bash
+# Quick Start - Use Makefile targets (recommended)
+make curate-images              # Download and auto-validate only
+make curate-images-review       # Download, validate, and launch web review
+
+# Or run directly with poetry
+cd tests/fixtures/generators/image-curator
+
 # Basic usage (Trump + common false positives)
-python intelligent_test_curator.py
+poetry run python intelligent_test_curator.py
+
+# With web-based review
+./curate_trump_images.sh --review
 
 # Custom target person
-python intelligent_test_curator.py --target "Barack Obama"
+poetry run python intelligent_test_curator.py --target "Barack Obama"
 
 # Custom negative examples
-python intelligent_test_curator.py --target "Donald Trump" \
+poetry run python intelligent_test_curator.py --target "Donald Trump" \
   --negative-examples "Joe Biden,Mike Pence,Ron DeSantis,Ted Cruz"
 
 # Limit number of images
-python intelligent_test_curator.py --max-images 30
+poetry run python intelligent_test_curator.py --max-images 30
 
 # Custom output directory
-python intelligent_test_curator.py --output-dir my_test_images
+poetry run python intelligent_test_curator.py --output-dir my_test_images
+
+# Review pending images only (if already downloaded)
+poetry run python web_review_curated_images.py \
+  --input ../../test-data/trump/pending_review \
+  --output ../../test-data/trump \
+  --port 8765
 ```
+
+**Web Review Keyboard Shortcuts:**
+- `K` - Keep/approve current image
+- `R` - Reject current image
+- `A` - Accept all remaining images
+- Close browser window - Auto-accepts remaining images
 
 **Output Structure:**
 
