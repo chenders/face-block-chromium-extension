@@ -29,9 +29,9 @@ test: check-test-images
 
 # Internal target: Check if test images exist, generate if missing
 check-test-images:
-	@if [ ! -d "tests/fixtures/test-data/trump/source_images" ] || [ -z "$$(ls -A tests/fixtures/test-data/trump/source_images 2>/dev/null)" ]; then \
+	@if [ ! -d "tests/fixtures/test-data/trump/source" ] || [ -z "$$(ls -A tests/fixtures/test-data/trump/source 2>/dev/null)" ]; then \
 		echo "⚠  Test images not found. Running image curator..."; \
-		$(MAKE) curate-images; \
+		CI=true $(MAKE) curate-images; \
 	else \
 		echo "✓ Test images found"; \
 	fi

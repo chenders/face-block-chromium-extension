@@ -7,15 +7,16 @@
 #   ./curate_trump_images.sh          # Download and validate (auto-filter)
 #   ./curate_trump_images.sh --review # Download, validate, and launch interactive review
 #
-# CI/Husky Mode:
-#   When CI=true, HUSKY=1, or running in non-interactive terminal (git hooks),
-#   automatically removes existing images and auto-approves all
+# Automated Mode:
+#   Set CI=true to enable automated mode (no prompts, auto-remove, auto-approve)
+#   Example: CI=true ./curate_trump_images.sh --review
 
 set -e
 
-# Detect CI environment, Husky git hook, or non-interactive terminal
+# Detect CI environment or automated mode
+# Set CI=true when calling this script to enable automatic mode (no prompts)
 IS_CI=0
-if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]] || [[ -n "${GITLAB_CI:-}" ]] || [[ -n "${CIRCLECI:-}" ]] || [[ -n "${TRAVIS:-}" ]] || [[ -n "${HUSKY:-}" ]] || [[ "$HUSKY" == "1" ]] || [[ ! -t 0 ]]; then
+if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]] || [[ -n "${GITLAB_CI:-}" ]] || [[ -n "${CIRCLECI:-}" ]] || [[ -n "${TRAVIS:-}" ]]; then
     IS_CI=1
 fi
 
