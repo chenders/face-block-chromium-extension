@@ -83,6 +83,41 @@ screenshots:
 
 ## curate-images: Run image curator to download test images
 curate-images:
+	@echo "Checking dependencies..."
+	@if ! command -v cmake >/dev/null 2>&1; then \
+		echo ""; \
+		echo "❌ Error: cmake is not installed"; \
+		echo ""; \
+		echo "cmake is required to build face-recognition (dlib dependency)"; \
+		echo ""; \
+		if [ "$$(uname)" = "Darwin" ]; then \
+			echo "Install on macOS:"; \
+			echo "  brew install cmake"; \
+		elif [ "$$(uname)" = "Linux" ]; then \
+			if command -v apt-get >/dev/null 2>&1; then \
+				echo "Install on Ubuntu/Debian:"; \
+				echo "  sudo apt-get update && sudo apt-get install cmake"; \
+			elif command -v yum >/dev/null 2>&1; then \
+				echo "Install on RedHat/CentOS:"; \
+				echo "  sudo yum install cmake"; \
+			elif command -v dnf >/dev/null 2>&1; then \
+				echo "Install on Fedora:"; \
+				echo "  sudo dnf install cmake"; \
+			elif command -v pacman >/dev/null 2>&1; then \
+				echo "Install on Arch Linux:"; \
+				echo "  sudo pacman -S cmake"; \
+			else \
+				echo "Install cmake using your Linux package manager"; \
+			fi; \
+		else \
+			echo "Please install cmake for your operating system"; \
+			echo "Visit: https://cmake.org/download/"; \
+		fi; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "✓ cmake found"
+	@echo ""
 	@echo "Running image curator..."
 	@echo "⚠ This will download ~50 Trump images + negative examples"
 	@cd tests/fixtures/generators/image-curator && bash curate_trump_images.sh
