@@ -420,7 +420,7 @@ class ReviewServer(BaseHTTPRequestHandler):
             const mainContent = document.getElementById('mainContent');
             mainContent.innerHTML = `
                 <div class="complete-message">
-                    <h2>✅ Review Complete!</h2>
+                    <h2>✓ Review Complete!</h2>
                     <p>Kept: ${stats.kept} · Rejected: ${stats.rejected}</p>
                     <p style="margin-top: 20px;">You can close this window now.</p>
                 </div>
@@ -485,15 +485,15 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
         print("No images found in pending_review directory.")
         return 0
 
-    print(f"\n🖼️  Found {len(image_files)} images to review")
-    print(f"🌐 Starting web server on http://localhost:{port}")
-    print(f"\n📝 Instructions:")
+    print(f"\nFound {len(image_files)} images to review")
+    print(f"Starting web server on http://localhost:{port}")
+    print(f"\nInstructions:")
     print(f"   - Click 'Keep' to approve an image")
     print(f"   - Click 'Reject' to remove an image")
     print(f"   - Click 'Accept All' to approve all remaining images")
     print(f"   - Close the browser window to auto-accept remaining images")
     print(f"   - Use keyboard shortcuts: K (keep), R (reject), A (accept all)")
-    print(f"\n⏸️  Press Ctrl+C to stop the server\n")
+    print(f"\nPress Ctrl+C to stop the server\n")
 
     # Set up server state
     ReviewServer.pending_dir = pending_dir
@@ -515,7 +515,7 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n\n🛑 Server stopped by user")
+        print("\n\nServer stopped by user")
 
         # Auto-accept remaining images
         remaining = len(image_files) - ReviewServer.current_index

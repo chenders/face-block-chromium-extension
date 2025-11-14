@@ -210,10 +210,10 @@ make test
 
 Contributions welcome! Ways to help:
 
-- 🐛 Report bugs
-- 💡 Suggest features
-- 📝 Improve documentation
-- 🔧 Submit pull requests
+- Report bugs
+- Suggest features
+- Improve documentation
+- Submit pull requests
 
 ### Development Setup
 

@@ -94,13 +94,13 @@ Intelligently discovers and downloads comprehensive test sets with automated val
 Modern web-based tool for manually reviewing validated images before final approval.
 
 **Features:**
-- 🖼️ **Visual Preview**: Large image display in browser
-- 📊 **Progress Tracking**: Real-time progress bar, percentage, and statistics
-- ⚡ **Auto-Save**: Decisions saved immediately (no save button needed)
-- ⌨️ **Keyboard Shortcuts**: K (keep), R (reject), A (accept all)
-- 🎯 **Batch Operations**: "Accept All" button for bulk approval
-- 🔒 **Auto-Accept on Close**: Remaining images auto-accepted when closing browser
-- 🌐 **Local Web Server**: Runs on `http://localhost:8765`
+- **Visual Preview**: Large image display in browser
+- **Progress Tracking**: Real-time progress bar, percentage, and statistics
+- **Auto-Save**: Decisions saved immediately (no save button needed)
+- **Keyboard Shortcuts**: K (keep), R (reject), A (accept all)
+- **Batch Operations**: "Accept All" button for bulk approval
+- **Auto-Accept on Close**: Remaining images auto-accepted when closing browser
+- **Local Web Server**: Runs on `http://localhost:8765`
 
 **Why Use Web Review?**
 - Better visual inspection than CLI tool
