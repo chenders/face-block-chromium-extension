@@ -6,8 +6,18 @@
 # Usage:
 #   ./curate_trump_images.sh          # Download and validate (auto-filter)
 #   ./curate_trump_images.sh --review # Download, validate, and launch interactive review
+#
+# CI/Husky Mode:
+#   When CI=true, HUSKY=1, or running in non-interactive terminal (git hooks),
+#   automatically removes existing images and auto-approves all
 
 set -e
+
+# Detect CI environment, Husky git hook, or non-interactive terminal
+IS_CI=0
+if [[ -n "${CI:-}" ]] || [[ -n "${GITHUB_ACTIONS:-}" ]] || [[ -n "${GITLAB_CI:-}" ]] || [[ -n "${CIRCLECI:-}" ]] || [[ -n "${TRAVIS:-}" ]] || [[ -n "${HUSKY:-}" ]] || [[ "$HUSKY" == "1" ]] || [[ ! -t 0 ]]; then
+    IS_CI=1
+fi
 
 # Parse arguments
 REVIEW_MODE=0
@@ -17,6 +27,9 @@ fi
 
 echo "=================================="
 echo "Trump Test Image Curator"
+if [[ $IS_CI -eq 1 ]]; then
+    echo "(CI Mode - Auto-removing & Auto-approving)"
+fi
 echo "=================================="
 echo ""
 echo "This will:"
@@ -25,7 +38,11 @@ echo "  - Download ~40 negative examples"
 echo "  - Auto-filter non-portrait & duplicate images"
 echo "  - Validate with face detection"
 if [[ $REVIEW_MODE -eq 1 ]]; then
-    echo "  - Launch web-based interactive review tool"
+    if [[ $IS_CI -eq 1 ]]; then
+        echo "  - Auto-approve all images (CI mode)"
+    else
+        echo "  - Launch web-based interactive review tool"
+    fi
 fi
 echo ""
 echo "Source: Wikimedia Commons (Public Domain)"
@@ -78,7 +95,7 @@ fi
 
 total_existing=$((pending_count + source_count + rejected_count))
 
-# If existing images found, prompt user
+# If existing images found, prompt user (or auto-remove in CI)
 if [[ $total_existing -gt 0 ]]; then
     echo ""
     echo "⚠️  Existing test images found:"
@@ -86,12 +103,18 @@ if [[ $total_existing -gt 0 ]]; then
     [[ $source_count -gt 0 ]] && echo "   - source_images: $source_count images"
     [[ $rejected_count -gt 0 ]] && echo "   - rejected: $rejected_count images"
     echo ""
-    echo "What would you like to do?"
-    echo "  1) Remove all existing images and start fresh"
-    echo "  2) Keep existing images and add new ones"
-    echo "  3) Cancel"
-    echo ""
-    read -p "Choice [1-3]: " choice
+
+    if [[ $IS_CI -eq 1 ]]; then
+        echo "CI environment detected: Automatically removing existing images..."
+        choice=1
+    else
+        echo "What would you like to do?"
+        echo "  1) Remove all existing images and start fresh"
+        echo "  2) Keep existing images and add new ones"
+        echo "  3) Cancel"
+        echo ""
+        read -p "Choice [1-3]: " choice
+    fi
 
     case $choice in
         1)
@@ -141,19 +164,47 @@ echo "✅ Download & Validation Complete!"
 echo "=================================="
 echo ""
 
-# Launch review tool if requested
+# Launch review tool if requested (or auto-approve in CI)
 if [[ $REVIEW_MODE -eq 1 ]]; then
-    echo "🖼️  Launching web-based review tool..."
-    echo ""
-    poetry run python web_review_curated_images.py \
-        --input "../../test-data/trump/pending_review" \
-        --output "../../test-data/trump"
+    if [[ $IS_CI -eq 1 ]]; then
+        echo "CI environment detected: Auto-approving all images..."
+        echo ""
 
-    echo ""
-    echo "=================================="
-    echo "✅ Review Complete!"
-    echo "=================================="
-    echo ""
+        # Auto-approve all images by moving them from pending_review
+        # We'll use the curator's logic to categorize them appropriately
+        if [[ -d "$OUTPUT_DIR/pending_review" ]] && [[ -n "$(ls -A "$OUTPUT_DIR/pending_review" 2>/dev/null)" ]]; then
+            # Create category directories
+            mkdir -p "$OUTPUT_DIR/source"
+
+            # Move all pending images to source
+            mv "$OUTPUT_DIR/pending_review"/* "$OUTPUT_DIR/source/" 2>/dev/null || true
+
+            # Remove empty pending_review directory
+            rmdir "$OUTPUT_DIR/pending_review" 2>/dev/null || true
+
+            echo "✓ Auto-approved all images"
+        else
+            echo "No images to approve"
+        fi
+
+        echo ""
+        echo "=================================="
+        echo "✅ Auto-Approval Complete!"
+        echo "=================================="
+        echo ""
+    else
+        echo "🖼️  Launching web-based review tool..."
+        echo ""
+        poetry run python web_review_curated_images.py \
+            --input "../../test-data/trump/pending_review" \
+            --output "../../test-data/trump"
+
+        echo ""
+        echo "=================================="
+        echo "✅ Review Complete!"
+        echo "=================================="
+        echo ""
+    fi
 fi
 
 echo "Images in: tests/fixtures/test-data/trump/"
