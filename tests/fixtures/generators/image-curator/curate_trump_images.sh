@@ -65,7 +65,12 @@ fi
 echo "📦 Checking dependencies..."
 poetry run python -c "import PIL, numpy, requests, face_recognition, imagehash, cv2" 2>/dev/null || {
     echo "⚠  Missing dependencies. Installing..."
-    poetry install
+    if [[ $IS_CI -eq 1 ]]; then
+        # In CI, show verbose output to prevent timeout
+        poetry install -vv
+    else
+        poetry install
+    fi
 }
 
 # Navigate to script directory
