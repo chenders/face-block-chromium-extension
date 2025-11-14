@@ -18,6 +18,13 @@
 
   debugLog('Face Block Chromium Extension: Content script loaded');
 
+  // Remove preload hiding after initial processing completes
+  // This allows non-blocked images to become visible
+  function removePreloadHiding() {
+    document.documentElement.removeAttribute('data-face-block-active');
+    debugLog('Face Block Chromium Extension: Preload hiding removed - images now visible');
+  }
+
   // Detect if page uses SSR with hydration (React, Vue, Angular, Svelte, etc.)
   function isSsrSite() {
     // Check for React/Next.js
@@ -89,6 +96,7 @@
           requestIdleCallback(
             async () => {
               await processExistingImages();
+              removePreloadHiding();
             },
             { timeout: 2000 }
           ); // Fallback timeout of 2s
@@ -96,11 +104,13 @@
           // Fallback for browsers without requestIdleCallback
           setTimeout(async () => {
             await processExistingImages();
+            removePreloadHiding();
           }, 1000);
         }
       } else {
         // Process immediately on non-React sites
         await processExistingImages();
+        removePreloadHiding();
       }
 
       // Set up dynamic content monitoring
