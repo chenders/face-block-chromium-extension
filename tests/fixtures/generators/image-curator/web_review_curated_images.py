@@ -12,12 +12,15 @@ import os
 import sys
 import argparse
 import json
-import webbrowser
+import subprocess
+import tempfile
+import shutil
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import threading
 import time
+import platform
 
 
 class ReviewServer(BaseHTTPRequestHandler):
@@ -487,6 +490,7 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
 
     print(f"\nFound {len(image_files)} images to review")
     print(f"Starting web server on http://localhost:{port}")
+    print(f"Opening clean browser (no extensions) to prevent face blocking...")
     print(f"\nInstructions:")
     print(f"   - Click 'Keep' to approve an image")
     print(f"   - Click 'Reject' to remove an image")
@@ -505,10 +509,54 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
     # Start server
     server = HTTPServer(('localhost', port), ReviewServer)
 
-    # Open browser
+    # Create temporary profile directory for clean browser
+    temp_profile = tempfile.mkdtemp(prefix='face-block-review-')
+
+    # Open browser with clean profile (no extensions)
     def open_browser():
         time.sleep(0.5)
-        webbrowser.open(f'http://localhost:{port}')
+        url = f'http://localhost:{port}'
+
+        # Determine Chrome executable path based on platform
+        chrome_paths = {
+            'Darwin': [
+                '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+                '/Applications/Chromium.app/Contents/MacOS/Chromium',
+            ],
+            'Linux': [
+                '/usr/bin/google-chrome',
+                '/usr/bin/chromium-browser',
+                '/usr/bin/chromium',
+            ],
+            'Windows': [
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            ]
+        }
+
+        system = platform.system()
+        chrome_path = None
+
+        for path in chrome_paths.get(system, []):
+            if os.path.exists(path):
+                chrome_path = path
+                break
+
+        if chrome_path:
+            try:
+                subprocess.Popen([
+                    chrome_path,
+                    f'--user-data-dir={temp_profile}',
+                    '--no-first-run',
+                    '--no-default-browser-check',
+                    url
+                ])
+                print(f"Opened clean browser instance (no extensions)")
+            except Exception as e:
+                print(f"Warning: Could not launch Chrome with clean profile: {e}")
+                print(f"Please open manually: {url}")
+        else:
+            print(f"Chrome not found. Please open manually: {url}")
 
     threading.Thread(target=open_browser, daemon=True).start()
 
@@ -539,6 +587,12 @@ def review_images_web(pending_dir: Path, output_base: Path, port: int = 8765):
         print(f"  Kept: {ReviewServer.stats['kept']}")
         print(f"  Rejected: {ReviewServer.stats['rejected']}")
         print(f"{'='*60}")
+
+        # Clean up temporary profile
+        try:
+            shutil.rmtree(temp_profile, ignore_errors=True)
+        except:
+            pass
 
         return 0
 
