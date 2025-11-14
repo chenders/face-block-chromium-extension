@@ -81,8 +81,8 @@ screenshots:
 	@echo "Capturing screenshots..."
 	node scripts/capture-screenshots.js
 
-## curate-images: Run image curator to download test images
-curate-images:
+# Internal target: Check image curator dependencies
+check-curator-deps:
 	@echo "Checking dependencies..."
 	@# Check if poetry is installed
 	@if ! command -v poetry >/dev/null 2>&1; then \
@@ -151,10 +151,21 @@ curate-images:
 		exit 1; \
 	fi
 	@echo "✓ cmake found"
+
+## curate-images: Run image curator to download test images
+curate-images: check-curator-deps
 	@echo ""
 	@echo "Running image curator..."
 	@echo "⚠ This will download ~50 Trump images + negative examples"
 	@cd tests/fixtures/generators/image-curator && bash curate_trump_images.sh
+	@echo "✓ Image curation complete"
+
+## curate-images-review: Run image curator with interactive review
+curate-images-review: check-curator-deps
+	@echo ""
+	@echo "Running image curator with interactive review..."
+	@echo "⚠ This will download ~50 Trump images + negative examples"
+	@cd tests/fixtures/generators/image-curator && bash curate_trump_images.sh --review
 	@echo "✓ Image curation complete"
 
 ## clean: Remove generated files and caches
