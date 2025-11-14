@@ -84,6 +84,24 @@ screenshots:
 ## curate-images: Run image curator to download test images
 curate-images:
 	@echo "Checking dependencies..."
+	@# Check if Python packages are installed
+	@if ! python3 -c "import face_recognition, imagehash, cv2" >/dev/null 2>&1; then \
+		echo ""; \
+		echo "⚠️  Required Python packages not found"; \
+		echo ""; \
+		echo "To curate images with face detection and duplicate filtering,"; \
+		echo "we need to install the following libraries:"; \
+		echo "  - face-recognition (face detection)"; \
+		echo "  - imagehash (duplicate detection)"; \
+		echo "  - opencv-python (image processing)"; \
+		echo ""; \
+		echo "This will download and compile ~200MB of dependencies."; \
+		echo "⏱️  This may take 3-5 minutes but only happens once."; \
+		echo ""; \
+		read -p "Press any key to continue or Ctrl+C to cancel..." -n1 -s; \
+		echo ""; \
+		echo ""; \
+	fi
 	@if ! command -v cmake >/dev/null 2>&1; then \
 		echo ""; \
 		echo "❌ Error: cmake is not installed"; \
