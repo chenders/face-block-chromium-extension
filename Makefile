@@ -84,8 +84,24 @@ screenshots:
 ## curate-images: Run image curator to download test images
 curate-images:
 	@echo "Checking dependencies..."
+	@# Check if poetry is installed
+	@if ! command -v poetry >/dev/null 2>&1; then \
+		echo ""; \
+		echo "❌ Error: poetry is not installed"; \
+		echo ""; \
+		echo "poetry is required to manage Python dependencies"; \
+		echo ""; \
+		echo "Install poetry:"; \
+		echo "  curl -sSL https://install.python-poetry.org | python3 -"; \
+		echo ""; \
+		echo "Or visit: https://python-poetry.org/docs/#installation"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "✓ poetry found"
 	@# Check if Python packages are installed
-	@if ! python3 -c "import face_recognition, imagehash, cv2" >/dev/null 2>&1; then \
+	@cd tests/fixtures/generators/image-curator && \
+	if ! poetry run python -c "import face_recognition, imagehash, cv2" >/dev/null 2>&1; then \
 		echo ""; \
 		echo "⚠️  Required Python packages not found"; \
 		echo ""; \
