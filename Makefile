@@ -1,4 +1,4 @@
-.PHONY: help build test lint format clean curate-images install
+.PHONY: help build test lint format clean curate-images install check-test-images
 
 # Default target
 .DEFAULT_GOAL := help
@@ -22,23 +22,32 @@ build: lint format-check
 	bash build-for-store.sh
 	@echo "✓ Build complete"
 
-## test: Run all tests
-test:
+## test: Run all tests (auto-generates test images if missing)
+test: check-test-images
 	@echo "Running tests..."
 	npx playwright test
 
-## test-debug: Run tests in debug mode
-test-debug:
+# Internal target: Check if test images exist, generate if missing
+check-test-images:
+	@if [ ! -d "tests/fixtures/test-data/trump/source_images" ] || [ -z "$$(ls -A tests/fixtures/test-data/trump/source_images 2>/dev/null)" ]; then \
+		echo "⚠  Test images not found. Running image curator..."; \
+		$(MAKE) curate-images; \
+	else \
+		echo "✓ Test images found"; \
+	fi
+
+## test-debug: Run tests in debug mode (auto-generates test images if missing)
+test-debug: check-test-images
 	@echo "Running tests in debug mode..."
 	npx playwright test --debug
 
-## test-ui: Run tests with UI
-test-ui:
+## test-ui: Run tests with UI (auto-generates test images if missing)
+test-ui: check-test-images
 	@echo "Running tests with UI..."
 	npx playwright test --ui
 
-## test-perf: Run performance profiling tests
-test-perf: perf-generate
+## test-perf: Run performance profiling tests (auto-generates test images if missing)
+test-perf: check-test-images perf-generate
 	@echo "Running performance tests..."
 	npx playwright test performance-profiling.spec.js
 
