@@ -108,6 +108,7 @@ Modern web-based tool for manually reviewing validated images before final appro
 - No need to remember commands or wait for saves
 - Progress tracking shows exactly how many images remain
 - Graceful handling of window close (auto-accepts remaining)
+- Launches clean browser without extensions to prevent face blocking
 
 **Usage:**
 
