@@ -1,6 +1,6 @@
 {
   "name": "face-block-chromium-extension",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "type": "module",
   "description": "Privacy-focused Chromium extension that blocks images of specified people",
   "scripts": {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Face Block Chromium Extension",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "Automatically block images of specified people on web pages using client-side face recognition",
   "permissions": [
     "storage",
