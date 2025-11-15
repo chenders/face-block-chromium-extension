@@ -1,0 +1,1 @@
+- Please keep emoji use to a minimum, both when interacting with me and when writing code / documentation.

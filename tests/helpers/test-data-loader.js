@@ -3,7 +3,7 @@
 
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { startTestServer, stopTestServer } from './test-server.js';
+import { startTestServer } from './test-server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,12 +14,15 @@ let testServerUrl = null;
  * Load reference face descriptors from test images into the extension
  * @param {BrowserContext} context - Playwright browser context with extension loaded
  * @param {Object} config - Configuration for which faces to load
- * @param {Array<string>} config.people - Array of person names (folder names in tests/fixtures/images)
+ * @param {Array<string>} config.people - Array of person names
+ *   - For Trump: use 'donald_trump', 'trump', or 'Donald Trump' (uses test-data/trump/source/)
+ *   - For others: folder name in tests/fixtures/images/ (legacy system)
  * @param {string} config.extensionId - Optional extension ID (will be detected if not provided)
  * @returns {Promise<string>} The test server URL
  */
 export async function loadTestReferenceData(context, { people, extensionId: providedExtensionId }) {
-  const fixturesPath = path.join(__dirname, '..', 'fixtures', 'images');
+  const oldFixturesPath = path.join(__dirname, '..', 'fixtures', 'images');
+  const trumpTestSetPath = path.join(__dirname, '..', 'fixtures', 'test-data', 'trump');
 
   // Create a temporary page to process reference images
   const tempPage = await context.newPage();
@@ -65,7 +68,7 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
     // Load the face detection models
     console.log('Loading face-api models...');
-    await tempPage.evaluate(async (extId) => {
+    await tempPage.evaluate(async extId => {
       // Build model path using extension ID
       const modelPath = `chrome-extension://${extId}/models`;
       await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
@@ -76,126 +79,173 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
     const fs = await import('fs');
 
-  // Get absolute paths to all reference images
-  const referencePaths = [];
-  for (const person of people) {
-    const personDir = path.join(fixturesPath, person);
+    // Get absolute paths to all reference images
+    const referencePaths = [];
+    for (const person of people) {
+      let personDir;
+      let personName = person;
 
-    // Get all jpg files in the person's directory
-    const files = fs.readdirSync(personDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png'));
+      // Check if this is Trump - support multiple variations
+      const isTrump = ['donald_trump', 'trump', 'donald trump'].includes(person.toLowerCase());
 
-    for (const file of files) {
-      referencePaths.push({
-        person,
-        path: path.join(personDir, file)
-      });
-    }
-  }
+      if (isTrump) {
+        // For Trump, use the test-data/trump/source directory
+        personDir = path.join(trumpTestSetPath, 'source');
+        personName = 'Donald Trump'; // Normalize name
 
-  console.log(`Loading ${referencePaths.length} reference images for: ${people.join(', ')}`);
+        if (!fs.existsSync(personDir)) {
+          console.warn(
+            `Trump test set not found at ${personDir}. Run: cd tests/fixtures/generators/image-curator && ./curate_trump_images.sh`
+          );
+          continue;
+        }
+      } else {
+        // Try old system for backwards compatibility
+        personDir = path.join(oldFixturesPath, person);
 
-  // Group descriptors by person to batch storage calls
-  // Multiple descriptors per person improve matching accuracy across different angles/lighting
-  const descriptorsByPerson = {};
-  for (const person of people) {
-    descriptorsByPerson[person] = [];
-  }
-
-  // Process each reference image to extract face descriptors
-  for (const { person, path: imgPath } of referencePaths) {
-    // Convert image to base64 data URL
-    const imageBuffer = fs.readFileSync(imgPath);
-    const base64 = imageBuffer.toString('base64');
-    const ext = imgPath.endsWith('.png') ? 'png' : 'jpeg';
-    const dataUrl = `data:image/${ext};base64,${base64}`;
-
-    // Process the image to get face descriptor (in page context)
-    const detection = await tempPage.evaluate(async ({ dataUrl }) => {
-      // Create an image element
-      const img = document.createElement('img');
-      img.src = dataUrl;
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        setTimeout(reject, 5000); // 5 second timeout
-      });
-
-      // Detect face and get descriptor
-      // Use same options as content script for consistency
-      const result = await faceapi
-        .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 }))
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
-      if (!result) {
-        return { success: false, error: 'No face detected' };
+        if (!fs.existsSync(personDir)) {
+          console.warn(`Test images not found for ${person} at ${personDir}. Skipping...`);
+          continue;
+        }
       }
 
-      // Return the descriptor (convert Float32Array to regular array for message passing)
-      return {
-        success: true,
-        descriptor: Array.from(result.descriptor)
-      };
-    }, { dataUrl });
+      // Get all jpg/png files in the person's directory
+      const files = fs.readdirSync(personDir).filter(f => f.endsWith('.jpg') || f.endsWith('.png'));
 
-    if (!detection.success) {
-      console.warn(`Failed to detect face for ${person} in ${imgPath.split('/').pop()}:`, detection.error);
-      console.warn('Skipping this image and continuing...');
-      continue; // Skip this image and try the next one
+      for (const file of files) {
+        referencePaths.push({
+          person: personName,
+          path: path.join(personDir, file),
+        });
+      }
     }
 
-    // Accumulate descriptor for this person
-    descriptorsByPerson[person].push(detection.descriptor);
-    console.log(`Processed reference image for ${person} (${descriptorsByPerson[person].length} total)`);
-  }
+    console.log(`Loading ${referencePaths.length} reference images for: ${people.join(', ')}`);
 
-  // Store all descriptors for each person in extension storage
-  // Must use service worker context because chrome.storage is not available in page context
-  const serviceWorker = context.serviceWorkers()[0];
-  if (!serviceWorker) {
-    throw new Error('No service worker found');
-  }
-
-  for (const person of people) {
-    if (descriptorsByPerson[person].length === 0) {
-      console.warn(`No valid reference images for ${person}, skipping storage`);
-      continue;
+    // Group descriptors by person to batch storage calls
+    // Multiple descriptors per person improve matching accuracy across different angles/lighting
+    const descriptorsByPerson = {};
+    for (const person of people) {
+      // Normalize person name same way as above
+      const isTrump = ['donald_trump', 'trump', 'donald trump'].includes(person.toLowerCase());
+      const normalizedName = isTrump ? 'Donald Trump' : person;
+      descriptorsByPerson[normalizedName] = [];
     }
 
-    const backgroundResult = await serviceWorker.evaluate(async ({ personName, descriptors }) => {
-      // Import storage and create instance
-      // This is a service worker context, so we can use importScripts
-      if (typeof FaceStorage === 'undefined') {
-        self.importScripts('storage.js');
+    // Process each reference image to extract face descriptors
+    for (const { person, path: imgPath } of referencePaths) {
+      // Convert image to base64 data URL
+      const imageBuffer = fs.readFileSync(imgPath);
+      const base64 = imageBuffer.toString('base64');
+      const ext = imgPath.endsWith('.png') ? 'png' : 'jpeg';
+      const dataUrl = `data:image/${ext};base64,${base64}`;
+
+      // Process the image to get face descriptor (in page context)
+      const detection = await tempPage.evaluate(
+        async ({ dataUrl }) => {
+          // Create an image element
+          const img = document.createElement('img');
+          img.src = dataUrl;
+
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            setTimeout(reject, 5000); // 5 second timeout
+          });
+
+          // Detect face and get descriptor
+          // Use same options as content script for consistency
+          const result = await faceapi
+            .detectSingleFace(
+              img,
+              new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 })
+            )
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          if (!result) {
+            return { success: false, error: 'No face detected' };
+          }
+
+          // Return the descriptor (convert Float32Array to regular array for message passing)
+          return {
+            success: true,
+            descriptor: Array.from(result.descriptor),
+          };
+        },
+        { dataUrl }
+      );
+
+      if (!detection.success) {
+        console.warn(
+          `Failed to detect face for ${person} in ${imgPath.split('/').pop()}:`,
+          detection.error
+        );
+        console.warn('Skipping this image and continuing...');
+        continue; // Skip this image and try the next one
       }
 
-      // Create or get storage instance
-      if (!self._testStorage) {
-        self._testStorage = new FaceStorage();
-        await self._testStorage.init();
-      }
-
-      const storage = self._testStorage;
-      const float32Descriptors = descriptors.map(d => new Float32Array(d));
-      await storage.addPerson(personName, float32Descriptors, []);
-
-      return { success: true };
-    }, { personName: person, descriptors: descriptorsByPerson[person] });
-
-    if (!backgroundResult.success) {
-      console.error(`Failed to add reference faces for ${person}`);
-      throw new Error(`Failed to add reference faces for ${person}`);
+      // Accumulate descriptor for this person
+      descriptorsByPerson[person].push(detection.descriptor);
+      console.log(
+        `Processed reference image for ${person} (${descriptorsByPerson[person].length} total)`
+      );
     }
 
-    console.log(`Added ${descriptorsByPerson[person].length} reference face(s) for ${person}`);
-  }
+    // Store all descriptors for each person in extension storage
+    // Must use service worker context because chrome.storage is not available in page context
+    const serviceWorker = context.serviceWorkers()[0];
+    if (!serviceWorker) {
+      throw new Error('No service worker found');
+    }
 
-  console.log(`Successfully loaded reference data for ${people.length} people`);
+    for (const person of people) {
+      // Normalize person name same way as above
+      const isTrump = ['donald_trump', 'trump', 'donald trump'].includes(person.toLowerCase());
+      const normalizedName = isTrump ? 'Donald Trump' : person;
 
-  // Return the test server URL
-  return testServerUrl;
+      if (descriptorsByPerson[normalizedName].length === 0) {
+        console.warn(`No valid reference images for ${normalizedName}, skipping storage`);
+        continue;
+      }
 
+      const backgroundResult = await serviceWorker.evaluate(
+        async ({ personName, descriptors }) => {
+          // Import storage and create instance
+          // This is a service worker context, so we can use importScripts
+          if (typeof FaceStorage === 'undefined') {
+            self.importScripts('storage.js');
+          }
+
+          // Create or get storage instance
+          if (!self._testStorage) {
+            self._testStorage = new FaceStorage();
+            await self._testStorage.init();
+          }
+
+          const storage = self._testStorage;
+          const float32Descriptors = descriptors.map(d => new Float32Array(d));
+          await storage.addPerson(personName, float32Descriptors, []);
+
+          return { success: true };
+        },
+        { personName: normalizedName, descriptors: descriptorsByPerson[normalizedName] }
+      );
+
+      if (!backgroundResult.success) {
+        console.error(`Failed to add reference faces for ${normalizedName}`);
+        throw new Error(`Failed to add reference faces for ${normalizedName}`);
+      }
+
+      console.log(
+        `Added ${descriptorsByPerson[normalizedName].length} reference face(s) for ${normalizedName}`
+      );
+    }
+
+    console.log(`Successfully loaded reference data for ${people.length} people`);
+
+    // Return the test server URL
+    return testServerUrl;
   } catch (error) {
     console.error('Error loading test reference data:', error);
     throw error;

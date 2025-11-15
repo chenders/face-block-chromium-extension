@@ -1,6 +1,7 @@
 // background.js - Service worker for CORS handling and message processing
 
-// Import storage helper
+// Import utilities
+importScripts('config.js');
 importScripts('storage.js');
 
 const storage = new FaceStorage();
@@ -9,44 +10,58 @@ const storage = new FaceStorage();
 async function initialize() {
   try {
     await storage.init();
-    console.log('Storage initialized');
+    infoLog('Storage initialized');
   } catch (error) {
-    console.error('Initialization error:', error);
+    errorLog('Initialization error:', error);
   }
 }
 
 // Set up CORS handling for images
-chrome.declarativeNetRequest.updateDynamicRules({
-  addRules: [{
-    id: 1,
-    priority: 1,
-    action: {
-      type: 'modifyHeaders',
-      responseHeaders: [
-        {
-          header: 'access-control-allow-origin',
-          operation: 'set',
-          value: '*'
+chrome.declarativeNetRequest
+  .updateDynamicRules({
+    addRules: [
+      {
+        id: 1,
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          responseHeaders: [
+            {
+              header: 'access-control-allow-origin',
+              operation: 'set',
+              value: '*',
+            },
+            {
+              header: 'access-control-allow-methods',
+              operation: 'set',
+              value: 'GET, POST, PUT, DELETE, OPTIONS',
+            },
+          ],
         },
-        {
-          header: 'access-control-allow-methods',
-          operation: 'set',
-          value: 'GET, POST, PUT, DELETE, OPTIONS'
-        }
-      ]
-    },
-    condition: {
-      urlFilter: '*',
-      resourceTypes: ['image']
-    }
-  }],
-  removeRuleIds: [1] // Remove existing rule if any
-}).catch(error => {
-  console.log('CORS rule setup:', error.message);
-});
+        condition: {
+          urlFilter: '*',
+          resourceTypes: ['image'],
+        },
+      },
+    ],
+    removeRuleIds: [1], // Remove existing rule if any
+  })
+  .catch(error => {
+    debugLog('CORS rule setup:', error.message);
+  });
 
 // Listen for messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Let offscreen document messages pass through without handling
+  if (
+    message.type === 'DETECT_FACES' ||
+    message.type === 'UPDATE_FACE_MATCHER' ||
+    message.type === 'UPDATE_CONFIG'
+  ) {
+    // Don't handle these - let offscreen document handle them
+    return false;
+  }
+
   handleMessage(message, sender, sendResponse);
   return true; // Keep message channel open for async response
 });
@@ -87,31 +102,31 @@ async function handleMessage(message, sender, sendResponse) {
         sendResponse({ success: false, error: 'Unknown message type' });
     }
   } catch (error) {
-    console.error('Message handling error:', error);
+    errorLog('Message handling error:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
 
 // Handle adding a person
 async function handleAddPerson(data, sendResponse) {
-  console.log('Background: Received ADD_PERSON message', data);
+  debugLog('Background: Received ADD_PERSON message', data);
 
   // Support both old format (descriptors) and new format (descriptorData)
   const { personName, descriptors, descriptorData, photoCount } = data;
   const dataToStore = descriptorData || descriptors; // Backward compatibility
 
   if (!personName || !dataToStore || dataToStore.length === 0) {
-    console.error('Background: Invalid data received');
+    errorLog('Background: Invalid data received');
     sendResponse({ success: false, error: 'Invalid data' });
     return;
   }
 
-  console.log(`Background: Adding ${personName} with ${dataToStore.length} descriptors`);
+  debugLog(`Background: Adding ${personName} with ${dataToStore.length} descriptors`);
 
   try {
     // Ensure storage is initialized
     if (!storage.db) {
-      console.log('Background: Initializing storage...');
+      debugLog('Background: Initializing storage...');
       await storage.init();
     }
 
@@ -120,43 +135,43 @@ async function handleAddPerson(data, sendResponse) {
       // Extract descriptors and convert to Float32Array
       const float32Descriptors = descriptorData.map(item => new Float32Array(item.descriptor));
 
-      console.log(`Background: Converted to Float32Array, storing in IndexedDB with quality data...`);
+      debugLog(`Background: Converted to Float32Array, storing in IndexedDB with quality data...`);
 
       // Store descriptors with quality metadata in IndexedDB
       const result = await storage.addPerson(personName, float32Descriptors, [], descriptorData);
 
-      console.log('Background: Storage result:', result);
+      debugLog('Background: Storage result:', result);
 
       // Verify it was stored
       const verification = await storage.getPerson(personName);
-      console.log('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
+      debugLog('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
 
       sendResponse({
         success: true,
-        message: `Added ${personName} with ${descriptorData.length} face descriptor(s)`
+        message: `Added ${personName} with ${descriptorData.length} face descriptor(s)`,
       });
     } else {
       // Old format - just descriptors (backward compatibility)
       const float32Descriptors = descriptors.map(d => new Float32Array(d));
 
-      console.log(`Background: Converted to Float32Array, storing in IndexedDB...`);
+      debugLog(`Background: Converted to Float32Array, storing in IndexedDB...`);
 
       // Store descriptors in IndexedDB
       const result = await storage.addPerson(personName, float32Descriptors, []);
 
-      console.log('Background: Storage result:', result);
+      debugLog('Background: Storage result:', result);
 
       // Verify it was stored
       const verification = await storage.getPerson(personName);
-      console.log('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
+      debugLog('Background: Verification - person retrieved:', verification ? 'YES' : 'NO');
 
       sendResponse({
         success: true,
-        message: `Added ${personName} with ${descriptors.length} face descriptor(s)`
+        message: `Added ${personName} with ${descriptors.length} face descriptor(s)`,
       });
     }
   } catch (error) {
-    console.error('Background: Error adding person:', error);
+    errorLog('Background: Error adding person:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -169,12 +184,12 @@ async function handleGetPeople(sendResponse) {
     const peopleList = people.map(person => ({
       name: person.personName,
       photoCount: person.photoCount || person.descriptors.length,
-      dateAdded: person.dateAdded
+      dateAdded: person.dateAdded,
     }));
 
     sendResponse({ success: true, people: peopleList });
   } catch (error) {
-    console.error('Error getting people:', error);
+    errorLog('Error getting people:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -187,7 +202,7 @@ async function handleDeletePerson(data, sendResponse) {
     await storage.deletePerson(personName);
     sendResponse({ success: true });
   } catch (error) {
-    console.error('Error deleting person:', error);
+    errorLog('Error deleting person:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -198,7 +213,7 @@ async function handleClearAllData(sendResponse) {
     await storage.clearAll();
     sendResponse({ success: true });
   } catch (error) {
-    console.error('Error clearing data:', error);
+    errorLog('Error clearing data:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -208,28 +223,30 @@ async function handleGetReferenceDescriptors(sendResponse) {
   try {
     const people = await storage.getAllPeople();
 
-    console.log('Background: handleGetReferenceDescriptors - people:', people);
+    debugLog('Background: handleGetReferenceDescriptors - people:', people);
 
     const referenceData = people.map(person => {
-      console.log(`Background: Converting ${person.personName} descriptors for message passing`);
+      debugLog(`Background: Converting ${person.personName} descriptors for message passing`);
 
       // Convert Float32Arrays to regular arrays for Chrome message passing
       const descriptorArrays = person.descriptors.map((d, idx) => {
         const arr = Array.from(d);
-        console.log(`Background: Descriptor ${idx} - Float32Array length: ${d.length}, Array length: ${arr.length}`);
+        debugLog(
+          `Background: Descriptor ${idx} - Float32Array length: ${d.length}, Array length: ${arr.length}`
+        );
         return arr;
       });
 
       return {
         name: person.personName,
-        descriptors: descriptorArrays
+        descriptors: descriptorArrays,
       };
     });
 
-    console.log('Background: Sending reference data:', referenceData);
+    debugLog('Background: Sending reference data:', referenceData);
     sendResponse({ success: true, referenceData });
   } catch (error) {
-    console.error('Error getting reference descriptors:', error);
+    errorLog('Error getting reference descriptors:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -244,12 +261,12 @@ async function handleExportData(sendResponse) {
       personName: person.personName,
       descriptors: person.descriptors.map(d => Array.from(d)),
       photoCount: person.photoCount || person.descriptors.length,
-      dateAdded: person.dateAdded
+      dateAdded: person.dateAdded,
     }));
 
     sendResponse({ success: true, data: exportData });
   } catch (error) {
-    console.error('Error exporting data:', error);
+    errorLog('Error exporting data:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
@@ -277,21 +294,47 @@ async function handleImportData(people, sendResponse) {
 
         importedCount++;
       } catch (error) {
-        console.error(`Error importing person ${person.personName}:`, error);
+        errorLog(`Error importing person ${person.personName}:`, error);
       }
     }
 
     sendResponse({
       success: true,
-      message: `Imported ${importedCount} of ${people.length} person(s)`
+      message: `Imported ${importedCount} of ${people.length} person(s)`,
     });
   } catch (error) {
-    console.error('Error importing data:', error);
+    errorLog('Error importing data:', error);
     sendResponse({ success: false, error: error.message });
   }
 }
 
+// Create offscreen document for face detection
+async function setupOffscreenDocument() {
+  // Check if offscreen document already exists
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [chrome.runtime.getURL('offscreen.html')],
+  });
+
+  if (existingContexts.length > 0) {
+    debugLog('Offscreen document already exists');
+    return;
+  }
+
+  // Create offscreen document
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['DOM_SCRAPING'], // We need DOM/Canvas for face-api.js
+    justification: 'Face detection requires Canvas/WebGL APIs not available in service workers',
+  });
+
+  debugLog('Offscreen document created for face detection');
+}
+
 // Initialize when service worker starts
 initialize();
+setupOffscreenDocument().catch(error => {
+  errorLog('Error setting up offscreen document:', error);
+});
 
-console.log('Face Block Chromium Extension background service worker loaded');
+infoLog('Face Block Chromium Extension background service worker loaded');

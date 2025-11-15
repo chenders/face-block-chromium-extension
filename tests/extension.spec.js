@@ -1,54 +1,22 @@
 // tests/extension.spec.js
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
-test.describe('Face Block Chromium Extension', () => {
+test.describe('Face Block Chromium Extension @smoke', () => {
   let browser;
-  let context;
   let extensionId;
   let userDataDir;
 
   test.beforeAll(async () => {
-    // Create temporary directory for user data
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    // Launch browser with extension
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false, // Extensions don't work in headless mode
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    // Wait for extension to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Find extension ID from chrome://extensions
-    const pages = browser.pages();
-    let serviceWorker;
-
-    // Get service worker
-    for (const worker of browser.serviceWorkers()) {
-      if (worker.url().includes('chrome-extension://')) {
-        serviceWorker = worker;
-        extensionId = new URL(serviceWorker.url()).host;
-        break;
-      }
-    }
-
-    console.log('Extension ID:', extensionId);
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    extensionId = context.extensionId;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    // Clean up temporary directory
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('extension loads successfully', async () => {
@@ -71,7 +39,7 @@ test.describe('Face Block Chromium Extension', () => {
     const page = await browser.newPage();
 
     // Navigate to test fixture page (content scripts run on http/https pages)
-    const fixturePath = path.join(process.cwd(), 'tests/fixtures/test-page.html');
+    const fixturePath = path.join(process.cwd(), 'tests/fixtures/test-pages/test-page.html');
     await page.goto(`file://${fixturePath}`);
 
     // Wait for content script to inject
@@ -118,7 +86,9 @@ test.describe('Face Block Chromium Extension', () => {
     const page = await browser.newPage();
 
     // Try to load a model file
-    const response = await page.goto(`chrome-extension://${extensionId}/models/tiny_face_detector_model-weights_manifest.json`);
+    const response = await page.goto(
+      `chrome-extension://${extensionId}/models/tiny_face_detector_model-weights_manifest.json`
+    );
     expect(response.ok()).toBe(true);
 
     const json = await response.json();
@@ -143,6 +113,149 @@ test.describe('Face Block Chromium Extension', () => {
     });
 
     expect(hasFaceApi).toBe(true);
+
+    await page.close();
+  });
+
+  test('detector selection UI exists', async () => {
+    const page = await browser.newPage();
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
+
+    // Check that detector radio buttons exist
+    const detectorRadios = await page.$$('input[name="detector"]');
+    expect(detectorRadios.length).toBe(3);
+
+    // Check that all three modes are present
+    const tinyFaceRadio = await page.$('input[name="detector"][value="tinyFaceDetector"]');
+    const ssdRadio = await page.$('input[name="detector"][value="ssdMobilenetv1"]');
+    const hybridRadio = await page.$('input[name="detector"][value="hybrid"]');
+
+    expect(tinyFaceRadio).toBeTruthy();
+    expect(ssdRadio).toBeTruthy();
+    expect(hybridRadio).toBeTruthy();
+
+    await page.close();
+  });
+
+  test('default detector mode is hybrid', async () => {
+    const page = await browser.newPage();
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
+
+    // Check that hybrid mode is selected by default
+    const hybridChecked = await page.$eval(
+      'input[name="detector"][value="hybrid"]',
+      el => el.checked
+    );
+
+    expect(hybridChecked).toBe(true);
+
+    await page.close();
+  });
+
+  test('detector setting can be changed', async () => {
+    const page = await browser.newPage();
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
+
+    // Click on Fast Mode (TinyFaceDetector)
+    await page.click('input[name="detector"][value="tinyFaceDetector"]');
+    await page.waitForTimeout(500);
+
+    // Verify it's now checked
+    const tinyChecked = await page.$eval(
+      'input[name="detector"][value="tinyFaceDetector"]',
+      el => el.checked
+    );
+    expect(tinyChecked).toBe(true);
+
+    // Click on Thorough Mode (SsdMobilenet)
+    await page.click('input[name="detector"][value="ssdMobilenetv1"]');
+    await page.waitForTimeout(500);
+
+    // Verify it's now checked
+    const ssdChecked = await page.$eval(
+      'input[name="detector"][value="ssdMobilenetv1"]',
+      el => el.checked
+    );
+    expect(ssdChecked).toBe(true);
+
+    // Switch back to Hybrid
+    await page.click('input[name="detector"][value="hybrid"]');
+    await page.waitForTimeout(500);
+
+    const hybridChecked = await page.$eval(
+      'input[name="detector"][value="hybrid"]',
+      el => el.checked
+    );
+    expect(hybridChecked).toBe(true);
+
+    await page.close();
+  });
+
+  test('detector setting persists across popup reopens', async () => {
+    const page = await browser.newPage();
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
+
+    // Change to Thorough Mode
+    await page.click('input[name="detector"][value="ssdMobilenetv1"]');
+    await page.waitForTimeout(1000);
+
+    await page.close();
+
+    // Reopen popup
+    const page2 = await browser.newPage();
+    await page2.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page2.waitForTimeout(1000);
+
+    // Verify Thorough Mode is still selected
+    const ssdChecked = await page2.$eval(
+      'input[name="detector"][value="ssdMobilenetv1"]',
+      el => el.checked
+    );
+    expect(ssdChecked).toBe(true);
+
+    // Reset to Hybrid for other tests
+    await page2.click('input[name="detector"][value="hybrid"]');
+    await page2.waitForTimeout(1000);
+
+    await page2.close();
+  });
+
+  test('SsdMobilenet model files exist', async () => {
+    const page = await browser.newPage();
+
+    // Check that SsdMobilenet model manifest exists
+    const response = await page.goto(
+      `chrome-extension://${extensionId}/models/ssd_mobilenetv1_model-weights_manifest.json`
+    );
+    expect(response.ok()).toBe(true);
+
+    const json = await response.json();
+    expect(Array.isArray(json)).toBe(true);
+    expect(json.length).toBeGreaterThan(0);
+
+    await page.close();
+  });
+
+  test('detector mode labels have correct descriptions', async () => {
+    const page = await browser.newPage();
+    await page.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.waitForTimeout(1000);
+
+    // Check that mode descriptions exist
+    const content = await page.content();
+
+    expect(content).toContain('Fast Mode (TinyFaceDetector)');
+    expect(content).toContain('Thorough Mode (SsdMobilenet)');
+    expect(content).toContain('Hybrid Mode (Recommended)');
+
+    // Check that descriptions mention key characteristics
+    expect(content).toContain('Fastest detection');
+    expect(content).toContain('better at profiles');
+    expect(content).toContain('falls back');
 
     await page.close();
   });

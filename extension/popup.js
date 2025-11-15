@@ -10,10 +10,9 @@ const selectedFilesDiv = document.getElementById('selectedFiles');
 const previewImagesDiv = document.getElementById('previewImages');
 const addPersonBtn = document.getElementById('addPersonBtn');
 const peopleListDiv = document.getElementById('peopleList');
-const blurIntensitySlider = document.getElementById('blurIntensity');
-const blurValueSpan = document.getElementById('blurValue');
 const matchThresholdSlider = document.getElementById('matchThreshold');
 const thresholdValueSpan = document.getElementById('thresholdValue');
+const detectorRadios = document.querySelectorAll('input[name="detector"]');
 const exportDataBtn = document.getElementById('exportDataBtn');
 const importDataBtn = document.getElementById('importDataBtn');
 const importDataInput = document.getElementById('importDataInput');
@@ -42,9 +41,9 @@ async function loadModels() {
     await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
 
     modelsLoaded = true;
-    console.log('Face-api.js models loaded in popup');
+    debugLog('Face-api.js models loaded in popup');
   } catch (error) {
-    console.error('Error loading models:', error);
+    errorLog('Error loading models:', error);
     showStatus('Error loading face recognition models', 'error');
   }
 }
@@ -54,8 +53,10 @@ function setupEventListeners() {
   personNameInput.addEventListener('input', validateForm);
   photoUploadInput.addEventListener('change', handleFileSelection);
   addPersonBtn.addEventListener('click', handleAddPerson);
-  blurIntensitySlider.addEventListener('input', handleBlurIntensityChange);
   matchThresholdSlider.addEventListener('input', handleThresholdChange);
+  detectorRadios.forEach(radio => {
+    radio.addEventListener('change', handleDetectorChange);
+  });
   exportDataBtn.addEventListener('click', handleExportData);
   importDataBtn.addEventListener('click', () => importDataInput.click());
   importDataInput.addEventListener('change', handleImportData);
@@ -87,7 +88,7 @@ async function handleFileSelection(e) {
       const file = selectedFiles[i];
       const reader = new FileReader();
 
-      reader.onload = async (e) => {
+      reader.onload = async e => {
         const dataUrl = e.target.result;
 
         // Create preview container
@@ -136,9 +137,8 @@ async function handleFileSelection(e) {
             feedback.textContent = 'no face';
           }
           container.appendChild(feedback);
-
         } catch (error) {
-          console.error('Error analyzing photo:', error);
+          errorLog('Error analyzing photo:', error);
         }
 
         previewImagesDiv.appendChild(container);
@@ -235,9 +235,7 @@ async function handleAddPerson() {
 
   try {
     // Convert files to data URLs
-    const photoDataUrls = await Promise.all(
-      selectedFiles.map(file => fileToDataURL(file))
-    );
+    const photoDataUrls = await Promise.all(selectedFiles.map(file => fileToDataURL(file)));
 
     // Extract face descriptors and quality data from photos
     const descriptorData = [];
@@ -251,7 +249,7 @@ async function handleAddPerson() {
         if (analysis && analysis.valid && analysis.descriptor) {
           // Validate descriptor
           if (analysis.descriptor.length !== 128) {
-            console.error('Invalid descriptor length:', analysis.descriptor.length);
+            errorLog('Invalid descriptor length:', analysis.descriptor.length);
             continue;
           }
 
@@ -260,7 +258,7 @@ async function handleAddPerson() {
 
           // Double-check the array
           if (descriptorArray.length !== 128) {
-            console.error('Array conversion failed:', descriptorArray.length);
+            errorLog('Array conversion failed:', descriptorArray.length);
             continue;
           }
 
@@ -270,60 +268,69 @@ async function handleAddPerson() {
               score: analysis.score,
               confidence: analysis.metrics.confidence,
               category: analysis.category,
-              issues: analysis.issues
+              issues: analysis.issues,
             },
-            photoIndex: processedCount
+            photoIndex: processedCount,
           });
           processedCount++;
-          console.log(`Extracted descriptor ${processedCount}: quality=${analysis.score}/100`);
+          debugLog(`Extracted descriptor ${processedCount}: quality=${analysis.score}/100`);
         }
       } catch (error) {
-        console.error('Error processing photo:', error);
+        errorLog('Error processing photo:', error);
       }
     }
 
     if (descriptorData.length === 0) {
-      showStatus('No faces detected in the provided photos. Please use clear photos with visible faces.', 'error');
+      showStatus(
+        'No faces detected in the provided photos. Please use clear photos with visible faces.',
+        'error'
+      );
       addPersonBtn.disabled = false;
       addPersonBtn.textContent = 'Add Person';
       return;
     }
 
     // Send descriptors with quality data to background script
-    console.log('Popup: Sending ADD_PERSON message to background...');
+    debugLog('Popup: Sending ADD_PERSON message to background...');
 
-    chrome.runtime.sendMessage({
-      type: 'ADD_PERSON',
-      data: {
-        personName,
-        descriptorData,
-        photoCount: selectedFiles.length
-      }
-    }, (response) => {
-      console.log('Popup: Received response from background:', response);
+    chrome.runtime.sendMessage(
+      {
+        type: 'ADD_PERSON',
+        data: {
+          personName,
+          descriptorData,
+          photoCount: selectedFiles.length,
+        },
+      },
+      response => {
+        debugLog('Popup: Received response from background:', response);
 
-      if (chrome.runtime.lastError) {
-        console.error('Popup: Runtime error:', chrome.runtime.lastError);
-        showStatus(`Error: ${chrome.runtime.lastError.message}`, 'error');
+        if (chrome.runtime.lastError) {
+          errorLog('Popup: Runtime error:', chrome.runtime.lastError);
+          showStatus(`Error: ${chrome.runtime.lastError.message}`, 'error');
+          addPersonBtn.disabled = false;
+          addPersonBtn.textContent = 'Add Person';
+          return;
+        }
+
+        if (response && response.success) {
+          debugLog('Popup: Person added successfully');
+          showStatus(
+            `Successfully added ${personName} with ${descriptorData.length} face descriptor(s)!`,
+            'success'
+          );
+          resetForm();
+          loadPeopleList();
+        } else {
+          errorLog('Popup: Failed to add person:', response);
+          showStatus(`Error: ${response?.error || 'Failed to add person'}`, 'error');
+        }
         addPersonBtn.disabled = false;
         addPersonBtn.textContent = 'Add Person';
-        return;
       }
-
-      if (response && response.success) {
-        console.log('Popup: Person added successfully');
-        showStatus(`Successfully added ${personName} with ${descriptorData.length} face descriptor(s)!`, 'success');
-        resetForm();
-        loadPeopleList();
-      } else {
-        console.error('Popup: Failed to add person:', response);
-        showStatus(`Error: ${response?.error || 'Failed to add person'}`, 'error');
-      }
-      addPersonBtn.disabled = false;
-      addPersonBtn.textContent = 'Add Person';
-    });
+    );
   } catch (error) {
-    console.error('Error adding person:', error);
+    errorLog('Error adding person:', error);
     showStatus('Error processing photos', 'error');
     addPersonBtn.disabled = false;
     addPersonBtn.textContent = 'Add Person';
@@ -351,7 +358,7 @@ async function extractFaceDescriptor(imageDataUrl) {
           resolve(analyzePhotoQuality(null, img));
         }
       } catch (error) {
-        console.error('Face detection error:', error);
+        errorLog('Face detection error:', error);
         reject(error);
       }
     };
@@ -368,7 +375,7 @@ async function extractFaceDescriptor(imageDataUrl) {
 function fileToDataURL(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
+    reader.onload = e => resolve(e.target.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -389,7 +396,7 @@ function resetForm() {
 // Load people list
 async function loadPeopleList() {
   try {
-    chrome.runtime.sendMessage({ type: 'GET_PEOPLE' }, (response) => {
+    chrome.runtime.sendMessage({ type: 'GET_PEOPLE' }, response => {
       if (response && response.people && response.people.length > 0) {
         renderPeopleList(response.people);
       } else {
@@ -397,7 +404,7 @@ async function loadPeopleList() {
       }
     });
   } catch (error) {
-    console.error('Error loading people:', error);
+    errorLog('Error loading people:', error);
     peopleListDiv.innerHTML = '<div class="empty-state">Error loading data</div>';
   }
 }
@@ -418,7 +425,7 @@ function renderPeopleList(people) {
       <button class="delete-btn" data-name="${escapeHtml(person.name)}">Delete</button>
     `;
 
-    personItem.querySelector('.delete-btn').addEventListener('click', (e) => {
+    personItem.querySelector('.delete-btn').addEventListener('click', e => {
       handleDeletePerson(person.name);
     });
 
@@ -432,49 +439,35 @@ function handleDeletePerson(personName) {
     return;
   }
 
-  chrome.runtime.sendMessage({
-    type: 'DELETE_PERSON',
-    data: { personName }
-  }, (response) => {
-    if (response && response.success) {
-      showStatus(`Removed ${personName}`, 'success');
-      loadPeopleList();
-    } else {
-      showStatus('Error deleting person', 'error');
+  chrome.runtime.sendMessage(
+    {
+      type: 'DELETE_PERSON',
+      data: { personName },
+    },
+    response => {
+      if (response && response.success) {
+        showStatus(`Removed ${personName}`, 'success');
+        loadPeopleList();
+      } else {
+        showStatus('Error deleting person', 'error');
+      }
     }
-  });
+  );
 }
 
 // Load settings
 function loadSettings() {
-  chrome.storage.sync.get(['blurIntensity', 'matchThreshold'], (result) => {
-    if (result.blurIntensity) {
-      blurIntensitySlider.value = result.blurIntensity;
-      blurValueSpan.textContent = `${result.blurIntensity}px`;
-    }
+  chrome.storage.sync.get(['matchThreshold', 'detector'], result => {
     if (result.matchThreshold) {
       matchThresholdSlider.value = result.matchThreshold;
       thresholdValueSpan.textContent = result.matchThreshold.toFixed(2);
     }
-  });
-}
-
-// Handle blur intensity change
-function handleBlurIntensityChange(e) {
-  const value = e.target.value;
-  blurValueSpan.textContent = `${value}px`;
-
-  chrome.storage.sync.set({ blurIntensity: parseInt(value) }, () => {
-    // Notify content scripts of setting change
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'SETTINGS_CHANGED',
-          settings: { blurIntensity: parseInt(value) }
-        }).catch(() => {
-          // Ignore errors for tabs that don't have content script
-        });
-      });
+    // Load detector preference (default to 'hybrid')
+    const detector = result.detector || 'hybrid';
+    detectorRadios.forEach(radio => {
+      if (radio.value === detector) {
+        radio.checked = true;
+      }
     });
   });
 }
@@ -486,39 +479,83 @@ function handleThresholdChange(e) {
 
   chrome.storage.sync.set({ matchThreshold: value }, () => {
     // Notify content scripts of setting change
-    chrome.tabs.query({}, (tabs) => {
+    chrome.tabs.query({}, tabs => {
       tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'SETTINGS_CHANGED',
-          settings: { matchThreshold: value }
-        }).catch(() => {
-          // Ignore errors for tabs that don't have content script
-        });
+        chrome.tabs
+          .sendMessage(tab.id, {
+            type: 'SETTINGS_CHANGED',
+            settings: { matchThreshold: value },
+          })
+          .catch(() => {
+            // Ignore errors for tabs that don't have content script
+          });
       });
     });
   });
 }
 
+// Handle detector change
+function handleDetectorChange(e) {
+  const detector = e.target.value;
+
+  chrome.storage.sync.set({ detector }, () => {
+    infoLog(`Detector changed to: ${detector}`);
+
+    // Notify all content scripts to reload models and settings
+    chrome.tabs.query({}, tabs => {
+      tabs.forEach(tab => {
+        chrome.tabs
+          .sendMessage(tab.id, {
+            type: 'SETTINGS_CHANGED',
+            settings: { detector },
+          })
+          .catch(() => {
+            // Ignore errors for tabs that don't have content script
+          });
+      });
+    });
+
+    // Show status message
+    const modeName =
+      detector === 'tinyFaceDetector'
+        ? 'Fast Mode'
+        : detector === 'ssdMobilenetv1'
+          ? 'Thorough Mode'
+          : 'Hybrid Mode';
+    showStatus(
+      `Detector changed to ${modeName}. Reload pages for changes to take effect.`,
+      'success'
+    );
+  });
+}
+
 // Handle clear all data
 function handleClearData() {
-  if (!confirm('Are you sure you want to delete all blocked people and settings? This cannot be undone.')) {
+  if (
+    !confirm(
+      'Are you sure you want to delete all blocked people and settings? This cannot be undone.'
+    )
+  ) {
     return;
   }
 
-  chrome.runtime.sendMessage({ type: 'CLEAR_ALL_DATA' }, (response) => {
+  chrome.runtime.sendMessage({ type: 'CLEAR_ALL_DATA' }, response => {
     if (response && response.success) {
       showStatus('All data cleared', 'success');
       loadPeopleList();
 
       // Reset settings to defaults
-      blurIntensitySlider.value = 20;
-      blurValueSpan.textContent = '20px';
       matchThresholdSlider.value = 0.6;
       thresholdValueSpan.textContent = '0.60';
 
+      // Reset detector to hybrid
+      detectorRadios.forEach(radio => {
+        radio.checked = radio.value === 'hybrid';
+      });
+
       chrome.storage.sync.set({
-        blurIntensity: 20,
-        matchThreshold: 0.6
+        matchThreshold: 0.6,
+        detector: 'hybrid',
       });
     } else {
       showStatus('Error clearing data', 'error');
@@ -533,16 +570,22 @@ async function handleExportData() {
     exportDataBtn.textContent = 'Exporting...';
 
     // Get all data from IndexedDB via background script
-    chrome.runtime.sendMessage({ type: 'EXPORT_DATA' }, (response) => {
+    chrome.runtime.sendMessage({ type: 'EXPORT_DATA' }, response => {
       if (response && response.success) {
+        // Get current detector setting
+        let currentDetector = 'hybrid';
+        detectorRadios.forEach(radio => {
+          if (radio.checked) currentDetector = radio.value;
+        });
+
         const exportData = {
           version: 1,
           exportDate: new Date().toISOString(),
           settings: {
-            blurIntensity: parseInt(blurIntensitySlider.value),
-            matchThreshold: parseFloat(matchThresholdSlider.value)
+            matchThreshold: parseFloat(matchThresholdSlider.value),
+            detector: currentDetector,
           },
-          people: response.data
+          people: response.data,
         };
 
         // Create blob and download
@@ -563,7 +606,7 @@ async function handleExportData() {
       exportDataBtn.textContent = 'Export Data';
     });
   } catch (error) {
-    console.error('Export error:', error);
+    errorLog('Export error:', error);
     showStatus('Error exporting data', 'error');
     exportDataBtn.disabled = false;
     exportDataBtn.textContent = 'Export Data';
@@ -594,31 +637,34 @@ async function handleImportData(e) {
     importDataBtn.textContent = 'Importing...';
 
     // Send import data to background script
-    chrome.runtime.sendMessage({
-      type: 'IMPORT_DATA',
-      data: importData.people
-    }, (response) => {
-      if (response && response.success) {
-        showStatus(`Successfully imported ${importData.people.length} person(s)`, 'success');
+    chrome.runtime.sendMessage(
+      {
+        type: 'IMPORT_DATA',
+        data: importData.people,
+      },
+      response => {
+        if (response && response.success) {
+          showStatus(`Successfully imported ${importData.people.length} person(s)`, 'success');
 
-        // Import settings if available
-        if (importData.settings) {
-          chrome.storage.sync.set(importData.settings, () => {
-            loadSettings();
-          });
+          // Import settings if available
+          if (importData.settings) {
+            chrome.storage.sync.set(importData.settings, () => {
+              loadSettings();
+            });
+          }
+
+          loadPeopleList();
+        } else {
+          showStatus(`Error: ${response?.error || 'Failed to import data'}`, 'error');
         }
 
-        loadPeopleList();
-      } else {
-        showStatus(`Error: ${response?.error || 'Failed to import data'}`, 'error');
+        importDataBtn.disabled = false;
+        importDataBtn.textContent = 'Import Data';
+        importDataInput.value = '';
       }
-
-      importDataBtn.disabled = false;
-      importDataBtn.textContent = 'Import Data';
-      importDataInput.value = '';
-    });
+    );
   } catch (error) {
-    console.error('Import error:', error);
+    errorLog('Import error:', error);
     showStatus('Error importing data: Invalid file', 'error');
     importDataBtn.disabled = false;
     importDataBtn.textContent = 'Import Data';

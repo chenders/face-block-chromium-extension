@@ -1,5 +1,8 @@
 # Face Block Chromium Extension
 
+[![CI](https://github.com/chenders/face-block-chromium-extension/workflows/CI/badge.svg)](https://github.com/chenders/face-block-chromium-extension/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A privacy-focused Chromium extension that automatically blocks images of specified people on web pages using client-side face recognition. Matched images are replaced with blank placeholders.
 
 ## Features
@@ -50,14 +53,21 @@ A privacy-focused Chromium extension that automatically blocks images of specifi
 When you visit a webpage:
 1. Extension scans all `<img>` elements
 2. Briefly hides each image while detecting faces
-3. Detects faces using the Tiny Face Detector model
+3. Detects faces using your selected detection mode (Fast, Thorough, or Hybrid)
 4. Compares faces against your stored references
 5. Replaces matches with color-matched placeholders that blend into the page background
 6. Restores non-matching images immediately
 
 Replaced images automatically match the surrounding background color with a subtle border for a seamless appearance. The brief hiding prevents any flash of the original image.
 
+**Hybrid Mode**: For best results, the extension tries the fast TinyFaceDetector first. If no faces are found, it automatically retries with the more thorough SsdMobilenet detector, ensuring maximum coverage of both frontal and profile images.
+
 ### Settings
+
+- **Face Detection Mode**: Choose detection method based on your needs
+  - **Fast Mode (TinyFaceDetector)**: Fastest detection, best for frontal images. May miss profile views.
+  - **Thorough Mode (SsdMobilenet)**: Slower, better at detecting profiles and angled faces. May miss some frontal images.
+  - **Hybrid Mode (Recommended)**: Tries Fast mode first, falls back to Thorough if no faces found. Best overall coverage but uses more resources.
 
 - **Match Threshold** (0.3-0.8): Controls matching strictness
   - **0.5-0.55**: Very strict (fewer false positives)
@@ -126,10 +136,12 @@ Some websites have strict security policies preventing image access. These image
 - Face too small (<50x50 pixels)
 - Poor lighting or low quality
 - Face obscured (sunglasses, mask, etc.)
+- Profile or extreme angle (>45° from camera)
 
 **Solutions:**
 - Use clear, well-lit reference photos
 - Try different photos from various angles
+- Switch to **Hybrid Mode** or **Thorough Mode** in settings for better profile detection
 - Check browser console (F12) for errors
 
 ### Images Not Being Replaced
@@ -160,7 +172,9 @@ Some websites have strict security policies preventing image access. These image
 ### Core Technologies
 
 - **Face Recognition:** [face-api.js](https://github.com/justadudewhohacks/face-api.js) (TensorFlow.js)
-- **Detection Model:** Tiny Face Detector (~190KB)
+- **Detection Models:**
+  - TinyFaceDetector (~190KB) - Fast, optimized for frontal faces
+  - SsdMobilenetv1 (~5.4MB) - Thorough, better for profiles and angled faces
 - **Recognition Model:** FaceNet embeddings (128-dimensional)
 - **Storage:** IndexedDB + chrome.storage.sync
 - **Manifest:** Version 3
@@ -182,58 +196,103 @@ extension/
 
 ## Testing
 
-The project includes comprehensive Playwright tests to verify functionality.
+The project includes comprehensive Playwright tests to verify functionality. See **[docs/TESTING.md](docs/TESTING.md)** for full testing documentation.
 
-### Setup
-
+**Quick Start:**
 ```bash
-npm install
-npx playwright install chromium
+make install
+make test
 ```
 
-### Running Tests
-
-```bash
-# Run all tests (headless)
-npm test
-
-# Run tests with visible browser
-npm run test:headed
-
-# Run tests in debug mode
-npm run test:debug
-
-# Run tests with UI mode
-npm run test:ui
-```
-
-### Test Coverage
-
-- **Extension Loading**: Verifies extension loads correctly
-- **Content Script**: Tests face detection and image processing
-- **Image Replacement**: Verifies images are replaced with color-matched placeholders
-- **Settings**: Tests threshold configuration and data management
-- **CORS Handling**: Ensures graceful handling of restricted images
-- **Responsive Images**: Tests srcset handling
-
-**Note:** Tests run in headed mode because Chrome extensions don't work in headless mode.
+**Note**: Tests run with a visible browser (headed mode) for accurate extension testing, but the browser is configured to not steal focus or interrupt your workflow.
 
 ## Contributing
 
 Contributions welcome! Ways to help:
 
-- 🐛 Report bugs
-- 💡 Suggest features
-- 📝 Improve documentation
-- 🔧 Submit pull requests
+- Report bugs
+- Suggest features
+- Improve documentation
+- Submit pull requests
 
-### Development
+### Development Setup
 
-1. Clone repository
-2. Make changes in `extension/` directory
-3. Run tests: `npm test`
-4. Test manually in Chrome (`chrome://extensions/` → Load unpacked)
-5. Submit PR
+1. **Clone repository:**
+   ```bash
+   git clone https://github.com/chenders/face-block-chromium-extension.git
+   cd face-block-chromium-extension
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   make install
+   ```
+
+3. **Development workflow:**
+   ```bash
+   # Run linter
+   make lint
+
+   # Auto-fix linting issues
+   make lint-fix
+
+   # Format code
+   make format
+
+   # Check formatting
+   make format-check
+
+   # Run tests
+   make test
+
+   # Run tests with debugger
+   make test-debug
+
+   # Run tests with UI
+   make test-ui
+   ```
+
+4. **Make changes in `extension/` directory**
+
+5. **Test manually in Chrome:**
+   - Go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `extension` folder
+
+6. **Before submitting PR:**
+   ```bash
+   make lint          # Must pass
+   make format        # Format all code
+   make test          # All tests must pass
+   ```
+
+### Code Quality
+
+This project uses:
+- **ESLint** for code linting (enforces code standards)
+- **Prettier** for code formatting (consistent style)
+- **Playwright** for end-to-end testing
+
+All code is automatically checked for style and quality. Run `make lint-fix` and `make format` before committing.
+
+### Building for Chrome Web Store
+
+To package the extension for distribution:
+
+```bash
+make build
+```
+
+This will:
+1. Run linter and formatter checks
+2. Copy extension files to `build/` directory
+3. Remove development artifacts
+4. Create ZIP file ready for Chrome Web Store
+
+The packaged ZIP file will be created in the root directory.
+
+See **[STORE_LISTING.md](STORE_LISTING.md)** for Chrome Web Store submission guidelines.
 
 **Test on:** Wikipedia (works well), news sites, check console for errors.
 

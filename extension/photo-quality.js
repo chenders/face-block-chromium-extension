@@ -12,8 +12,8 @@ function analyzePhotoQuality(detection, image) {
       valid: false,
       score: 0,
       issues: ['no-face-detected'],
-      recommendations: ['No face detected. Ensure the person\'s face is clearly visible.'],
-      category: 'invalid'
+      recommendations: ["No face detected. Ensure the person's face is clearly visible."],
+      category: 'invalid',
     };
   }
 
@@ -22,7 +22,7 @@ function analyzePhotoQuality(detection, image) {
     faceSize: calculateFaceSize(detection.detection.box, image),
     angle: calculateFaceAngle(detection.landmarks),
     landmarkQuality: assessLandmarkQuality(detection.landmarks),
-    imageQuality: assessImageQuality(detection.detection.box, image)
+    imageQuality: assessImageQuality(detection.detection.box, image),
   };
 
   const score = calculateCompositeScore(metrics);
@@ -39,7 +39,7 @@ function analyzePhotoQuality(detection, image) {
     category,
     descriptor: detection.descriptor,
     landmarks: detection.landmarks.positions,
-    boundingBox: detection.detection.box
+    boundingBox: detection.detection.box,
   };
 }
 
@@ -56,7 +56,7 @@ function calculateFaceSize(box, image) {
     percentage,
     width: box.width,
     height: box.height,
-    optimal: percentage >= 20 && percentage <= 60
+    optimal: percentage >= 20 && percentage <= 60,
   };
 }
 
@@ -77,7 +77,8 @@ function calculateFaceAngle(landmarks) {
   // Calculate yaw (left/right turn) based on eye distance ratio
   const leftEyeToNose = distance(leftEye, nose);
   const rightEyeToNose = distance(rightEye, nose);
-  const eyeRatio = Math.min(leftEyeToNose, rightEyeToNose) / Math.max(leftEyeToNose, rightEyeToNose);
+  const eyeRatio =
+    Math.min(leftEyeToNose, rightEyeToNose) / Math.max(leftEyeToNose, rightEyeToNose);
   const yaw = (1 - eyeRatio) * 90 * (leftEyeToNose > rightEyeToNose ? 1 : -1);
 
   // Calculate roll (head tilt) based on eye line angle
@@ -94,7 +95,7 @@ function calculateFaceAngle(landmarks) {
     yaw: Math.round(yaw),
     pitch: Math.round(pitch),
     roll: Math.round(roll),
-    isFrontal: Math.abs(yaw) < 20 && Math.abs(pitch) < 15
+    isFrontal: Math.abs(yaw) < 20 && Math.abs(pitch) < 15,
   };
 }
 
@@ -127,7 +128,10 @@ function assessLandmarkQuality(landmarks) {
 
   // Check landmark spread (facial features should be well-distributed)
   const faceWidth = distance(positions[0], positions[16]);
-  const eyeDistance = distance(getLandmarkCenter(positions, 36, 41), getLandmarkCenter(positions, 42, 47));
+  const eyeDistance = distance(
+    getLandmarkCenter(positions, 36, 41),
+    getLandmarkCenter(positions, 42, 47)
+  );
   const featureSpread = eyeDistance / faceWidth;
 
   const symmetryScore = eyeSymmetry * 100;
@@ -136,7 +140,7 @@ function assessLandmarkQuality(landmarks) {
   return {
     symmetry: Math.round(symmetryScore),
     spread: Math.round(Math.min(spreadScore, 100)),
-    overall: Math.round((symmetryScore + Math.min(spreadScore, 100)) / 2)
+    overall: Math.round((symmetryScore + Math.min(spreadScore, 100)) / 2),
   };
 }
 
@@ -170,7 +174,7 @@ function assessImageQuality(box, image) {
   return {
     centering: Math.round(Math.max(centering, 0)),
     resolution: Math.round(resolutionQuality),
-    overall: Math.round((Math.max(centering, 0) + resolutionQuality) / 2)
+    overall: Math.round((Math.max(centering, 0) + resolutionQuality) / 2),
   };
 }
 
@@ -179,11 +183,11 @@ function assessImageQuality(box, image) {
  */
 function calculateCompositeScore(metrics) {
   const weights = {
-    confidence: 0.30,      // 30% - Face detection confidence
-    faceSize: 0.20,        // 20% - Optimal face size
-    frontal: 0.15,         // 15% - Frontal vs profile
-    landmarks: 0.15,       // 15% - Landmark quality
-    imageQuality: 0.20     // 20% - Resolution and centering
+    confidence: 0.3, // 30% - Face detection confidence
+    faceSize: 0.2, // 20% - Optimal face size
+    frontal: 0.15, // 15% - Frontal vs profile
+    landmarks: 0.15, // 15% - Landmark quality
+    imageQuality: 0.2, // 20% - Resolution and centering
   };
 
   // Confidence score (0-100)
@@ -204,7 +208,9 @@ function calculateCompositeScore(metrics) {
   }
 
   // Frontal score (prefer frontal, penalize extreme angles)
-  const angleScore = metrics.angle.isFrontal ? 100 : Math.max(0, 100 - Math.abs(metrics.angle.yaw) * 2);
+  const angleScore = metrics.angle.isFrontal
+    ? 100
+    : Math.max(0, 100 - Math.abs(metrics.angle.yaw) * 2);
 
   // Landmark quality score
   const landmarkScore = metrics.landmarkQuality.overall;
@@ -312,7 +318,9 @@ function generateRecommendations(metrics, issues) {
   }
 
   if (issues.includes('asymmetric-features')) {
-    recommendations.push('Possible occlusion or poor lighting - check for sunglasses, hands, or shadows');
+    recommendations.push(
+      'Possible occlusion or poor lighting - check for sunglasses, hands, or shadows'
+    );
   }
 
   // If no issues, give positive feedback
@@ -354,7 +362,7 @@ function analyzeCoverage(photoAnalyses) {
       angleCount: 0,
       profileCount: 0,
       averageQuality: 0,
-      recommendations: ['No valid photos detected. Please select photos with clear visible faces.']
+      recommendations: ['No valid photos detected. Please select photos with clear visible faces.'],
     };
   }
 
@@ -364,15 +372,13 @@ function analyzeCoverage(photoAnalyses) {
   const profileCount = valid.filter(p => p.category.includes('profile')).length;
 
   // Calculate average quality
-  const averageQuality = Math.round(
-    valid.reduce((sum, p) => sum + p.score, 0) / valid.length
-  );
+  const averageQuality = Math.round(valid.reduce((sum, p) => sum + p.score, 0) / valid.length);
 
   // Calculate coverage score
   let coverageScore = 0;
   coverageScore += Math.min(frontalCount * 30, 60); // Up to 60 points for frontals
-  coverageScore += Math.min(angleCount * 20, 30);    // Up to 30 points for angles
-  coverageScore += Math.min(profileCount * 10, 10);  // Up to 10 points for profiles
+  coverageScore += Math.min(angleCount * 20, 30); // Up to 30 points for angles
+  coverageScore += Math.min(profileCount * 10, 10); // Up to 10 points for profiles
 
   // Generate recommendations
   const recommendations = [];
@@ -406,7 +412,7 @@ function analyzeCoverage(photoAnalyses) {
     profileCount,
     averageQuality,
     recommendations,
-    totalValid: valid.length
+    totalValid: valid.length,
   };
 }
 
@@ -427,11 +433,7 @@ function estimateEffectiveness(photoAnalyses) {
   const countFactor = Math.min(coverage.totalValid / 5, 1); // Optimal is 5 photos
 
   // Weighted combination
-  const effectiveness = (
-    qualityFactor * 0.4 +
-    coverageFactor * 0.4 +
-    countFactor * 0.2
-  ) * 100;
+  const effectiveness = (qualityFactor * 0.4 + coverageFactor * 0.4 + countFactor * 0.2) * 100;
 
   return Math.round(effectiveness);
 }

@@ -16,7 +16,7 @@ Thumbs.db
 .claude/
 
 # Test and Debug Files
-test*.html
+/test*.html
 debug*.png
 wtf.png
 serve.sh
@@ -24,6 +24,10 @@ simple-test.html
 
 # Example/Test Images
 example_images/
+
+# Auto-generated test images from curator
+test_images/
+test-data/
 
 # Extension Test/Utility Files
 extension/content-test.js
@@ -35,9 +39,16 @@ DEBUGGING.md
 BUGFIX.md
 PROJECT_SUMMARY.md
 QUICK_TEST.md
+dev-notes/
 
-# Node modules (if added in future)
+# Node modules
 node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.image_cache/
 
 # Build artifacts (if added in future)
 dist/
@@ -49,6 +60,7 @@ build/
 /playwright-report/
 /playwright/.cache/
 .playwright/
+.temp-profile/
 
 # Logs
 *.log
@@ -58,6 +70,3 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
-
-# Etc
-.claude

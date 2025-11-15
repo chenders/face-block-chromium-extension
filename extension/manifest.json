@@ -1,16 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Face Block Chromium Extension",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "version_name": "1.0.0 beta 1",
   "description": "Automatically block images of specified people on web pages using client-side face recognition",
   "permissions": [
     "storage",
     "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "offscreen"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -27,13 +27,19 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "css": ["preload-hide.css"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": ["<all_urls>"],
       "js": ["preload.js"],
       "run_at": "document_start",
       "all_frames": false
     },
     {
       "matches": ["<all_urls>"],
-      "js": ["libs/face-api.min.js", "content.js"],
+      "js": ["config.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"
     }
@@ -43,8 +49,9 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["models/*"],
-      "matches": ["<all_urls>"]
+      "resources": ["models/*", "libs/face-api.min.js"],
+      "matches": ["<all_urls>"],
+      "use_dynamic_url": false
     }
   ]
 }

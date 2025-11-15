@@ -1,22 +1,24 @@
 {
   "name": "face-block-chromium-extension",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Privacy-focused Chromium extension that blocks images of specified people",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "test:ui": "playwright test --ui"
+    "prepare": "husky"
   },
   "keywords": [
     "chrome-extension",
     "face-recognition",
     "privacy"
   ],
-  "author": "",
+  "author": "Chris Henderson <chris@groundeffectsoftware.com>",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.40.0"
+    "@playwright/test": "^1.40.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "husky": "^9.1.7",
+    "prettier": "^3.6.2"
   }
 }

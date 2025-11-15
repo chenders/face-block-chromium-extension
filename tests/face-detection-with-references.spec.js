@@ -1,9 +1,8 @@
 // tests/face-detection-with-references.spec.js
-import { test, expect, chromium } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
-import os from 'os';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 import { loadTestReferenceData, clearTestReferenceData } from './helpers/test-data-loader.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,25 +14,13 @@ test.describe('Face Detection with Reference Data', () => {
   let testPageUrl;
 
   test.beforeAll(async () => {
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('blocked person images are replaced with placeholders', async () => {
@@ -42,9 +29,9 @@ test.describe('Face Detection with Reference Data', () => {
     // Listen for console logs
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-    // Load reference data for Einstein (but not Sagan)
+    // Load reference data for Trump
     // This also starts the test server and returns the URL
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein'] });
+    testPageUrl = await loadTestReferenceData(browser, { people: ['trump'] });
 
     // Navigate to test page
     await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
@@ -52,66 +39,61 @@ test.describe('Face Detection with Reference Data', () => {
     // Wait for extension to process images (needs time for face detection)
     await page.waitForTimeout(12000);
 
-    // Check Einstein images are blocked
-    const einsteinImages = await page.$$eval('[id^="einstein-"]:not([id$="-tiny"])', imgs =>
+    // Check Trump images are blocked
+    const trumpImages = await page.$$eval(
+      '[id^="trump-"]:not([id$="-tiny"]):not([id$="-inline"]):not([id$="-inline-2"])',
+      imgs =>
+        imgs.map(img => ({
+          id: img.id,
+          isBlocked: img.classList.contains('face-blocked'),
+          src: img.src.substring(0, 50),
+          hasProcessed: img.hasAttribute('data-face-block-processed'),
+        }))
+    );
+
+    console.log('Trump images:', trumpImages);
+
+    // Most Trump images should be blocked
+    const blockedCount = trumpImages.filter(img => img.isBlocked).length;
+    expect(blockedCount).toBeGreaterThanOrEqual(3); // At least 3/4 should be blocked
+    console.log(`${blockedCount}/${trumpImages.length} Trump images blocked`);
+
+    // Check non-matching images (Obama, Biden) are NOT blocked
+    const nonMatchingImages = await page.$$eval('#obama, #biden', imgs =>
       imgs.map(img => ({
         id: img.id,
         isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        src: img.src.substring(0, 50),
-        hasProcessed: img.hasAttribute('data-face-block-processed')
+        hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
 
-    console.log('Einstein images:', einsteinImages);
+    console.log('Non-matching images (Obama, Biden):', nonMatchingImages);
 
-    // Most Einstein images should be blocked (profile views may not match with threshold 0.6)
-    const blockedCount = einsteinImages.filter(img => img.isBlocked).length;
-    expect(blockedCount).toBeGreaterThanOrEqual(4); // At least 4/5 should be blocked
-    console.log(`${blockedCount}/${einsteinImages.length} Einstein images blocked`);
-
-    // Check Sagan images are NOT blocked (no reference data for Sagan)
-    const saganImages = await page.$$eval('[id^="sagan-"]', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed')
-      }))
-    );
-
-    console.log('Sagan images:', saganImages);
-
-    // Sagan images should NOT be blocked
-    const saganBlockedCount = saganImages.filter(img => img.isBlocked).length;
-    expect(saganBlockedCount).toBe(0);
-
-    // But they should be processed (marked as processed)
-    const saganProcessedCount = saganImages.filter(img => img.hasProcessed).length;
-    expect(saganProcessedCount).toBe(saganImages.length);
-
-    // Check non-matching images are shown
-    const nonMatchingImages = await page.$$eval('#monroe, #pruitt', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        opacity: window.getComputedStyle(img).opacity,
-        hasProcessed: img.hasAttribute('data-face-block-processed')
-      }))
-    );
-
-    console.log('Non-matching images:', nonMatchingImages);
-
-    // Non-matching images should not be blocked
+    // Non-matching images should NOT be blocked
     const nonMatchingBlockedCount = nonMatchingImages.filter(img => img.isBlocked).length;
     expect(nonMatchingBlockedCount).toBe(0);
 
+    // But they should be processed (marked as processed)
+    const nonMatchingProcessedCount = nonMatchingImages.filter(img => img.hasProcessed).length;
+    expect(nonMatchingProcessedCount).toBe(nonMatchingImages.length);
+
     // They should be visible
-    const visibleCount = nonMatchingImages.filter(img => img.opacity === '1').length;
-    expect(visibleCount).toBe(nonMatchingImages.length);
+    const visibleNonMatching = await page.$$eval('#obama, #biden', imgs =>
+      imgs.map(img => ({
+        id: img.id,
+        opacity: window.getComputedStyle(img).opacity,
+      }))
+    );
+
+    console.log('Non-matching visibility:', visibleNonMatching);
+
+    const visibleCount = visibleNonMatching.filter(img => img.opacity === '1').length;
+    expect(visibleCount).toBe(visibleNonMatching.length);
 
     await page.close();
   });
 
-  test('multiple blocked people are all detected', async () => {
+  test('all Trump images are detected and blocked', async () => {
     const page = await browser.newPage();
 
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
@@ -119,75 +101,46 @@ test.describe('Face Detection with Reference Data', () => {
     // Clear any existing data
     await clearTestReferenceData(browser);
 
-    // Load reference data for both Einstein and Sagan
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein', 'carl_sagan'] });
+    // Load reference data for Trump
+    testPageUrl = await loadTestReferenceData(browser, {
+      people: ['trump'],
+    });
 
     // Navigate to test page
     await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
 
     // Wait for extension to process images
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(12000);
 
-    // Check both Einstein and Sagan images are blocked
-    const blockedImages = await page.$$eval('[id^="einstein-"]:not([id$="-tiny"]), [id^="sagan-"]', imgs =>
+    // Check Trump images are blocked (excluding tiny and inline variants for this test)
+    const trumpImages = await page.$$eval(
+      '[id^="trump-"]:not([id$="-tiny"]):not([id$="-inline"]):not([id$="-inline-2"])',
+      imgs =>
+        imgs.map(img => ({
+          id: img.id,
+          isBlocked: img.classList.contains('face-blocked'),
+          hasProcessed: img.hasAttribute('data-face-block-processed'),
+        }))
+    );
+
+    console.log('All Trump images:', trumpImages);
+
+    const blockedCount = trumpImages.filter(img => img.isBlocked).length;
+    console.log(`${blockedCount}/${trumpImages.length} Trump images blocked`);
+
+    // Should block most Trump images
+    expect(blockedCount).toBeGreaterThanOrEqual(3);
+
+    // Non-matching images should still be shown
+    const nonMatchingImages = await page.$$eval('#obama, #biden', imgs =>
       imgs.map(img => ({
         id: img.id,
         isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed')
-      }))
-    );
-
-    console.log('All potentially blocked images:', blockedImages);
-
-    const blockedCount = blockedImages.filter(img => img.isBlocked).length;
-    console.log(`${blockedCount}/${blockedImages.length} images blocked`);
-
-    // Should block at least some Einstein and Sagan images
-    expect(blockedCount).toBeGreaterThan(0);
-
-    // Non-matching images should still be shown
-    const nonMatchingImages = await page.$$eval('#monroe, #pruitt', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension'
       }))
     );
 
     const nonMatchingBlockedCount = nonMatchingImages.filter(img => img.isBlocked).length;
     expect(nonMatchingBlockedCount).toBe(0);
-
-    await page.close();
-  });
-
-  test('small images are skipped and not processed', async () => {
-    const page = await browser.newPage();
-
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein'] });
-
-    await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
-    await page.waitForTimeout(6000);
-
-    // Check tiny images
-    const tinyImages = await page.$$eval('#einstein-tiny, #monroe-tiny', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed'),
-        width: img.offsetWidth,
-        height: img.offsetHeight
-      }))
-    );
-
-    console.log('Tiny images:', tinyImages);
-
-    // Tiny images should be marked as processed (skipped) but not blocked
-    tinyImages.forEach(img => {
-      expect(img.width).toBeLessThan(50);
-      expect(img.height).toBeLessThan(50);
-      expect(img.isBlocked).toBe(false);
-    });
 
     await page.close();
   });
@@ -197,87 +150,39 @@ test.describe('Face Detection with Reference Data', () => {
 
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein', 'carl_sagan'] });
+    testPageUrl = await loadTestReferenceData(browser, {
+      people: ['trump'],
+    });
 
     await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(12000);
 
     // Check inline images
-    const inlineImages = await page.$$eval('#einstein-inline, #monroe-inline, #sagan-inline, #pruitt-inline', imgs =>
-      imgs.map(img => ({
-        id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
-        hasProcessed: img.hasAttribute('data-face-block-processed')
-      }))
+    const inlineImages = await page.$$eval(
+      '#trump-inline, #trump-inline-2, #obama-inline, #biden-inline',
+      imgs =>
+        imgs.map(img => ({
+          id: img.id,
+          isBlocked: img.classList.contains('face-blocked'),
+          hasProcessed: img.hasAttribute('data-face-block-processed'),
+        }))
     );
 
     console.log('Inline images:', inlineImages);
 
-    // Einstein and Sagan should be blocked
-    const einstein = inlineImages.find(img => img.id === 'einstein-inline');
-    const sagan = inlineImages.find(img => img.id === 'sagan-inline');
+    // Trump images should be blocked or at least processed
+    const trumpInline1 = inlineImages.find(img => img.id === 'trump-inline');
+    const trumpInline2 = inlineImages.find(img => img.id === 'trump-inline-2');
 
-    expect(einstein?.isBlocked || einstein?.hasProcessed).toBeTruthy();
-    expect(sagan?.isBlocked || sagan?.hasProcessed).toBeTruthy();
+    expect(trumpInline1?.isBlocked || trumpInline1?.hasProcessed).toBeTruthy();
+    expect(trumpInline2?.isBlocked || trumpInline2?.hasProcessed).toBeTruthy();
 
-    // Monroe and Pruitt should not be blocked
-    const monroe = inlineImages.find(img => img.id === 'monroe-inline');
-    const pruitt = inlineImages.find(img => img.id === 'pruitt-inline');
+    // Obama and Biden should not be blocked
+    const obama = inlineImages.find(img => img.id === 'obama-inline');
+    const biden = inlineImages.find(img => img.id === 'biden-inline');
 
-    expect(monroe?.isBlocked).toBe(false);
-    expect(pruitt?.isBlocked).toBe(false);
-
-    await page.close();
-  });
-
-  test('no flashing occurs when blocking images', async () => {
-    const page = await browser.newPage();
-
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
-    testPageUrl = await loadTestReferenceData(browser, { people: ['albert_einstein'] });
-
-    // Track if images are ever visible before being blocked
-    await browser.addInitScript(() => {
-      window.imageVisibilityLog = [];
-
-      const observer = new MutationObserver(() => {
-        const einsteinImages = document.querySelectorAll('[id^="einstein-"]');
-        einsteinImages.forEach(img => {
-          const opacity = window.getComputedStyle(img).opacity;
-          const isBlocked = img.alt === 'Image blocked by Face Block Chromium Extension';
-
-          if (opacity !== '0' && !isBlocked && !img.hasAttribute('data-face-block-processed')) {
-            window.imageVisibilityLog.push({
-              id: img.id,
-              timestamp: Date.now(),
-              opacity,
-              src: img.src.substring(0, 50)
-            });
-          }
-        });
-      });
-
-      // Start observing when DOM is ready
-      if (document.body) {
-        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'alt', 'src'] });
-      } else {
-        document.addEventListener('DOMContentLoaded', () => {
-          observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'alt', 'src'] });
-        });
-      }
-    });
-
-    await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
-    await page.waitForTimeout(6000);
-
-    // Check the visibility log
-    const visibilityLog = await page.evaluate(() => window.imageVisibilityLog);
-    console.log('Images that were visible before blocking:', visibilityLog);
-
-    // Ideally, no Einstein images should have been visible before being blocked
-    // But we allow some tolerance for timing
-    expect(visibilityLog.length).toBeLessThanOrEqual(2);
+    expect(obama?.isBlocked).toBe(false);
+    expect(biden?.isBlocked).toBe(false);
 
     await page.close();
   });

@@ -1,0 +1,57 @@
+name: Deploy to Chrome Web Store
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: 'Artifact name to deploy (e.g., extension-release-v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  upload-extension:
+    name: Deploy Chrome Extension to Web Store
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      # Extension ID for Chrome Web Store
+      # This ensures consistent ID across deployments
+      EXTENSION_ID: nlcmajfmeiofpngfhinnmehpfgidcpdd
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Download bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.inputs.artifact_name || format('extension-release-{0}', github.ref_name) }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+
+      - name: Install Chrome Web Store Upload CLI
+        run: npm install -g chrome-webstore-upload-cli
+
+      - name: Upload to Chrome Web Store
+        run: |
+          chrome-webstore-upload upload \
+            --source *.zip \
+            --extension-id ${{ env.EXTENSION_ID }} \
+            --client-id ${{ secrets.CI_GOOGLE_CLIENT_ID }} \
+            --client-secret ${{ secrets.CI_GOOGLE_CLIENT_SECRET }} \
+            --refresh-token ${{ secrets.CI_GOOGLE_REFRESH_TOKEN }}
+
+      - name: Publish Extension
+        run: |
+          chrome-webstore-upload publish \
+            --extension-id ${{ env.EXTENSION_ID }} \
+            --client-id ${{ secrets.CI_GOOGLE_CLIENT_ID }} \
+            --client-secret ${{ secrets.CI_GOOGLE_CLIENT_SECRET }} \
+            --refresh-token ${{ secrets.CI_GOOGLE_REFRESH_TOKEN }}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Block Extension Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #666;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 30px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .image-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .image-container img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+        }
+        .image-label {
+            padding: 10px;
+            font-size: 14px;
+            color: #666;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+        }
+        .expected-blocked {
+            border-left: 4px solid #e74c3c;
+        }
+        .expected-shown {
+            border-left: 4px solid #27ae60;
+        }
+        .inline-section p {
+            line-height: 2;
+        }
+        .inline-section img {
+            height: 100px;
+            width: auto;
+            vertical-align: middle;
+            margin: 0 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Face Block Extension - Test Page</h1>
+
+    <div class="section">
+        <h2>Donald Trump Images</h2>
+        <p><strong>Expected behavior:</strong> These images will be <strong>blocked</strong> when Donald Trump is added to the extension's reference data.</p>
+        <div class="image-grid">
+            <div class="image-container expected-blocked">
+                <img src="/test-data/trump/source/donald_trump_1964_FileDonald_Trump_NYMAjpg.jpg" alt="Trump 1964" id="trump-1">
+                <div class="image-label">Trump 1964</div>
+            </div>
+            <div class="image-container expected-blocked">
+                <img src="/test-data/trump/source/donald_trump_1985_FileDonald_J_Trump_1985jpg.jpg" alt="Trump 1985" id="trump-2">
+                <div class="image-label">Trump 1985</div>
+            </div>
+            <div class="image-container expected-blocked">
+                <img src="/test-data/trump/source/donald_trump_2015_FileDonald_Trump_August_19_2015_croppedj.jpg" alt="Trump 2015" id="trump-3">
+                <div class="image-label">Trump 2015</div>
+            </div>
+            <div class="image-container expected-blocked">
+                <img src="/test-data/trump/source/donald_trump_2017_FileDonald_Trump_January_2017jpg.jpg" alt="Trump 2017" id="trump-4">
+                <div class="image-label">Trump 2017</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Non-Matching Images (Should be SHOWN)</h2>
+        <p>These images do not contain the blocked person and should remain visible.</p>
+        <div class="image-grid">
+            <div class="image-container expected-shown">
+                <img src="/test-data/trump/false_positives/barack_obama_001.jpg" alt="Barack Obama" id="obama">
+                <div class="image-label">Barack Obama</div>
+            </div>
+            <div class="image-container expected-shown">
+                <img src="/test-data/trump/false_positives/joe_biden_001.jpg" alt="Joe Biden" id="biden">
+                <div class="image-label">Joe Biden</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section inline-section">
+        <h2>Mixed Content - Inline Images</h2>
+        <p>
+            This paragraph contains mixed content with both blocked and allowed images inline.
+            Here's Trump 1964: <img src="/test-data/trump/source/donald_trump_1964_FileDonald_Trump_NYMAjpg.jpg" alt="Trump inline" id="trump-inline" class="inline-img">
+            followed by Barack Obama: <img src="/test-data/trump/false_positives/barack_obama_001.jpg" alt="Obama inline" id="obama-inline" class="inline-img">
+            and Trump 1985: <img src="/test-data/trump/source/donald_trump_1985_FileDonald_J_Trump_1985jpg.jpg" alt="Trump inline 2" id="trump-inline-2" class="inline-img">
+            and finally Joe Biden: <img src="/test-data/trump/false_positives/joe_biden_001.jpg" alt="Biden inline" id="biden-inline" class="inline-img">.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>Small Images (Should be SKIPPED)</h2>
+        <p>These images are too small (less than 50x50px) and should be skipped by the extension.</p>
+        <div>
+            <img src="/test-data/trump/source/donald_trump_1964_FileDonald_Trump_NYMAjpg.jpg" alt="Tiny Trump" id="trump-tiny"
+                 style="width: 40px; height: 40px; border: 1px solid #999;">
+            <img src="/test-data/trump/false_positives/barack_obama_001.jpg" alt="Tiny Obama" id="obama-tiny"
+                 style="width: 30px; height: 30px; border: 1px solid #999; margin-left: 10px;">
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Data URL Images</h2>
+        <p>This image uses a data URL and should not be processed:</p>
+        <div>
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%234a90e2' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3EData URL%3C/text%3E%3C/svg%3E"
+                 alt="Data URL" id="data-url-img" style="border: 1px solid #999;">
+        </div>
+    </div>
+
+    <script>
+        // Log when page is fully loaded
+        window.addEventListener('load', () => {
+            console.log('Test page fully loaded');
+
+            // Count images
+            const allImages = document.querySelectorAll('img');
+            const trumpImages = document.querySelectorAll('[id^="trump-"]');
+            const nonMatchingImages = document.querySelectorAll('#obama, #biden, #obama-inline, #biden-inline');
+
+            console.log(`Total images: ${allImages.length}`);
+            console.log(`Trump images: ${trumpImages.length}`);
+            console.log(`Non-matching images: ${nonMatchingImages.length}`);
+        });
+    </script>
+</body>
+</html>

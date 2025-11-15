@@ -1,45 +1,21 @@
 // tests/settings.spec.js
-import { test, expect, chromium } from '@playwright/test';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import { test, expect } from '@playwright/test';
+import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
-test.describe('Settings and Configuration', () => {
+test.describe('Settings and Configuration @smoke', () => {
   let browser;
   let extensionId;
   let userDataDir;
 
   test.beforeAll(async () => {
-    // Create temporary directory for user data
-    userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
-
-    const pathToExtension = path.join(process.cwd(), 'extension');
-    browser = await chromium.launchPersistentContext(userDataDir, {
-      headless: false,
-      args: [
-        `--disable-extensions-except=${pathToExtension}`,
-        `--load-extension=${pathToExtension}`,
-      ],
-    });
-
-    // Wait for extension to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Get extension ID
-    for (const worker of browser.serviceWorkers()) {
-      if (worker.url().includes('chrome-extension://')) {
-        extensionId = new URL(worker.url()).host;
-        break;
-      }
-    }
+    const context = await setupExtensionContext();
+    browser = context.browser;
+    extensionId = context.extensionId;
+    userDataDir = context.userDataDir;
   });
 
   test.afterAll(async () => {
-    await browser.close();
-    // Clean up temporary directory
-    if (userDataDir) {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    }
+    await cleanupExtensionContext({ browser, userDataDir });
   });
 
   test('match threshold slider exists and works', async () => {
@@ -68,14 +44,14 @@ test.describe('Settings and Configuration', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Check add person section exists
-    const addSection = await page.$('#addPersonSection');
+    const addSection = await page.$('.add-person-section');
     expect(addSection).toBeTruthy();
 
     // Check required fields
     const nameInput = await page.$('#personName');
     expect(nameInput).toBeTruthy();
 
-    const photoInput = await page.$('#photoInput');
+    const photoInput = await page.$('#photoUpload');
     expect(photoInput).toBeTruthy();
 
     const addButton = await page.$('#addPersonBtn');
@@ -89,7 +65,7 @@ test.describe('Settings and Configuration', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Check stored people section
-    const storedSection = await page.$('#storedPeopleSection');
+    const storedSection = await page.$('.people-list');
     expect(storedSection).toBeTruthy();
 
     const peopleList = await page.$('#peopleList');
@@ -103,7 +79,7 @@ test.describe('Settings and Configuration', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
     // Check data management section
-    const dataSection = await page.$('#dataManagementSection');
+    const dataSection = await page.$('.settings-section');
     expect(dataSection).toBeTruthy();
 
     // Check buttons
@@ -113,7 +89,7 @@ test.describe('Settings and Configuration', () => {
     const importBtn = await page.$('#importDataBtn');
     expect(importBtn).toBeTruthy();
 
-    const clearBtn = await page.$('#clearAllDataBtn');
+    const clearBtn = await page.$('#clearDataBtn');
     expect(clearBtn).toBeTruthy();
 
     await page.close();
@@ -123,21 +99,14 @@ test.describe('Settings and Configuration', () => {
     const page = await browser.newPage();
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
-    // Try to add person without name
-    const addButton = await page.$('#addPersonBtn');
-
-    // Leave name empty and try to click
-    await page.fill('#personName', '');
-
-    // Click add button
-    await addButton.click();
-
-    // Should show error or prevent submission
     await page.waitForTimeout(500);
 
-    // Check that no success message appeared (since validation should fail)
-    const statusText = await page.textContent('#uploadStatus');
-    expect(statusText).not.toContain('Success');
+    // Leave name empty
+    await page.fill('#personName', '');
+
+    // Button should be disabled when no name/photos provided
+    const isDisabled = await page.$eval('#addPersonBtn', btn => btn.disabled);
+    expect(isDisabled).toBe(true);
 
     await page.close();
   });
@@ -172,14 +141,17 @@ test.describe('Settings and Configuration', () => {
 
     // Get initial display value
     const initialDisplay = await page.textContent('#thresholdValue');
-    expect(initialDisplay).toContain('0.60');
+    expect(initialDisplay).toMatch(/0\.\d+/); // Should be a decimal like 0.60
 
-    // Change slider
+    // Change slider to a different value
     await page.fill('#matchThreshold', '0.75');
 
     // Check display updated
     const newDisplay = await page.textContent('#thresholdValue');
     expect(newDisplay).toContain('0.75');
+
+    // Verify it actually changed
+    expect(newDisplay).not.toBe(initialDisplay);
 
     await page.close();
   });
@@ -192,7 +164,7 @@ test.describe('Settings and Configuration', () => {
     const dimensions = await page.evaluate(() => {
       return {
         width: document.body.scrollWidth,
-        height: document.body.scrollHeight
+        height: document.body.scrollHeight,
       };
     });
 

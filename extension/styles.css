@@ -1,9 +1,57 @@
-/* Face Blur Extension Styles */
+/* Face Block Extension Styles */
 
-.face-blurred {
+.face-blocked {
   /* Images are replaced with blank placeholders in JavaScript */
-  /* No CSS blur needed */
   display: inline-block;
+  position: relative;
+  cursor: help;
+}
+
+/* Tooltip for blocked images */
+.face-blocked::after {
+  content: attr(data-blocked-person) ' blocked - Click to unblock';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 10000;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Show tooltip on hover */
+.face-blocked:hover::after {
+  opacity: 1;
+}
+
+/* Arrow pointing down */
+.face-blocked::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 10000;
+  margin-bottom: 2px;
+}
+
+.face-blocked:hover::before {
+  opacity: 1;
 }
 
 .face-blur-processing {
