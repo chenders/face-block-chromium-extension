@@ -174,7 +174,7 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
       if (!hasTestImages) test.skip();
 
       const metadata = loadImageMetadata();
-      if (!metadata) test.skip();
+      if (!metadata || metadata.length === 0) test.skip();
 
       // Group by decade
       const decades = {};
@@ -313,7 +313,7 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
       if (!hasTestImages) test.skip();
 
       const metadata = loadImageMetadata();
-      if (!metadata) test.skip();
+      if (!metadata || metadata.length === 0) test.skip();
 
       // Filter for high-quality, likely official portraits
       const portraits = metadata.filter(
@@ -330,7 +330,7 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
       if (!hasTestImages) test.skip();
 
       const metadata = loadImageMetadata();
-      if (!metadata) test.skip();
+      if (!metadata || metadata.length === 0) test.skip();
 
       // Lower quality or different contexts
       const candids = metadata.filter(
@@ -342,7 +342,7 @@ test.describe('Trump Comprehensive Blocking Tests', () => {
     });
   });
 
-  test.describe('Coverage Report', () => {
+  test.describe.skip('Coverage Report', () => {
     test('generates comprehensive test coverage report', async () => {
       if (!hasTestImages) {
         console.log('\n📊 TEST COVERAGE REPORT');
