@@ -88,8 +88,8 @@ test.describe('Image Blocking Functionality @smoke', () => {
     const page = await browser.newPage();
 
     const testPagePath = `file://${path.join(__dirname, 'fixtures', 'test-pages', 'responsive-images.html')}`;
-    await page.goto(testPagePath, { waitUntil: 'load' });
-    await page.waitForTimeout(3000);
+    await page.goto(testPagePath, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
 
     // Check that page has images with srcset
     const imagesWithSrcset = await page.evaluate(() => {
