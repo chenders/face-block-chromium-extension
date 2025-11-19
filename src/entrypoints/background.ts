@@ -82,9 +82,11 @@ async function setupOffscreenDocument() {
 // Firefox: Setup face detection directly in background
 async function setupFirefoxFaceDetection() {
   try {
-    // In Firefox, we can load face-api.js directly since event pages have DOM access
-    // This will be implemented when we migrate the face detection logic
-    console.log('Firefox face detection ready (to be implemented)');
+    // Dynamically import Firefox face detection module
+    // This runs directly in the background page since Firefox event pages have DOM access
+    const firefoxModule = await import('../utils/firefox-face-detection');
+    await firefoxModule.initializeFirefoxFaceDetection();
+    console.log('Firefox face detection initialized successfully');
   } catch (error) {
     console.error('Failed to setup Firefox face detection:', error);
   }
@@ -148,8 +150,14 @@ async function handleFaceDetection(data: any, sendResponse: Function) {
     }
   } else {
     // Handle directly in Firefox background
-    // TODO: Implement direct face detection for Firefox
-    sendResponse({ error: 'Firefox face detection not yet implemented' });
+    try {
+      const firefoxModule = await import('../utils/firefox-face-detection');
+      const response = await firefoxModule.handleFirefoxFaceDetection(data);
+      sendResponse(response);
+    } catch (error: any) {
+      console.error('Firefox face detection error:', error);
+      sendResponse({ error: error.message });
+    }
   }
 }
 
@@ -172,8 +180,14 @@ async function handleUpdateFaceMatcher(data: any, sendResponse: Function) {
     }
   } else {
     // Handle directly in Firefox background
-    // TODO: Implement for Firefox
-    sendResponse({ error: 'Firefox face matcher update not yet implemented' });
+    try {
+      const firefoxModule = await import('../utils/firefox-face-detection');
+      const response = await firefoxModule.updateFirefoxFaceMatcher(data);
+      sendResponse(response);
+    } catch (error: any) {
+      console.error('Firefox face matcher update error:', error);
+      sendResponse({ error: error.message });
+    }
   }
 }
 
@@ -196,7 +210,13 @@ async function handleUpdateConfig(data: any, sendResponse: Function) {
     }
   } else {
     // Handle directly in Firefox background
-    // TODO: Implement for Firefox
-    sendResponse({ error: 'Firefox config update not yet implemented' });
+    try {
+      const firefoxModule = await import('../utils/firefox-face-detection');
+      const response = firefoxModule.updateFirefoxConfig(data);
+      sendResponse(response);
+    } catch (error: any) {
+      console.error('Firefox config update error:', error);
+      sendResponse({ error: error.message });
+    }
   }
 }

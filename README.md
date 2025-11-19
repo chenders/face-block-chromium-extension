@@ -1,9 +1,11 @@
-# Face Block Chromium Extension
+# Face Block Browser Extension
 
 [![CI](https://github.com/chenders/face-block-chromium-extension/workflows/CI/badge.svg)](https://github.com/chenders/face-block-chromium-extension/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Chrome](https://img.shields.io/badge/Chrome-✓-brightgreen)
+![Firefox](https://img.shields.io/badge/Firefox-✓-brightgreen)
 
-A privacy-focused Chromium extension that automatically blocks images of specified people on web pages using client-side face recognition. Matched images are replaced with blank placeholders.
+A privacy-focused browser extension for Chrome and Firefox that automatically blocks images of specified people on web pages using client-side face recognition. Matched images are replaced with blank placeholders.
 
 ## Features
 
@@ -16,27 +18,60 @@ A privacy-focused Chromium extension that automatically blocks images of specifi
 
 ## Installation
 
-### Quick Start
+### For Chrome
 
 1. **Clone or download this repository:**
    ```bash
    git clone https://github.com/chenders/face-block-chromium-extension.git
    ```
 
-2. **Load in Chrome:**
+2. **Build the extension:**
+   ```bash
+   npm install
+   npm run build
+   ```
+
+3. **Load in Chrome:**
    - Open `chrome://extensions/`
    - Enable **"Developer mode"** (top right)
    - Click **"Load unpacked"**
-   - Select the `extension` folder
+   - Select the `.output/chrome-mv3` folder
    - Extension icon appears in toolbar
 
-3. **Add people to block:**
-   - Click extension icon
-   - Enter person's name
-   - Upload 3-5 clear photos of their face
-   - Browse the web - matched images are automatically replaced
+### For Firefox
 
-**Requirements:** Chrome 88+ or any Chromium-based browser (Edge, Brave, etc.)
+1. **Clone or download this repository:**
+   ```bash
+   git clone https://github.com/chenders/face-block-chromium-extension.git
+   ```
+
+2. **Build the Firefox version:**
+   ```bash
+   npm install
+   npm run build:firefox
+   ```
+
+3. **Load in Firefox:**
+   - Open `about:debugging`
+   - Click **"This Firefox"** (left sidebar)
+   - Click **"Load Temporary Add-on"**
+   - Navigate to `.output/firefox-mv2` folder
+   - Select any file in that folder (e.g., `manifest.json`)
+   - Extension icon appears in toolbar
+
+   **Note:** Temporary add-ons in Firefox are removed when you close the browser. For permanent installation, the extension needs to be signed by Mozilla.
+
+### Quick Setup
+
+After installation in either browser:
+1. Click extension icon
+2. Enter person's name
+3. Upload 3-5 clear photos of their face
+4. Browse the web - matched images are automatically replaced
+
+**Requirements:**
+- Chrome 88+ or any Chromium-based browser (Edge, Brave, etc.)
+- Firefox 121+ (for Manifest V2 support)
 
 ## Usage
 
@@ -179,19 +214,51 @@ Some websites have strict security policies preventing image access. These image
 - **Storage:** IndexedDB + chrome.storage.sync
 - **Manifest:** Version 3
 
+### Browser Compatibility
+
+- **Chrome:** Uses Manifest V3 with offscreen documents for face detection
+- **Firefox:** Uses Manifest V2 with direct background page processing
+- **Architecture:** Built with WXT framework for automatic cross-browser adaptation
+
+### Development
+
+```bash
+# Install dependencies
+npm install
+
+# Development mode
+npm run dev           # Chrome development
+npm run dev:firefox   # Firefox development
+
+# Production builds
+npm run build         # Build for Chrome
+npm run build:firefox # Build for Firefox
+npm run build:all     # Build for both browsers
+
+# Package for distribution
+npm run zip           # Create Chrome Web Store package
+npm run zip:firefox   # Create Firefox Add-ons package
+```
+
 ### Project Structure
 
 ```
-extension/
-├── manifest.json          # Extension configuration
-├── background.js          # Service worker (CORS, messaging)
-├── content.js             # Face detection & replacement
-├── popup.html/js          # Extension UI
-├── storage.js             # IndexedDB wrapper
-├── libs/
-│   └── face-api.min.js   # ML library (included)
-├── models/                # Pre-trained models (included)
-└── icons/                 # Extension icons
+src/
+├── entrypoints/
+│   ├── background.ts      # Cross-browser background script
+│   ├── content.ts         # Main content script
+│   ├── content-preload.ts # Early CSS injection
+│   └── popup/             # Extension UI
+├── public/
+│   ├── offscreen.js       # Chrome offscreen document
+│   ├── models/            # Pre-trained ML models
+│   └── libs/              # face-api.js library
+└── utils/
+    └── firefox-face-detection.ts # Firefox-specific implementation
+
+.output/
+├── chrome-mv3/            # Chrome build output
+└── firefox-mv2/           # Firefox build output
 ```
 
 ## Testing
