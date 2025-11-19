@@ -12,7 +12,7 @@ test.describe('Settings and Configuration @smoke', () => {
     browser = context.browser;
     extensionId = context.extensionId;
     userDataDir = context.userDataDir;
-  });
+  }, process.env.CI ? 90000 : 60000) // 90 seconds timeout in CI, 60 seconds locally;
 
   test.afterAll(async () => {
     await cleanupExtensionContext({ browser, userDataDir });

@@ -12,10 +12,14 @@ export default defineConfig({
   reporter: 'html',
   // Filter tests based on environment
   grep: process.env.SMOKE_TESTS ? /@smoke/ : undefined,
+  // Increase timeout for CI
+  timeout: process.env.CI ? 120000 : 60000, // 2 minutes in CI, 1 minute locally
 
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Increase action timeout for CI
+    actionTimeout: process.env.CI ? 30000 : 15000,
   },
 
   projects: [

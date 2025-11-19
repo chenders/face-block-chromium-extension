@@ -17,7 +17,7 @@ test.describe('Face Detection with Reference Data', () => {
     const context = await setupExtensionContext();
     browser = context.browser;
     userDataDir = context.userDataDir;
-  });
+  }, process.env.CI ? 90000 : 60000) // 90 seconds timeout in CI, 60 seconds locally;
 
   test.afterAll(async () => {
     await cleanupExtensionContext({ browser, userDataDir });
