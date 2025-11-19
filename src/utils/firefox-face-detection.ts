@@ -12,7 +12,7 @@ let config = {
   enabled: true,
   detector: 'hybrid',
   detectorMode: 'selective',
-  similarityThreshold: 0.6
+  similarityThreshold: 0.6,
 };
 
 // Logging utilities
@@ -124,7 +124,7 @@ export async function handleFirefoxFaceDetection(data: any): Promise<any> {
         blocked: false,
         reason: 'Detector is off',
         facesDetected: 0,
-        matches: []
+        matches: [],
       };
     }
 
@@ -184,7 +184,7 @@ export async function handleFirefoxFaceDetection(data: any): Promise<any> {
         blocked: false,
         reason: 'No faces detected',
         facesDetected: 0,
-        matches: []
+        matches: [],
       };
     }
 
@@ -200,8 +200,8 @@ export async function handleFirefoxFaceDetection(data: any): Promise<any> {
         matches: detections.map((_, index) => ({
           label: 'all_faces',
           distance: 0,
-          faceIndex: index
-        }))
+          faceIndex: index,
+        })),
       };
     }
 
@@ -244,7 +244,7 @@ export async function handleFirefoxFaceDetection(data: any): Promise<any> {
     return {
       success: false,
       blocked: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -370,7 +370,7 @@ export async function extractFaceDescriptor(imageData: string): Promise<any> {
       debugLog('Firefox: No face detected in reference image');
       return {
         success: false,
-        error: 'No face detected in the image'
+        error: 'No face detected in the image',
       };
     }
 
@@ -380,14 +380,13 @@ export async function extractFaceDescriptor(imageData: string): Promise<any> {
     debugLog('Firefox: Face descriptor extracted successfully');
     return {
       success: true,
-      descriptor: descriptor
+      descriptor: descriptor,
     };
-
   } catch (error: any) {
     errorLog('Firefox: Error extracting face descriptor:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }

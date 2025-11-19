@@ -25,7 +25,7 @@ export class DebugOverlay {
     imagesBlocked: 0,
     totalFaces: 0,
     avgProcessingTime: 0,
-    processingTimes: [] as number[]
+    processingTimes: [] as number[],
   };
   private activeDetections = new Map<HTMLImageElement, DetectionInfo>();
   private animationFrame: number | null = null;
@@ -173,13 +173,18 @@ export class DebugOverlay {
     const content = document.getElementById('faceblock-stats-content');
     if (!content) return;
 
-    const avgTime = this.stats.processingTimes.length > 0
-      ? (this.stats.processingTimes.reduce((a, b) => a + b, 0) / this.stats.processingTimes.length).toFixed(2)
-      : '0';
+    const avgTime =
+      this.stats.processingTimes.length > 0
+        ? (
+            this.stats.processingTimes.reduce((a, b) => a + b, 0) /
+            this.stats.processingTimes.length
+          ).toFixed(2)
+        : '0';
 
-    const blockRate = this.stats.imagesProcessed > 0
-      ? ((this.stats.imagesBlocked / this.stats.imagesProcessed) * 100).toFixed(1)
-      : '0';
+    const blockRate =
+      this.stats.imagesProcessed > 0
+        ? ((this.stats.imagesBlocked / this.stats.imagesProcessed) * 100).toFixed(1)
+        : '0';
 
     content.innerHTML = `
       <div style="margin-bottom: 8px;">
@@ -281,15 +286,23 @@ export class DebugOverlay {
     const rect = img.getBoundingClientRect();
 
     // Skip if image is not visible
-    if (rect.bottom < 0 || rect.top > window.innerHeight ||
-        rect.right < 0 || rect.left > window.innerWidth) {
+    if (
+      rect.bottom < 0 ||
+      rect.top > window.innerHeight ||
+      rect.right < 0 ||
+      rect.left > window.innerWidth
+    ) {
       return;
     }
 
     // Draw border
-    this.ctx.strokeStyle = info.blocked ? '#f44336' :
-                          info.facesDetected > 0 ? '#4CAF50' :
-                          info.error ? '#FF9800' : '#2196F3';
+    this.ctx.strokeStyle = info.blocked
+      ? '#f44336'
+      : info.facesDetected > 0
+        ? '#4CAF50'
+        : info.error
+          ? '#FF9800'
+          : '#2196F3';
     this.ctx.lineWidth = 3;
     this.ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
 
@@ -335,9 +348,13 @@ export class DebugOverlay {
     const xOffset = rect.left + 8;
 
     // Status
-    const status = info.blocked ? '🚫 BLOCKED' :
-                  info.facesDetected > 0 ? '✅ DETECTED' :
-                  info.error ? '⚠️ ERROR' : '⏳ PROCESSING';
+    const status = info.blocked
+      ? '🚫 BLOCKED'
+      : info.facesDetected > 0
+        ? '✅ DETECTED'
+        : info.error
+          ? '⚠️ ERROR'
+          : '⏳ PROCESSING';
     this.ctx.fillText(status, xOffset, yOffset);
     yOffset += 14;
 
@@ -348,7 +365,7 @@ export class DebugOverlay {
     // Match info
     if (info.matches && info.matches.length > 0) {
       const match = info.matches[0];
-      const confidence = match.confidence || ((1 - match.distance) * 100);
+      const confidence = match.confidence || (1 - match.distance) * 100;
       this.ctx.fillText(`Match: ${match.label} (${confidence.toFixed(0)}%)`, xOffset, yOffset);
     } else if (info.processingTime) {
       this.ctx.fillText(`Time: ${info.processingTime.toFixed(1)}ms`, xOffset, yOffset);
@@ -368,7 +385,7 @@ export class DebugOverlay {
       imagesBlocked: 0,
       totalFaces: 0,
       avgProcessingTime: 0,
-      processingTimes: []
+      processingTimes: [],
     };
     this.updateStatsPanel();
     this.render();
@@ -416,8 +433,10 @@ if (typeof window !== 'undefined') {
     toggle: () => DebugOverlay.toggle(),
     isEnabled: () => DebugOverlay.isEnabled(),
     clear: () => getDebugOverlay()?.clear(),
-    disable: () => getDebugOverlay()?.disable()
+    disable: () => getDebugOverlay()?.disable(),
   };
 
-  console.log('🐛 Face Block Debug Overlay available. Use window.FaceBlockDebug.toggle() to enable/disable');
+  console.log(
+    '🐛 Face Block Debug Overlay available. Use window.FaceBlockDebug.toggle() to enable/disable'
+  );
 }

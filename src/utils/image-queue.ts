@@ -16,10 +16,7 @@ export class ImageProcessQueue {
   private processCallback: (img: HTMLImageElement) => Promise<void>;
   private processedImages = new Set<string>();
 
-  constructor(
-    processCallback: (img: HTMLImageElement) => Promise<void>,
-    maxConcurrent = 8
-  ) {
+  constructor(processCallback: (img: HTMLImageElement) => Promise<void>, maxConcurrent = 8) {
     this.maxConcurrent = maxConcurrent;
     this.processCallback = processCallback;
   }
@@ -44,7 +41,7 @@ export class ImageProcessQueue {
     this.queue.push({
       img,
       priority,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Sort by priority (highest first)
@@ -69,7 +66,7 @@ export class ImageProcessQueue {
       top: 0,
       bottom: window.innerHeight,
       left: 0,
-      right: window.innerWidth
+      right: window.innerWidth,
     };
 
     // Check if image is visible in viewport
@@ -149,7 +146,7 @@ export class ImageProcessQueue {
 
       // Process image
       this.processCallback(item.img)
-        .catch((error) => {
+        .catch(error => {
           console.error('Error processing image:', error);
           // Remove from processed set so it can be retried
           this.processedImages.delete(imgKey);
@@ -200,7 +197,7 @@ export class ImageProcessQueue {
       queued: this.queue.length,
       processing: this.processing,
       processed: this.processedImages.size,
-      totalCapacity: this.maxConcurrent
+      totalCapacity: this.maxConcurrent,
     };
   }
 

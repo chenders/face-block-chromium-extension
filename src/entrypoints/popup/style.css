@@ -77,15 +77,15 @@ header p {
   transition: transform 0.3s;
 }
 
-input[type="checkbox"] {
+input[type='checkbox'] {
   display: none;
 }
 
-input[type="checkbox"]:checked + .toggle-indicator {
+input[type='checkbox']:checked + .toggle-indicator {
   background: #4caf50;
 }
 
-input[type="checkbox"]:checked + .toggle-indicator::after {
+input[type='checkbox']:checked + .toggle-indicator::after {
   transform: translateX(24px);
 }
 
@@ -121,7 +121,7 @@ select:focus {
   border-color: #4caf50;
 }
 
-input[type="range"] {
+input[type='range'] {
   width: calc(100% - 50px);
   margin-right: 10px;
 }

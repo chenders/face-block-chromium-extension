@@ -28,7 +28,7 @@ const defaultConfig: AdaptiveThresholdConfig = {
   maxThreshold: 0.8,
   varianceWeight: 2.0,
   sampleSizeWeight: 0.1,
-  learningRate: 0.1
+  learningRate: 0.1,
 };
 
 /**
@@ -76,7 +76,7 @@ export function calculateAdaptiveThreshold(
     baseThreshold = 0.6,
     minThreshold = 0.4,
     maxThreshold = 0.8,
-    varianceWeight = 2.0
+    varianceWeight = 2.0,
   } = config;
 
   if (descriptors.length < 2) {
@@ -115,10 +115,10 @@ export function calculateThresholdConfidence(
   const sampleConfidence = Math.min(1, descriptorCount * sampleSizeWeight);
 
   // Lower variance -> higher confidence (more consistent data)
-  const varianceConfidence = Math.max(0, 1 - (variance / 0.8));
+  const varianceConfidence = Math.max(0, 1 - variance / 0.8);
 
   // Combine both factors
-  return (sampleConfidence * 0.4 + varianceConfidence * 0.6);
+  return sampleConfidence * 0.4 + varianceConfidence * 0.6;
 }
 
 /**
@@ -181,7 +181,7 @@ export function calculateAllAdaptiveThresholds(
       descriptorVariance: variance,
       descriptorCount: descriptors.length,
       confidence,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     });
   }
 
@@ -234,7 +234,7 @@ export function analyzeThresholdPerformance(
         falsePositives: 0,
         falseNegatives: 0,
         correctMatches: 0,
-        distances: []
+        distances: [],
       });
     }
 
@@ -261,16 +261,18 @@ export function analyzeThresholdPerformance(
 
     if (metrics.falsePositives > metrics.falseNegatives * 2) {
       // Too many false positives - need stricter threshold
-      const avgFalsePositiveDistance = metrics.distances
-        .filter((d: number) => d < currentThreshold)
-        .reduce((a: number, b: number) => a + b, 0) / metrics.falsePositives || 0;
+      const avgFalsePositiveDistance =
+        metrics.distances
+          .filter((d: number) => d < currentThreshold)
+          .reduce((a: number, b: number) => a + b, 0) / metrics.falsePositives || 0;
       suggestedThreshold = avgFalsePositiveDistance - 0.05;
       reason = 'Too many false positives - stricter threshold recommended';
     } else if (metrics.falseNegatives > metrics.falsePositives * 2) {
       // Too many false negatives - need more lenient threshold
-      const avgFalseNegativeDistance = metrics.distances
-        .filter((d: number) => d >= currentThreshold)
-        .reduce((a: number, b: number) => a + b, 0) / metrics.falseNegatives || 0;
+      const avgFalseNegativeDistance =
+        metrics.distances
+          .filter((d: number) => d >= currentThreshold)
+          .reduce((a: number, b: number) => a + b, 0) / metrics.falseNegatives || 0;
       suggestedThreshold = avgFalseNegativeDistance + 0.05;
       reason = 'Too many false negatives - more lenient threshold recommended';
     }
@@ -283,8 +285,8 @@ export function analyzeThresholdPerformance(
       metrics: {
         falsePositives: metrics.falsePositives,
         falseNegatives: metrics.falseNegatives,
-        accuracy
-      }
+        accuracy,
+      },
     });
   }
 

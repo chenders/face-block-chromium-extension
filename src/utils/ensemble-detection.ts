@@ -44,10 +44,10 @@ const defaultConfig: EnsembleConfig = {
   minConsensus: 1,
   iouThreshold: 0.5,
   confidenceWeights: {
-    'TinyFaceDetector': 0.4,
-    'SsdMobilenetv1': 0.6
+    TinyFaceDetector: 0.4,
+    SsdMobilenetv1: 0.6,
   },
-  combineDescriptors: true
+  combineDescriptors: true,
 };
 
 /**
@@ -113,10 +113,7 @@ export function combineDetections(
 /**
  * Create ensemble detection from grouped detections
  */
-function createEnsemble(
-  group: ModelDetection[],
-  config: EnsembleConfig
-): EnsembleDetection {
+function createEnsemble(group: ModelDetection[], config: EnsembleConfig): EnsembleDetection {
   const weights = config.confidenceWeights || {};
 
   // Calculate weighted average box
@@ -143,15 +140,13 @@ function createEnsemble(
     x: weightedX / totalWeight,
     y: weightedY / totalWeight,
     width: weightedWidth / totalWeight,
-    height: weightedHeight / totalWeight
+    height: weightedHeight / totalWeight,
   };
 
   // Combine descriptors if available
   let combinedDescriptor: Float32Array | undefined;
   if (config.combineDescriptors) {
-    const descriptors = group
-      .filter(d => d.descriptor)
-      .map(d => d.descriptor!);
+    const descriptors = group.filter(d => d.descriptor).map(d => d.descriptor!);
 
     if (descriptors.length > 0) {
       combinedDescriptor = averageDescriptors(descriptors);
@@ -167,7 +162,7 @@ function createEnsemble(
     models: group.map(d => d.model),
     box: avgBox,
     descriptor: combinedDescriptor,
-    detections: group
+    detections: group,
   };
 }
 
@@ -209,10 +204,7 @@ function averageDescriptors(descriptors: Float32Array[]): Float32Array {
  * Voting-based ensemble detection
  * Uses majority voting to determine final detection
  */
-export function majorityVoting(
-  detections: ModelDetection[],
-  threshold = 0.5
-): boolean {
+export function majorityVoting(detections: ModelDetection[], threshold = 0.5): boolean {
   if (detections.length === 0) return false;
 
   const votes = detections.filter(d => d.confidence >= threshold).length;

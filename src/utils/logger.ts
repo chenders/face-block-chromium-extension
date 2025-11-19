@@ -9,7 +9,7 @@ export enum LogLevel {
   INFO = 2,
   WARN = 3,
   ERROR = 4,
-  NONE = 5
+  NONE = 5,
 }
 
 export interface LogContext {
@@ -37,7 +37,7 @@ export class Logger {
 
     // Set up log level change listener
     if (typeof window !== 'undefined') {
-      window.addEventListener('storage', (e) => {
+      window.addEventListener('storage', e => {
         if (e.key === 'faceblock-loglevel') {
           this.level = this.getLogLevel();
           this.info('Log level changed', { newLevel: LogLevel[this.level] });
@@ -57,8 +57,9 @@ export class Logger {
     }
 
     // Check if development mode
-    const isDev = process.env.NODE_ENV === 'development' ||
-                  (typeof chrome !== 'undefined' && chrome.runtime.getManifest().version.includes('dev'));
+    const isDev =
+      process.env.NODE_ENV === 'development' ||
+      (typeof chrome !== 'undefined' && chrome.runtime.getManifest().version.includes('dev'));
 
     return isDev ? LogLevel.DEBUG : LogLevel.WARN;
   }
@@ -97,7 +98,7 @@ export class Logger {
       level,
       context: this.context,
       message,
-      data
+      data,
     };
 
     this.buffer.push(entry);
@@ -165,9 +166,9 @@ export class Logger {
           error: {
             message: error.message,
             stack: error.stack,
-            name: error.name
+            name: error.name,
           },
-          ...data
+          ...data,
         });
       } else {
         console.error(formatted, error ? error : '', data ? data : '');
@@ -242,11 +243,7 @@ export class Logger {
   /**
    * Get buffered logs (for debugging/reporting)
    */
-  getBuffer(filter?: {
-    level?: LogLevel;
-    since?: number;
-    context?: string;
-  }): LogEntry[] {
+  getBuffer(filter?: { level?: LogLevel; since?: number; context?: string }): LogEntry[] {
     let filtered = [...this.buffer];
 
     if (filter) {
@@ -269,12 +266,14 @@ export class Logger {
    */
   exportLogs(filter?: { level?: LogLevel; since?: number }): string {
     const logs = this.getBuffer(filter);
-    return logs.map(entry => {
-      const timestamp = new Date(entry.timestamp).toISOString();
-      const level = LogLevel[entry.level];
-      const data = entry.data ? JSON.stringify(entry.data) : '';
-      return `${timestamp} [${level}] [${entry.context}] ${entry.message} ${data}`;
-    }).join('\n');
+    return logs
+      .map(entry => {
+        const timestamp = new Date(entry.timestamp).toISOString();
+        const level = LogLevel[entry.level];
+        const data = entry.data ? JSON.stringify(entry.data) : '';
+        return `${timestamp} [${level}] [${entry.context}] ${entry.message} ${data}`;
+      })
+      .join('\n');
   }
 
   /**
@@ -315,7 +314,7 @@ export const loggers = {
   background: new Logger('Background'),
   popup: new Logger('Popup'),
   offscreen: new Logger('Offscreen'),
-  firefox: new Logger('Firefox')
+  firefox: new Logger('Firefox'),
 };
 
 /**
@@ -362,12 +361,14 @@ export const LoggerUtils = {
       .flatMap(logger => logger.getBuffer(filter))
       .sort((a, b) => a.timestamp - b.timestamp);
 
-    const formatted = logs.map(entry => {
-      const timestamp = new Date(entry.timestamp).toISOString();
-      const level = LogLevel[entry.level];
-      const data = entry.data ? JSON.stringify(entry.data) : '';
-      return `${timestamp} [${level}] [${entry.context}] ${entry.message} ${data}`;
-    }).join('\n');
+    const formatted = logs
+      .map(entry => {
+        const timestamp = new Date(entry.timestamp).toISOString();
+        const level = LogLevel[entry.level];
+        const data = entry.data ? JSON.stringify(entry.data) : '';
+        return `${timestamp} [${level}] [${entry.context}] ${entry.message} ${data}`;
+      })
+      .join('\n');
 
     await navigator.clipboard.writeText(formatted);
     console.log('📋 Face Block: Logs copied to clipboard');
@@ -381,20 +382,23 @@ export const LoggerUtils = {
       .flatMap(logger => logger.getBuffer({ level: LogLevel.DEBUG }))
       .filter(entry => entry.data?.duration);
 
-    const summary = logs.reduce((acc, entry) => {
-      const label = entry.message.replace(' completed', '');
-      if (!acc[label]) {
-        acc[label] = { count: 0, total: 0, avg: 0 };
-      }
-      const duration = parseFloat(entry.data.duration);
-      acc[label].count++;
-      acc[label].total += duration;
-      acc[label].avg = acc[label].total / acc[label].count;
-      return acc;
-    }, {} as Record<string, { count: number; total: number; avg: number }>);
+    const summary = logs.reduce(
+      (acc, entry) => {
+        const label = entry.message.replace(' completed', '');
+        if (!acc[label]) {
+          acc[label] = { count: 0, total: 0, avg: 0 };
+        }
+        const duration = parseFloat(entry.data.duration);
+        acc[label].count++;
+        acc[label].total += duration;
+        acc[label].avg = acc[label].total / acc[label].count;
+        return acc;
+      },
+      {} as Record<string, { count: number; total: number; avg: number }>
+    );
 
     console.table(summary);
-  }
+  },
 };
 
 // Expose utilities to window for debugging in development

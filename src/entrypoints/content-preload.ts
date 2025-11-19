@@ -10,7 +10,7 @@ export default defineContentScript({
 
     // Check if we should enable image hiding
     checkAndEnableImageHiding();
-  }
+  },
 });
 
 function checkAndEnableImageHiding() {

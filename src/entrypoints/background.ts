@@ -63,7 +63,7 @@ async function setupOffscreenDocument() {
     // Check if offscreen document already exists
     const existingContexts = await chrome.runtime.getContexts({
       contextTypes: ['OFFSCREEN_DOCUMENT'],
-      documentUrls: [chrome.runtime.getURL('offscreen.html')]
+      documentUrls: [chrome.runtime.getURL('offscreen.html')],
     });
 
     if (existingContexts.length > 0) {
@@ -75,7 +75,7 @@ async function setupOffscreenDocument() {
     await chrome.offscreen.createDocument({
       url: 'offscreen.html',
       reasons: ['DOM_SCRAPING'],
-      justification: 'Face detection requires Canvas/WebGL APIs not available in service workers'
+      justification: 'Face detection requires Canvas/WebGL APIs not available in service workers',
     });
 
     console.log('Offscreen document created successfully');
@@ -109,26 +109,26 @@ async function setupCORSHeaders() {
           {
             header: 'Access-Control-Allow-Origin',
             operation: 'set',
-            value: '*'
+            value: '*',
           },
           {
             header: 'Access-Control-Allow-Methods',
             operation: 'set',
-            value: 'GET, OPTIONS'
-          }
-        ]
+            value: 'GET, OPTIONS',
+          },
+        ],
       },
       condition: {
         resourceTypes: ['image'],
-        urlFilter: '*'
-      }
-    }
+        urlFilter: '*',
+      },
+    },
   ];
 
   try {
     await browser.declarativeNetRequest.updateDynamicRules({
       removeRuleIds: [1],
-      addRules: rules
+      addRules: rules,
     });
     console.log('CORS headers configured');
   } catch (error) {
@@ -146,7 +146,7 @@ async function handleFaceDetection(data: any, sendResponse: Function) {
       const response = await browser.runtime.sendMessage({
         type: 'DETECT_FACES',
         target: 'offscreen',
-        data
+        data,
       });
       sendResponse(response);
     } catch (error) {
@@ -176,7 +176,7 @@ async function handleUpdateFaceMatcher(data: any, sendResponse: Function) {
       const response = await browser.runtime.sendMessage({
         type: 'UPDATE_FACE_MATCHER',
         target: 'offscreen',
-        data
+        data,
       });
       sendResponse(response);
     } catch (error) {
@@ -206,7 +206,7 @@ async function handleUpdateConfig(data: any, sendResponse: Function) {
       const response = await browser.runtime.sendMessage({
         type: 'UPDATE_CONFIG',
         target: 'offscreen',
-        data
+        data,
       });
       sendResponse(response);
     } catch (error) {
@@ -250,7 +250,7 @@ async function handleAddReferenceFace(data: any, sendResponse: Function) {
           {
             type: 'EXTRACT_FACE_DESCRIPTOR',
             target: 'offscreen',
-            data: { imageData }
+            data: { imageData },
           },
           response => {
             if (response && response.success) {
@@ -284,7 +284,7 @@ async function handleAddReferenceFace(data: any, sendResponse: Function) {
         label: label,
         name: label,
         descriptors: [],
-        thumbnail: null
+        thumbnail: null,
       };
       referenceFaces.push(person);
     }
@@ -303,11 +303,11 @@ async function handleAddReferenceFace(data: any, sendResponse: Function) {
     await browser.storage.local.set({ referenceFaces });
 
     // Update the face matcher
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       browser.runtime.sendMessage(
         {
           type: 'UPDATE_FACE_MATCHER',
-          data: referenceFaces
+          data: referenceFaces,
         },
         () => resolve()
       );
@@ -315,7 +315,6 @@ async function handleAddReferenceFace(data: any, sendResponse: Function) {
 
     console.log(`Reference face added successfully for ${label}`);
     sendResponse({ success: true });
-
   } catch (error: any) {
     console.error('Error adding reference face:', error);
     sendResponse({ success: false, error: error.message });

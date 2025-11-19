@@ -77,7 +77,7 @@ let config = {
   detector: 'hybrid',
   detectorMode: 'selective',
   similarityThreshold: 0.6,
-  useAdaptiveThresholds: true // Enable adaptive thresholds by default
+  useAdaptiveThresholds: true, // Enable adaptive thresholds by default
 };
 
 debugLog('Offscreen document loaded');
@@ -247,22 +247,29 @@ async function handleUpdateFaceMatcher(data, sendResponse) {
 
       // Calculate adaptive threshold for this person
       if (config.useAdaptiveThresholds) {
-        const adaptiveThreshold = calculateAdaptiveThreshold(descriptors, config.similarityThreshold);
+        const adaptiveThreshold = calculateAdaptiveThreshold(
+          descriptors,
+          config.similarityThreshold
+        );
         const variance = calculateDescriptorVariance(descriptors);
         adaptiveThresholds.set(name, {
           threshold: adaptiveThreshold,
           variance: variance,
           descriptorCount: descriptors.length,
-          baseThreshold: config.similarityThreshold
+          baseThreshold: config.similarityThreshold,
         });
-        debugLog(`Adaptive threshold for ${name}: ${adaptiveThreshold.toFixed(3)} (variance: ${variance.toFixed(3)}, ${descriptors.length} descriptors)`);
+        debugLog(
+          `Adaptive threshold for ${name}: ${adaptiveThreshold.toFixed(3)} (variance: ${variance.toFixed(3)}, ${descriptors.length} descriptors)`
+        );
       }
 
       return new faceapi.LabeledFaceDescriptors(name, descriptors);
     });
 
     faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, config.similarityThreshold);
-    infoLog(`Face matcher created successfully${config.useAdaptiveThresholds ? ' with adaptive thresholds' : ''}`);
+    infoLog(
+      `Face matcher created successfully${config.useAdaptiveThresholds ? ' with adaptive thresholds' : ''}`
+    );
 
     sendResponse({ success: true });
   } catch (error) {
@@ -326,7 +333,7 @@ function normalizeHistogram(imageData) {
 
   // Normalize CDF
   const total = data.length / 4;
-  const normalized = cdf.map(val => Math.round(val * 255 / total));
+  const normalized = cdf.map(val => Math.round((val * 255) / total));
 
   // Apply equalization
   const result = new ImageData(imageData.width, imageData.height);
@@ -382,7 +389,7 @@ async function imageDataToImage(imageData, canvas) {
   const img = new Image();
   const dataUrl = canvas.toDataURL();
 
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     img.onload = () => resolve(img);
     img.src = dataUrl;
   });
@@ -440,7 +447,7 @@ async function handleDetectFaces(data, sendResponse) {
         blocked: false,
         reason: 'Detector is off',
         facesDetected: 0,
-        matches: []
+        matches: [],
       });
       return;
     }
@@ -491,9 +498,15 @@ async function handleDetectFaces(data, sendResponse) {
 
         // Collect successful detections
         for (const result of results) {
-          if (result.status === 'fulfilled' && result.value.faces && result.value.faces.length > 0) {
+          if (
+            result.status === 'fulfilled' &&
+            result.value.faces &&
+            result.value.faces.length > 0
+          ) {
             ensembleDetections.push(result.value);
-            debugLog(`[${imgId}] Variant ${variantIndex} - ${result.value.model}: ${result.value.faces.length} face(s)`);
+            debugLog(
+              `[${imgId}] Variant ${variantIndex} - ${result.value.model}: ${result.value.faces.length} face(s)`
+            );
           }
         }
       }
@@ -504,7 +517,8 @@ async function handleDetectFaces(data, sendResponse) {
         let bestScore = -1;
         for (const detection of ensembleDetections) {
           const faceCount = detection.faces.length;
-          const avgConfidence = detection.faces.reduce((sum, face) => sum + face.detection.score, 0) / faceCount;
+          const avgConfidence =
+            detection.faces.reduce((sum, face) => sum + face.detection.score, 0) / faceCount;
           // Score based on face count and confidence, with model weight
           const modelWeight = detection.model === 'SsdMobilenetv1' ? 1.2 : 1.0;
           const score = (faceCount * 1000 + avgConfidence * 100) * modelWeight;
@@ -512,7 +526,9 @@ async function handleDetectFaces(data, sendResponse) {
           if (score > bestScore) {
             bestScore = score;
             bestDetection = detection.faces;
-            debugLog(`[${imgId}] Best ensemble detection: ${detection.model} variant ${detection.variant} (score: ${score.toFixed(2)})`);
+            debugLog(
+              `[${imgId}] Best ensemble detection: ${detection.model} variant ${detection.variant} (score: ${score.toFixed(2)})`
+            );
           }
         }
       }
@@ -558,7 +574,9 @@ async function handleDetectFaces(data, sendResponse) {
         if (variantDetections && variantDetections.length > 0) {
           if (!bestDetection || variantDetections.length > bestDetection.length) {
             bestDetection = variantDetections;
-            debugLog(`[${imgId}] Variant ${variantIndex} has best detection: ${variantDetections.length} faces`);
+            debugLog(
+              `[${imgId}] Variant ${variantIndex} has best detection: ${variantDetections.length} faces`
+            );
           }
         }
       }
@@ -574,7 +592,7 @@ async function handleDetectFaces(data, sendResponse) {
         blocked: false,
         reason: 'No faces detected',
         facesDetected: 0,
-        matches: []
+        matches: [],
       });
       return;
     }
@@ -592,8 +610,8 @@ async function handleDetectFaces(data, sendResponse) {
         matches: detections.map((_, index) => ({
           label: 'all_faces',
           distance: 0,
-          faceIndex: index
-        }))
+          faceIndex: index,
+        })),
       });
       return;
     }
@@ -623,7 +641,7 @@ async function handleDetectFaces(data, sendResponse) {
             distance: bestMatch.distance,
             faceIndex: i,
             threshold: threshold,
-            isAdaptive: config.useAdaptiveThresholds && adaptiveThresholds.has(bestMatch.label)
+            isAdaptive: config.useAdaptiveThresholds && adaptiveThresholds.has(bestMatch.label),
           });
 
           // Block if face matches using person-specific threshold
@@ -653,7 +671,7 @@ async function handleDetectFaces(data, sendResponse) {
     sendResponse({
       success: false,
       blocked: false,
-      error: error.message
+      error: error.message,
     });
   }
 }
@@ -730,7 +748,7 @@ async function handleExtractFaceDescriptor(data, sendResponse) {
       debugLog('No face detected in reference image');
       sendResponse({
         success: false,
-        error: 'No face detected in the image'
+        error: 'No face detected in the image',
       });
       return;
     }
@@ -741,14 +759,13 @@ async function handleExtractFaceDescriptor(data, sendResponse) {
     debugLog('Face descriptor extracted successfully');
     sendResponse({
       success: true,
-      descriptor: descriptor
+      descriptor: descriptor,
     });
-
   } catch (error) {
     errorLog('Error extracting face descriptor:', error);
     sendResponse({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 }

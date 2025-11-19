@@ -1,54 +1,61 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Face Block Settings</title>
-  <link rel="stylesheet" href="./style.css">
-</head>
-<body>
-  <div id="app">
-    <header>
-      <h1>Face Block</h1>
-      <p>Privacy-focused image blocking</p>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Face Block Settings</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Face Block</h1>
+        <p>Privacy-focused image blocking</p>
+      </header>
 
-    <main>
-      <section class="status">
-        <div class="status-toggle">
-          <label for="enabled">
-            <span>Extension Status</span>
-            <input type="checkbox" id="enabled" />
-            <span class="toggle-indicator"></span>
-          </label>
-        </div>
-      </section>
+      <main>
+        <section class="status">
+          <div class="status-toggle">
+            <label for="enabled">
+              <span>Extension Status</span>
+              <input type="checkbox" id="enabled" />
+              <span class="toggle-indicator"></span>
+            </label>
+          </div>
+        </section>
 
-      <section class="settings">
-        <h2>Detection Mode</h2>
-        <select id="detector-mode">
-          <option value="off">Off</option>
-          <option value="selective">Selective (Reference Faces)</option>
-          <option value="all">All Faces</option>
-        </select>
+        <section class="settings">
+          <h2>Detection Mode</h2>
+          <select id="detector-mode">
+            <option value="off">Off</option>
+            <option value="selective">Selective (Reference Faces)</option>
+            <option value="all">All Faces</option>
+          </select>
 
-        <h2>Similarity Threshold</h2>
-        <input type="range" id="similarity-threshold" min="0.3" max="0.8" step="0.05" value="0.6">
-        <span id="threshold-value">0.6</span>
-      </section>
+          <h2>Similarity Threshold</h2>
+          <input
+            type="range"
+            id="similarity-threshold"
+            min="0.3"
+            max="0.8"
+            step="0.05"
+            value="0.6"
+          />
+          <span id="threshold-value">0.6</span>
+        </section>
 
-      <section class="reference-faces">
-        <h2>Reference Faces</h2>
-        <div id="faces-list"></div>
-        <button id="add-face-btn">Add Face</button>
-        <input type="file" id="face-upload" accept="image/*" style="display: none;">
-      </section>
+        <section class="reference-faces">
+          <h2>Reference Faces</h2>
+          <div id="faces-list"></div>
+          <button id="add-face-btn">Add Face</button>
+          <input type="file" id="face-upload" accept="image/*" style="display: none" />
+        </section>
 
-      <section class="browser-info">
-        <p id="browser-type"></p>
-      </section>
-    </main>
-  </div>
-  <script src="./main.ts" type="module"></script>
-</body>
+        <section class="browser-info">
+          <p id="browser-type"></p>
+        </section>
+      </main>
+    </div>
+    <script src="./main.ts" type="module"></script>
+  </body>
 </html>

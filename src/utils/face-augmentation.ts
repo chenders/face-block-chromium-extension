@@ -20,7 +20,7 @@ const defaultOptions: AugmentationOptions = {
   enableRotation: true,
   brightnessLevels: [-30, 30],
   contrastLevels: [0.8, 1.2],
-  rotationAngles: [-5, 5]
+  rotationAngles: [-5, 5],
 };
 
 /**
@@ -76,7 +76,9 @@ export async function augmentImage(
     // Mirrored + brightness adjusted
     const mirroredBright = await createMirroredImage(img, canvas, ctx);
     const mirroredBrightImg = await loadImage(mirroredBright);
-    augmented.push(await adjustBrightness(mirroredBrightImg, canvas, ctx, options.brightnessLevels[0]));
+    augmented.push(
+      await adjustBrightness(mirroredBrightImg, canvas, ctx, options.brightnessLevels[0])
+    );
   }
 
   return augmented;
@@ -127,7 +129,7 @@ async function adjustBrightness(
 
   for (let i = 0; i < data.length; i += 4) {
     // Adjust RGB values
-    data[i] = Math.max(0, Math.min(255, data[i] + adjustment));     // R
+    data[i] = Math.max(0, Math.min(255, data[i] + adjustment)); // R
     data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + adjustment)); // G
     data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + adjustment)); // B
     // Alpha unchanged
@@ -153,9 +155,9 @@ async function adjustContrast(
 
   for (let i = 0; i < data.length; i += 4) {
     // Adjust RGB values around midpoint
-    data[i] = Math.max(0, Math.min(255, ((data[i] - 128) * factor) + 128));     // R
-    data[i + 1] = Math.max(0, Math.min(255, ((data[i + 1] - 128) * factor) + 128)); // G
-    data[i + 2] = Math.max(0, Math.min(255, ((data[i + 2] - 128) * factor) + 128)); // B
+    data[i] = Math.max(0, Math.min(255, (data[i] - 128) * factor + 128)); // R
+    data[i + 1] = Math.max(0, Math.min(255, (data[i + 1] - 128) * factor + 128)); // G
+    data[i + 2] = Math.max(0, Math.min(255, (data[i + 2] - 128) * factor + 128)); // B
     // Alpha unchanged
   }
 
@@ -172,7 +174,7 @@ async function rotateImage(
   ctx: CanvasRenderingContext2D,
   angleDegrees: number
 ): Promise<string> {
-  const angleRadians = angleDegrees * Math.PI / 180;
+  const angleRadians = (angleDegrees * Math.PI) / 180;
 
   // Calculate new canvas size to fit rotated image
   const cos = Math.cos(angleRadians);
@@ -249,9 +251,9 @@ export async function applyColorSpaceTransform(
         break;
 
       case 'sepia':
-        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
-        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
-        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+        data[i] = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
+        data[i + 1] = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);
+        data[i + 2] = Math.min(255, r * 0.272 + g * 0.534 + b * 0.131);
         break;
 
       case 'hue-shift':

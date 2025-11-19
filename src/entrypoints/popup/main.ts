@@ -49,10 +49,7 @@ async function initializePopup() {
   setupEventListeners();
 
   // Load initial data
-  await Promise.all([
-    loadPeopleList(),
-    loadSettings()
-  ]);
+  await Promise.all([loadPeopleList(), loadSettings()]);
 
   // Load face detection models in background
   loadModels();
@@ -65,9 +62,11 @@ async function loadModels() {
 
     // Models are loaded in the offscreen document or Firefox background
     // We just need to verify they're ready
-    const response = await browser.runtime.sendMessage({
-      type: 'CHECK_MODELS_LOADED'
-    }).catch(() => ({ loaded: false }));
+    const response = await browser.runtime
+      .sendMessage({
+        type: 'CHECK_MODELS_LOADED',
+      })
+      .catch(() => ({ loaded: false }));
 
     modelsLoaded = response?.loaded || false;
 
@@ -140,7 +139,7 @@ async function handleFileSelection(e: Event) {
 
     for (const file of imageFiles) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         const img = document.createElement('img');
         img.src = e.target?.result as string;
         img.style.maxWidth = '100px';
@@ -232,16 +231,14 @@ async function handleAddPerson() {
     const referenceFaces = result.referenceFaces || [];
 
     // Check if person already exists
-    let person = referenceFaces.find((p: any) =>
-      p.name === personName || p.label === personName
-    );
+    let person = referenceFaces.find((p: any) => p.name === personName || p.label === personName);
 
     if (!person) {
       person = {
         name: personName,
         label: personName,
         descriptors: [],
-        thumbnail: null
+        thumbnail: null,
       };
       referenceFaces.push(person);
     }
@@ -259,11 +256,14 @@ async function handleAddPerson() {
       enableRotation: false, // Disabled to avoid detection issues with rotated faces
       brightnessLevels: [-20, 20],
       contrastLevels: [0.85, 1.15],
-      rotationAngles: []
+      rotationAngles: [],
     };
 
     for (let i = 0; i < pendingFiles.length; i++) {
-      showStatus(`Processing photo ${i + 1} of ${pendingFiles.length} (with augmentation)...`, 'info');
+      showStatus(
+        `Processing photo ${i + 1} of ${pendingFiles.length} (with augmentation)...`,
+        'info'
+      );
 
       const file = pendingFiles[i];
       const imageDataUrl = await fileToDataURL(file);
@@ -309,7 +309,7 @@ async function handleAddPerson() {
     // Update face matcher in background
     await browser.runtime.sendMessage({
       type: 'UPDATE_FACE_MATCHER',
-      data: referenceFaces
+      data: referenceFaces,
     });
 
     // Show success message with descriptor count
@@ -324,7 +324,6 @@ async function handleAddPerson() {
 
     // Reload people list
     await loadPeopleList();
-
   } catch (error: any) {
     console.error('Error adding person:', error);
     showStatus(error.message || 'Failed to add person', 'error');
@@ -343,7 +342,7 @@ async function extractFaceDescriptor(imageDataUrl: string) {
     const response = await browser.runtime.sendMessage({
       type: 'EXTRACT_FACE_DESCRIPTOR',
       target: 'offscreen',
-      data: { imageData: imageDataUrl }
+      data: { imageData: imageDataUrl },
     });
 
     if (response?.success && response?.descriptor) {
@@ -358,7 +357,7 @@ async function extractFaceDescriptor(imageDataUrl: string) {
 }
 
 async function createThumbnail(imageDataUrl: string): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -429,15 +428,18 @@ function renderPeopleList(people: any[]) {
     return;
   }
 
-  peopleListDiv.innerHTML = people.map((person, index) => {
-    const name = escapeHtml(person.name || person.label);
-    const descriptorCount = person.descriptors?.length || 0;
-    const thumbnail = person.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+  peopleListDiv.innerHTML = people
+    .map((person, index) => {
+      const name = escapeHtml(person.name || person.label);
+      const descriptorCount = person.descriptors?.length || 0;
+      const thumbnail =
+        person.thumbnail ||
+        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
 
-    // Estimate original photo count (assuming ~5-6 descriptors per photo with augmentation)
-    const estimatedPhotos = Math.ceil(descriptorCount / 5);
+      // Estimate original photo count (assuming ~5-6 descriptors per photo with augmentation)
+      const estimatedPhotos = Math.ceil(descriptorCount / 5);
 
-    return `
+      return `
       <div class="person-item">
         <img src="${thumbnail}" alt="${name}" class="person-thumbnail" />
         <div class="person-info">
@@ -447,11 +449,12 @@ function renderPeopleList(people: any[]) {
         <button class="delete-btn" data-person="${name}" title="Delete ${name}">×</button>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 
   // Add event listeners to delete buttons
   peopleListDiv.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', e => {
       const personName = (e.target as HTMLElement).dataset.person;
       if (personName) {
         handleDeletePerson(personName);
@@ -470,8 +473,8 @@ async function handleDeletePerson(personName: string) {
     const referenceFaces = result.referenceFaces || [];
 
     // Remove the person
-    const updatedFaces = referenceFaces.filter((p: any) =>
-      p.name !== personName && p.label !== personName
+    const updatedFaces = referenceFaces.filter(
+      (p: any) => p.name !== personName && p.label !== personName
     );
 
     // Save updated data
@@ -480,7 +483,7 @@ async function handleDeletePerson(personName: string) {
     // Update face matcher
     await browser.runtime.sendMessage({
       type: 'UPDATE_FACE_MATCHER',
-      data: updatedFaces
+      data: updatedFaces,
     });
 
     showStatus(`Deleted ${personName}`, 'success');
@@ -498,7 +501,7 @@ async function loadSettings() {
     const settings = await browser.storage.sync.get({
       matchThreshold: 0.6,
       detector: 'hybrid',
-      detectorMode: 'selective'
+      detectorMode: 'selective',
     });
 
     // Update threshold slider
@@ -537,7 +540,7 @@ async function handleThresholdChange(e: Event) {
   // Save to storage
   await browser.storage.sync.set({
     matchThreshold: value,
-    similarityThreshold: value
+    similarityThreshold: value,
   });
 
   // Update background/offscreen
@@ -545,8 +548,8 @@ async function handleThresholdChange(e: Event) {
     type: 'UPDATE_CONFIG',
     data: {
       matchThreshold: value,
-      similarityThreshold: value
-    }
+      similarityThreshold: value,
+    },
   });
 }
 
@@ -559,7 +562,7 @@ async function handleDetectorChange(e: Event) {
   // Update background/offscreen
   browser.runtime.sendMessage({
     type: 'UPDATE_CONFIG',
-    data: { detector: value }
+    data: { detector: value },
   });
 
   showStatus(`Detector changed to ${value}`, 'info');
@@ -574,7 +577,7 @@ async function handleDetectorModeChange(e: Event) {
   // Update background/offscreen
   browser.runtime.sendMessage({
     type: 'UPDATE_CONFIG',
-    data: { detectorMode: value }
+    data: { detectorMode: value },
   });
 
   let modeDescription = '';
@@ -610,7 +613,7 @@ async function handleClearData() {
     // Reset face matcher
     await browser.runtime.sendMessage({
       type: 'UPDATE_FACE_MATCHER',
-      data: []
+      data: [],
     });
 
     showStatus('All data cleared', 'success');
@@ -635,12 +638,12 @@ async function handleExportData() {
       version: '1.0',
       exportDate: new Date().toISOString(),
       local: localStorage,
-      sync: syncStorage
+      sync: syncStorage,
     };
 
     // Create blob and download
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json'
+      type: 'application/json',
     });
 
     const url = URL.createObjectURL(blob);
@@ -687,7 +690,7 @@ async function handleImportData(e: Event) {
     const faces = importData.local?.referenceFaces || [];
     await browser.runtime.sendMessage({
       type: 'UPDATE_FACE_MATCHER',
-      data: faces
+      data: faces,
     });
 
     showStatus('Data imported successfully', 'success');

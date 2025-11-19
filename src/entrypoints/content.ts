@@ -12,7 +12,7 @@ export default defineContentScript({
 
     // Initialize the content script
     initializeContentScript();
-  }
+  },
 });
 
 // Configuration
@@ -21,7 +21,7 @@ let config = {
   enabled: true,
   detector: 'hybrid',
   detectorMode: 'selective',
-  similarityThreshold: 0.6
+  similarityThreshold: 0.6,
 };
 
 let hasReferenceData = false;
@@ -113,7 +113,7 @@ async function loadSettings() {
     enabled: true,
     detectorMode: 'selective',
     similarityThreshold: 0.6,
-    detector: 'hybrid'
+    detector: 'hybrid',
   });
 
   config.enabled = settings.enabled;
@@ -136,8 +136,8 @@ async function updateBackgroundConfig() {
           enabled: config.enabled,
           detector: config.detector,
           detectorMode: config.detectorMode,
-          similarityThreshold: config.similarityThreshold
-        }
+          similarityThreshold: config.similarityThreshold,
+        },
       },
       response => {
         if (response && response.success) {
@@ -161,7 +161,7 @@ async function loadReferenceDescriptors() {
         browser.runtime.sendMessage(
           {
             type: 'UPDATE_FACE_MATCHER',
-            data: result.referenceFaces
+            data: result.referenceFaces,
           },
           () => {
             debugLog('Reference data sent to background');
@@ -175,7 +175,7 @@ async function loadReferenceDescriptors() {
         browser.runtime.sendMessage(
           {
             type: 'UPDATE_FACE_MATCHER',
-            data: []
+            data: [],
           },
           () => {
             resolve();
@@ -249,16 +249,24 @@ async function processExistingImages() {
 
     // Update priorities on scroll/resize
     let scrollTimeout: number | null = null;
-    window.addEventListener('scroll', () => {
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-      scrollTimeout = window.setTimeout(() => {
-        imageQueue?.updatePriorities();
-      }, 100);
-    }, { passive: true });
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = window.setTimeout(() => {
+          imageQueue?.updatePriorities();
+        }, 100);
+      },
+      { passive: true }
+    );
 
-    window.addEventListener('resize', () => {
-      imageQueue?.updatePriorities();
-    }, { passive: true });
+    window.addEventListener(
+      'resize',
+      () => {
+        imageQueue?.updatePriorities();
+      },
+      { passive: true }
+    );
   }
 
   // Add all images to priority queue
@@ -269,7 +277,9 @@ async function processExistingImages() {
 
   // Log queue statistics
   const stats = imageQueue.getStats();
-  debugLog(`Queue stats: ${stats.queued} queued, ${stats.processing} processing, ${stats.processed} processed`);
+  debugLog(
+    `Queue stats: ${stats.queued} queued, ${stats.processing} processing, ${stats.processed} processed`
+  );
 }
 
 // Process a single image
@@ -381,7 +391,7 @@ async function processImage(img: HTMLImageElement) {
         blocked: result.blocked || false,
         facesDetected: result.facesDetected || 0,
         matches: result.matches,
-        processingTime
+        processingTime,
       });
     }
 
@@ -402,7 +412,6 @@ async function processImage(img: HTMLImageElement) {
 
     // End performance measurement
     logger.timeEnd(perfLabel);
-
   } catch (error: any) {
     const processingTime = performance.now() - startTime;
     warnLog(`[${imgId}] Error processing image:`, error.message);
@@ -414,7 +423,7 @@ async function processImage(img: HTMLImageElement) {
         blocked: false,
         facesDetected: 0,
         processingTime,
-        error: error.message
+        error: error.message,
       });
     }
 
@@ -440,7 +449,7 @@ async function detectFaces(img: HTMLImageElement, imgId: string): Promise<any> {
     detectLogger.debug('Starting face detection', {
       imgId,
       src: img.src.substring(0, 100),
-      size: `${img.width}x${img.height}`
+      size: `${img.width}x${img.height}`,
     });
 
     // For data URLs, send directly
@@ -478,8 +487,8 @@ async function detectFaces(img: HTMLImageElement, imgId: string): Promise<any> {
             imageUrl: imageData,
             imgId: imgId,
             imageId: imgId,
-            detector: config.detector
-          }
+            detector: config.detector,
+          },
         },
         response => {
           if (response && (response.success || response.blocked !== undefined)) {
@@ -535,7 +544,7 @@ function getBorderColor(bgRgb: number[]): number[] {
     return [
       Math.min(255, Math.floor(r * 1.3)),
       Math.min(255, Math.floor(g * 1.3)),
-      Math.min(255, Math.floor(b * 1.3))
+      Math.min(255, Math.floor(b * 1.3)),
     ];
   } else {
     // Light background - darken by 15%
@@ -667,10 +676,12 @@ function setupMutationObserver() {
       }
 
       // Check for src changes on existing images
-      if (mutation.type === 'attributes' &&
-          mutation.target.nodeType === Node.ELEMENT_NODE &&
-          (mutation.target as Element).tagName === 'IMG' &&
-          mutation.attributeName === 'src') {
+      if (
+        mutation.type === 'attributes' &&
+        mutation.target.nodeType === Node.ELEMENT_NODE &&
+        (mutation.target as Element).tagName === 'IMG' &&
+        mutation.attributeName === 'src'
+      ) {
         const img = mutation.target as HTMLImageElement;
         // Clear processed state to force reprocessing
         processedImages.delete(img);
@@ -689,7 +700,7 @@ function setupMutationObserver() {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['src']
+    attributeFilter: ['src'],
   });
 
   debugLog('Mutation observer setup complete');
