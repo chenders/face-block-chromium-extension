@@ -32,7 +32,8 @@ export class DebugOverlay {
 
   constructor() {
     // Check if debugging is enabled
-    this.enabled = typeof localStorage !== 'undefined' && localStorage.getItem('faceblock-debug') === 'true';
+    this.enabled =
+      typeof localStorage !== 'undefined' && localStorage.getItem('faceblock-debug') === 'true';
 
     if (!this.enabled) return;
 
