@@ -141,11 +141,30 @@ test.describe('Block Indicator Feature', () => {
 
     testPageUrl = await loadTestReferenceData(browser, { people: ['trump'] });
     await page.goto(testPageUrl + '/test-page.html', { waitUntil: 'load' });
-    await page.waitForTimeout(12000);
 
-    // Find first blocked image
-    const blockedImageId = await page.$eval('img.face-blocked', img => img.id);
-    expect(blockedImageId).toBeTruthy();
+    // Increase wait time for CI environments
+    const waitTime = process.env.CI ? 20000 : 12000;
+    await page.waitForTimeout(waitTime);
+
+    // Wait for blocked images to appear with retry
+    let blockedImageId;
+    for (let i = 0; i < 3; i++) {
+      try {
+        blockedImageId = await page.$eval('img.face-blocked', img => img.id);
+        if (blockedImageId) break;
+      } catch (e) {
+        console.log(`Attempt ${i + 1}: No blocked images found yet, waiting...`);
+        await page.waitForTimeout(3000);
+      }
+    }
+
+    if (!blockedImageId) {
+      // Log page state for debugging
+      const imageCount = await page.$$eval('img', imgs => imgs.length);
+      const blockedCount = await page.$$eval('img.face-blocked', imgs => imgs.length);
+      console.log(`Found ${imageCount} images, ${blockedCount} blocked`);
+      throw new Error('No blocked images found after waiting');
+    }
 
     // Get image info before unblocking
     const beforeUnblock = await page.$eval(`#${blockedImageId}`, img => ({
@@ -161,9 +180,12 @@ test.describe('Block Indicator Feature', () => {
     expect(beforeUnblock.originalSrc).toBeTruthy();
     expect(beforeUnblock.hasSvgSrc).toBe(true);
 
-    // Click to unblock
+    // Click to unblock with better error handling
     await page.click(`#${blockedImageId}`);
-    await page.waitForTimeout(500);
+
+    // Wait longer in CI for the unblock to process
+    const clickWaitTime = process.env.CI ? 2000 : 500;
+    await page.waitForTimeout(clickWaitTime);
 
     // Get image info after unblocking
     const afterUnblock = await page.$eval(`#${blockedImageId}`, img => ({
