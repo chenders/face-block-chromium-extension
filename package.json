@@ -1,8 +1,8 @@
 {
-  "name": "face-block-chromium-extension",
+  "name": "face-block-browser-extension",
   "version": "0.1.0",
   "type": "module",
-  "description": "Privacy-focused Chromium extension that blocks images of specified people",
+  "description": "Privacy-focused browser extension that blocks images of specified people",
   "scripts": {
     "prepare": "husky",
     "dev": "wxt",
@@ -29,7 +29,7 @@
     "face-recognition",
     "privacy"
   ],
-  "author": "Chris Henderson <chris@groundeffectsoftware.com>",
+  "author": "Chris Henderson <chris@waitingforthefuture.org>",
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.40.0",

@@ -1,6 +1,6 @@
 # Face Block Browser Extension
 
-[![CI](https://github.com/chenders/face-block-chromium-extension/workflows/CI/badge.svg)](https://github.com/chenders/face-block-chromium-extension/actions)
+[![CI](https://github.com/chenders/face-block-browser-extension/workflows/CI/badge.svg)](https://github.com/chenders/face-block-browser-extension/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Chrome](https://img.shields.io/badge/Chrome-✓-brightgreen)
 ![Firefox](https://img.shields.io/badge/Firefox-✓-brightgreen)
@@ -22,7 +22,7 @@ A privacy-focused browser extension for Chrome and Firefox that automatically bl
 
 1. **Clone or download this repository:**
    ```bash
-   git clone https://github.com/chenders/face-block-chromium-extension.git
+   git clone https://github.com/chenders/face-block-browser-extension.git
    ```
 
 2. **Build the extension:**
@@ -42,7 +42,7 @@ A privacy-focused browser extension for Chrome and Firefox that automatically bl
 
 1. **Clone or download this repository:**
    ```bash
-   git clone https://github.com/chenders/face-block-chromium-extension.git
+   git clone https://github.com/chenders/face-block-browser-extension.git
    ```
 
 2. **Build the Firefox version:**
@@ -286,7 +286,7 @@ Contributions welcome! Ways to help:
 
 1. **Clone repository:**
    ```bash
-   git clone https://github.com/chenders/face-block-chromium-extension.git
+   git clone https://github.com/chenders/face-block-browser-extension.git
    cd face-block-chromium-extension
    ```
 

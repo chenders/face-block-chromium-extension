@@ -14,8 +14,8 @@ Thank you for your interest in contributing to Face Block! This guide will help 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/chenders/face-block-chromium-extension.git
-cd face-block-chromium-extension
+git clone https://github.com/chenders/face-block-browser-extension.git
+cd face-block-browser-extension
 ```
 
 2. Install dependencies:
@@ -197,7 +197,7 @@ Models are stored in `src/public/models/`. To update:
 
 ## Getting Help
 
-- Check existing issues: [GitHub Issues](https://github.com/chenders/face-block-chromium-extension/issues)
+- Check existing issues: [GitHub Issues](https://github.com/chenders/face-block-browser-extension/issues)
 - Read the documentation: [README.md](README.md)
 - Review architecture: [FIREFOX_MIGRATION_SUMMARY.md](FIREFOX_MIGRATION_SUMMARY.md)
 

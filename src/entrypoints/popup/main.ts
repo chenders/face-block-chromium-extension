@@ -565,7 +565,15 @@ async function handleDetectorChange(e: Event) {
     data: { detector: value },
   });
 
-  showStatus(`Detector changed to ${value}`, 'info');
+  // Map internal values to friendly display names
+  const detectorNames: Record<string, string> = {
+    'tinyFaceDetector': 'Fast Mode',
+    'ssdMobilenetv1': 'Accurate Mode',
+    'hybrid': 'Hybrid Mode'
+  };
+
+  const displayName = detectorNames[value] || value;
+  showStatus(`Detector changed to ${displayName}`, 'success');
 }
 
 async function handleDetectorModeChange(e: Event) {

@@ -62,7 +62,7 @@ test.describe('Face Detection with Reference Data', () => {
     const nonMatchingImages = await page.$$eval('#obama, #biden', imgs =>
       imgs.map(img => ({
         id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+        isBlocked: img.alt === 'Image blocked by Face Block',
         hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
@@ -135,7 +135,7 @@ test.describe('Face Detection with Reference Data', () => {
     const nonMatchingImages = await page.$$eval('#obama, #biden', imgs =>
       imgs.map(img => ({
         id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+        isBlocked: img.alt === 'Image blocked by Face Block',
       }))
     );
 

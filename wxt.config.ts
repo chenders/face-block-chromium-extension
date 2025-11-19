@@ -7,7 +7,7 @@ export default defineConfig({
     publicAssets: true
   },
   // Define the browsers we want to support
-  runner: {
+  webExt: {
     chromiumProfile: 'dev-chrome',
     firefoxProfile: 'dev-firefox',
     startUrls: ['https://www.google.com', 'https://nextjs.org'],

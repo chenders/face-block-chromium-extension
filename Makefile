@@ -5,7 +5,7 @@
 
 ## help: Show this help message
 help:
-	@echo "Face Block Chromium Extension - Available Commands"
+	@echo "Face Block Browser Extension - Available Commands"
 	@echo ""
 	@grep -E '^## ' Makefile | sed 's/## /  /' | sed 's/:/ -/' | grep -v help:
 	@echo ""

@@ -1,5 +1,5 @@
 /**
- * Face Block Chromium Extension - Preload Image Hiding
+ * Face Block Browser Extension - Preload Image Hiding
  *
  * This CSS is injected by the browser at the engine level (via manifest.json)
  * before any JavaScript runs, ensuring zero flash of unwanted images.

@@ -3,7 +3,7 @@
 ## Test Infrastructure
 
 ### Overview
-The test suite uses Playwright to test the Face Block Chromium Extension with actual face detection and reference data using a comprehensive Trump-based test image set.
+The test suite uses Playwright to test the Face Block Browser Extension with actual face detection and reference data using a comprehensive Trump-based test image set.
 
 ### Key Components
 
