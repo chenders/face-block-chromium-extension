@@ -14,7 +14,15 @@
     "copy-assets:firefox": "cp -r src/public/* .output/firefox-mv2/ 2>/dev/null || true",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip --browser firefox",
-    "compile": "tsc --noEmit"
+    "compile": "tsc --noEmit",
+    "test": "npm run build && playwright test",
+    "test:smoke": "npm run build && SMOKE_TESTS=1 playwright test",
+    "test:ui": "npm run build && playwright test --ui",
+    "test:debug": "npm run build && playwright test --debug",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,ts,json,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,json,css,html}\""
   },
   "keywords": [
     "chrome-extension",

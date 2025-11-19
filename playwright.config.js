@@ -23,11 +23,11 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Load the extension
+        // Load the extension from WXT build output
         launchOptions: {
           args: [
-            `--disable-extensions-except=${path.resolve('./extension')}`,
-            `--load-extension=${path.resolve('./extension')}`,
+            `--disable-extensions-except=${path.resolve('./.output/chrome-mv3')}`,
+            `--load-extension=${path.resolve('./.output/chrome-mv3')}`,
           ],
         },
       },
