@@ -170,13 +170,26 @@ async function handleFaceDetection(data: any, sendResponse: Function) {
 async function handleUpdateFaceMatcher(data: any, sendResponse: Function) {
   const isChrome = typeof chrome !== 'undefined' && chrome.offscreen !== undefined;
 
+  // Convert object format to array format if needed
+  let formattedData = data;
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    // Convert object format { "Person Name": { descriptors: [...], images: [...] } }
+    // to array format [{ name: "Person Name", descriptors: [...] }]
+    formattedData = Object.entries(data).map(([name, personData]: [string, any]) => ({
+      name,
+      label: name,
+      descriptors: personData.descriptors || [],
+    }));
+    console.log('Converted object format to array format:', formattedData);
+  }
+
   if (isChrome) {
     // Forward to offscreen document
     try {
       const response = await browser.runtime.sendMessage({
         type: 'UPDATE_FACE_MATCHER',
         target: 'offscreen',
-        data,
+        data: formattedData,
       });
       sendResponse(response);
     } catch (error) {
@@ -187,7 +200,7 @@ async function handleUpdateFaceMatcher(data: any, sendResponse: Function) {
     // Handle directly in Firefox background
     try {
       const firefoxModule = await import('../utils/firefox-face-detection');
-      const response = await firefoxModule.updateFirefoxFaceMatcher(data);
+      const response = await firefoxModule.updateFirefoxFaceMatcher(formattedData);
       sendResponse(response);
     } catch (error: any) {
       console.error('Firefox face matcher update error:', error);

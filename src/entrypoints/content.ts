@@ -153,9 +153,20 @@ async function updateBackgroundConfig() {
 async function loadReferenceDescriptors() {
   return new Promise<void>(resolve => {
     browser.storage.local.get('referenceFaces', result => {
-      if (result.referenceFaces && result.referenceFaces.length > 0) {
+      // Check if referenceFaces exists and has data
+      const hasData =
+        result.referenceFaces &&
+        ((Array.isArray(result.referenceFaces) && result.referenceFaces.length > 0) ||
+          (typeof result.referenceFaces === 'object' &&
+            Object.keys(result.referenceFaces).length > 0));
+
+      if (hasData) {
         hasReferenceData = true;
-        debugLog(`Loading ${result.referenceFaces.length} reference face(s)`);
+        const count = Array.isArray(result.referenceFaces)
+          ? result.referenceFaces.length
+          : Object.keys(result.referenceFaces).length;
+        debugLog(`Loading ${count} reference face(s) from storage`);
+        console.log('Reference faces data structure:', result.referenceFaces);
 
         // Send to background/offscreen for processing
         browser.runtime.sendMessage(
@@ -171,6 +182,7 @@ async function loadReferenceDescriptors() {
       } else {
         hasReferenceData = false;
         debugLog('No reference data available');
+        console.log('No reference faces found in storage');
         // Clear face matcher in background
         browser.runtime.sendMessage(
           {
@@ -379,9 +391,11 @@ async function processImage(img: HTMLImageElement) {
 
   try {
     // Detect faces
+    console.log(`[Face Detection] Starting for image: ${imgId}`);
     const result = await detectFaces(img, imgId);
     const processingTime = performance.now() - startTime;
 
+    console.log(`[Face Detection Result]`, result);
     debugLog(`[${imgId}] Detected ${result.facesDetected || 0} face(s)`);
 
     // Add to debug overlay
@@ -397,6 +411,7 @@ async function processImage(img: HTMLImageElement) {
 
     if (result.blocked) {
       // Match found - replace image with blank
+      console.log(`[Face Detection] Blocking image with match:`, result.matches);
       blockImage(img, bgRgb, result);
       debugLog(`[${imgId}] ✓ BLOCKED`);
     } else {

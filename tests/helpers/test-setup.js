@@ -20,7 +20,8 @@ export async function setupExtensionContext(options = {}) {
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-'));
 
   // Launch browser with extension
-  const pathToExtension = path.join(process.cwd(), 'extension');
+  // With WXT, the built extension is in .output/chrome-mv3
+  const pathToExtension = path.join(process.cwd(), '.output/chrome-mv3');
   const browser = await chromium.launchPersistentContext(userDataDir, {
     headless: false, // Extensions don't work in headless mode
     args: [`--disable-extensions-except=${pathToExtension}`, `--load-extension=${pathToExtension}`],

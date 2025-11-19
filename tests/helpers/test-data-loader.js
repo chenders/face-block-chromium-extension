@@ -44,7 +44,14 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
     // Inject face-api.js directly into the page context (not content script context)
     // Content scripts run in isolated world, so we can't access their faceapi object
     console.log('Injecting face-api into page context...');
-    const faceApiPath = path.join(process.cwd(), 'extension', 'libs', 'face-api.min.js');
+    // Use unminified version for tests to get better error messages
+    const faceApiPath = path.join(
+      process.cwd(),
+      'node_modules',
+      'face-api.js',
+      'dist',
+      'face-api.js'
+    );
     await tempPage.addScriptTag({ path: faceApiPath });
 
     // Get the extension ID
@@ -66,16 +73,16 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
     console.log('Extension ID:', extensionId);
 
-    // Load the face detection models
-    console.log('Loading face-api models...');
-    await tempPage.evaluate(async extId => {
-      // Build model path using extension ID
-      const modelPath = `chrome-extension://${extId}/models`;
+    // Load the face detection models from test server instead of extension
+    console.log('Loading face-api models from test server...');
+    await tempPage.evaluate(async serverUrl => {
+      // Load models from test server instead of chrome-extension URL
+      const modelPath = `${serverUrl}/models`;
       await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
       await faceapi.nets.faceLandmark68Net.loadFromUri(modelPath);
       await faceapi.nets.faceRecognitionNet.loadFromUri(modelPath);
       console.log('Models loaded successfully');
-    }, extensionId);
+    }, testServerUrl);
 
     const fs = await import('fs');
 
@@ -211,21 +218,19 @@ export async function loadTestReferenceData(context, { people, extensionId: prov
 
       const backgroundResult = await serviceWorker.evaluate(
         async ({ personName, descriptors }) => {
-          // Import storage and create instance
-          // This is a service worker context, so we can use importScripts
-          if (typeof FaceStorage === 'undefined') {
-            self.importScripts('storage.js');
-          }
+          // WXT bundles everything into background.js, so we need to use chrome.storage directly
+          // instead of trying to import FaceStorage
+          const storageData = await chrome.storage.local.get('referenceFaces');
+          const currentFaces = storageData.referenceFaces || {};
 
-          // Create or get storage instance
-          if (!self._testStorage) {
-            self._testStorage = new FaceStorage();
-            await self._testStorage.init();
-          }
+          // Store descriptors for this person
+          currentFaces[personName] = {
+            descriptors: descriptors.map(d => Array.from(d)), // Store as arrays
+            images: [],
+          };
 
-          const storage = self._testStorage;
-          const float32Descriptors = descriptors.map(d => new Float32Array(d));
-          await storage.addPerson(personName, float32Descriptors, []);
+          await chrome.storage.local.set({ referenceFaces: currentFaces });
+          console.log(`Stored ${descriptors.length} face descriptors for ${personName}`);
 
           return { success: true };
         },
@@ -269,19 +274,8 @@ export async function clearTestReferenceData(context) {
   }
 
   await serviceWorker.evaluate(async () => {
-    // Import storage and create instance
-    if (typeof FaceStorage === 'undefined') {
-      self.importScripts('storage.js');
-    }
-
-    if (!self._testStorage) {
-      self._testStorage = new FaceStorage();
-      await self._testStorage.init();
-    }
-
-    const storage = self._testStorage;
-    await storage.clearAll();
-
+    // Clear chrome.storage directly since FaceStorage is bundled
+    await chrome.storage.local.clear();
     console.log('Cleared all reference data');
   });
 }
