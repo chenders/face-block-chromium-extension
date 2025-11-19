@@ -70,12 +70,14 @@ const errorLog = (...args) => logger.error(args.join(' '));
 let modelsLoaded = false;
 let ssdMobilenetLoaded = false;
 let faceMatcher = null;
+let adaptiveThresholds = new Map(); // Person-specific adaptive thresholds
 let config = {
   matchThreshold: 0.6,
   enabled: true,
   detector: 'hybrid',
   detectorMode: 'selective',
-  similarityThreshold: 0.6
+  similarityThreshold: 0.6,
+  useAdaptiveThresholds: true // Enable adaptive thresholds by default
 };
 
 debugLog('Offscreen document loaded');
@@ -173,6 +175,53 @@ async function handleUpdateConfig(data, sendResponse) {
 }
 
 // Update face matcher with new reference data
+// Calculate variance between face descriptors
+function calculateDescriptorVariance(descriptors) {
+  if (descriptors.length < 2) return 0;
+
+  const dimension = descriptors[0].length;
+  const mean = new Float32Array(dimension);
+
+  // Calculate mean descriptor
+  for (const descriptor of descriptors) {
+    for (let i = 0; i < dimension; i++) {
+      mean[i] += descriptor[i];
+    }
+  }
+  for (let i = 0; i < dimension; i++) {
+    mean[i] /= descriptors.length;
+  }
+
+  // Calculate variance
+  let totalVariance = 0;
+  for (const descriptor of descriptors) {
+    let distance = 0;
+    for (let i = 0; i < dimension; i++) {
+      const diff = descriptor[i] - mean[i];
+      distance += diff * diff;
+    }
+    totalVariance += Math.sqrt(distance);
+  }
+
+  return totalVariance / descriptors.length;
+}
+
+// Calculate adaptive threshold for a person
+function calculateAdaptiveThreshold(descriptors, baseThreshold = 0.6) {
+  if (descriptors.length < 2) return baseThreshold;
+
+  const variance = calculateDescriptorVariance(descriptors);
+  const normalizedVariance = Math.min(1, variance / 0.8);
+
+  // High variance -> increase threshold (more lenient)
+  // Low variance -> decrease threshold (more strict)
+  const adjustment = (normalizedVariance - 0.5) * 0.2;
+  const adaptiveThreshold = baseThreshold + adjustment;
+
+  // Clamp to reasonable bounds
+  return Math.max(0.4, Math.min(0.8, adaptiveThreshold));
+}
+
 async function handleUpdateFaceMatcher(data, sendResponse) {
   try {
     // Handle both data formats
@@ -180,6 +229,7 @@ async function handleUpdateFaceMatcher(data, sendResponse) {
 
     if (!referenceData || referenceData.length === 0) {
       faceMatcher = null;
+      adaptiveThresholds.clear();
       debugLog('No reference data, matcher cleared');
       sendResponse({ success: true });
       return;
@@ -187,15 +237,32 @@ async function handleUpdateFaceMatcher(data, sendResponse) {
 
     debugLog('Creating face matcher with', referenceData.length, 'person(s)');
 
+    // Clear and recalculate adaptive thresholds
+    adaptiveThresholds.clear();
+
     const labeledDescriptors = referenceData.map(person => {
       // Handle both property names for compatibility
       const name = person.name || person.label;
       const descriptors = person.descriptors.map(d => new Float32Array(d));
+
+      // Calculate adaptive threshold for this person
+      if (config.useAdaptiveThresholds) {
+        const adaptiveThreshold = calculateAdaptiveThreshold(descriptors, config.similarityThreshold);
+        const variance = calculateDescriptorVariance(descriptors);
+        adaptiveThresholds.set(name, {
+          threshold: adaptiveThreshold,
+          variance: variance,
+          descriptorCount: descriptors.length,
+          baseThreshold: config.similarityThreshold
+        });
+        debugLog(`Adaptive threshold for ${name}: ${adaptiveThreshold.toFixed(3)} (variance: ${variance.toFixed(3)}, ${descriptors.length} descriptors)`);
+      }
+
       return new faceapi.LabeledFaceDescriptors(name, descriptors);
     });
 
     faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, config.similarityThreshold);
-    infoLog('Face matcher created successfully');
+    infoLog(`Face matcher created successfully${config.useAdaptiveThresholds ? ' with adaptive thresholds' : ''}`);
 
     sendResponse({ success: true });
   } catch (error) {
@@ -541,17 +608,33 @@ async function handleDetectFaces(data, sendResponse) {
         const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
 
         if (bestMatch.label !== 'unknown') {
+          // Get person-specific adaptive threshold if available
+          let threshold = config.similarityThreshold;
+          if (config.useAdaptiveThresholds && adaptiveThresholds.has(bestMatch.label)) {
+            const thresholdData = adaptiveThresholds.get(bestMatch.label);
+            threshold = thresholdData.threshold;
+            debugLog(
+              `[${imgId}] Using adaptive threshold for ${bestMatch.label}: ${threshold.toFixed(3)} (base: ${config.similarityThreshold})`
+            );
+          }
+
           matches.push({
             label: bestMatch.label,
             distance: bestMatch.distance,
             faceIndex: i,
+            threshold: threshold,
+            isAdaptive: config.useAdaptiveThresholds && adaptiveThresholds.has(bestMatch.label)
           });
 
-          // Block if any face matches
-          if (bestMatch.distance <= config.similarityThreshold) {
+          // Block if face matches using person-specific threshold
+          if (bestMatch.distance <= threshold) {
             shouldBlock = true;
             debugLog(
-              `[${imgId}] Match found: ${bestMatch.label} (distance: ${bestMatch.distance.toFixed(3)})`
+              `[${imgId}] Match found: ${bestMatch.label} (distance: ${bestMatch.distance.toFixed(3)}, threshold: ${threshold.toFixed(3)})`
+            );
+          } else {
+            debugLog(
+              `[${imgId}] Near miss: ${bestMatch.label} (distance: ${bestMatch.distance.toFixed(3)} > threshold: ${threshold.toFixed(3)})`
             );
           }
         }
