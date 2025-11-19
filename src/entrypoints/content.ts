@@ -1,5 +1,6 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { browser } from 'wxt/browser';
+import { ImageProcessQueue } from '../utils/image-queue';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -26,6 +27,9 @@ let processing = false;
 // Store processed images with their src to detect src changes
 const processedImages = new WeakMap();
 let observer: MutationObserver | null = null;
+
+// Priority queue for image processing
+let imageQueue: ImageProcessQueue | null = null;
 
 // Debug logging
 const DEBUG_MODE = false;
@@ -235,15 +239,33 @@ async function processExistingImages() {
   const images = document.querySelectorAll('img');
   debugLog(`Processing ${images.length} existing images`);
 
-  // Process images in batches to avoid blocking UI
-  const batchSize = 5;
-  for (let i = 0; i < images.length; i += batchSize) {
-    const batch = Array.from(images).slice(i, i + batchSize);
-    await Promise.all(batch.map(img => processImage(img)));
+  // Initialize priority queue if not already created
+  if (!imageQueue) {
+    imageQueue = new ImageProcessQueue(processImage, 8);
 
-    // Yield to browser
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Update priorities on scroll/resize
+    let scrollTimeout: number | null = null;
+    window.addEventListener('scroll', () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = window.setTimeout(() => {
+        imageQueue?.updatePriorities();
+      }, 100);
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      imageQueue?.updatePriorities();
+    }, { passive: true });
   }
+
+  // Add all images to priority queue
+  // Visible images will be processed first automatically
+  images.forEach(img => {
+    imageQueue?.add(img);
+  });
+
+  // Log queue statistics
+  const stats = imageQueue.getStats();
+  debugLog(`Queue stats: ${stats.queued} queued, ${stats.processing} processing, ${stats.processed} processed`);
 }
 
 // Process a single image
@@ -566,12 +588,25 @@ function setupMutationObserver() {
 
           // Check if it's an image
           if (element.tagName === 'IMG') {
-            processImage(element as HTMLImageElement);
+            const img = element as HTMLImageElement;
+            // Hide immediately to prevent flash
+            if (shouldProcessImage(img)) {
+              img.style.opacity = '0';
+            }
+            // Add to priority queue
+            imageQueue?.add(img);
           }
 
           // Check for images in descendants
           const images = element.querySelectorAll('img');
-          images.forEach(img => processImage(img as HTMLImageElement));
+          images.forEach(img => {
+            // Hide immediately to prevent flash
+            if (shouldProcessImage(img as HTMLImageElement)) {
+              (img as HTMLImageElement).style.opacity = '0';
+            }
+            // Add to priority queue
+            imageQueue?.add(img as HTMLImageElement);
+          });
         }
       }
 
@@ -583,7 +618,12 @@ function setupMutationObserver() {
         const img = mutation.target as HTMLImageElement;
         // Clear processed state to force reprocessing
         processedImages.delete(img);
-        processImage(img);
+        // Hide immediately to prevent flash
+        if (shouldProcessImage(img)) {
+          img.style.opacity = '0';
+        }
+        // Add to priority queue
+        imageQueue?.add(img);
       }
     }
   });

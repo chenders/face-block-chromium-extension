@@ -160,6 +160,123 @@ async function handleUpdateFaceMatcher(data, sendResponse) {
   }
 }
 
+// Image preprocessing pipeline to improve detection accuracy
+async function preprocessImage(img) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  // Original image
+  ctx.drawImage(img, 0, 0);
+  const originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  // Generate multiple variants for better detection
+  const variants = [];
+
+  // 1. Original (normalized)
+  const normalized = normalizeHistogram(originalData);
+  variants.push(imageDataToImage(normalized, canvas));
+
+  // 2. Brightened version (for dark/underexposed images)
+  const brightened = adjustBrightness(originalData, 1.2);
+  variants.push(imageDataToImage(brightened, canvas));
+
+  // 3. Darkened version (for overexposed images)
+  const darkened = adjustBrightness(originalData, 0.8);
+  variants.push(imageDataToImage(darkened, canvas));
+
+  // 4. Enhanced contrast (for low contrast images)
+  const enhanced = enhanceContrast(originalData, 1.3);
+  variants.push(imageDataToImage(enhanced, canvas));
+
+  // Wait for all images to load
+  const loadedImages = await Promise.all(variants);
+  return loadedImages;
+}
+
+// Histogram equalization for better lighting normalization
+function normalizeHistogram(imageData) {
+  const data = imageData.data;
+  const histogram = new Array(256).fill(0);
+
+  // Calculate histogram for luminance
+  for (let i = 0; i < data.length; i += 4) {
+    const luminance = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    histogram[Math.floor(luminance)]++;
+  }
+
+  // Calculate cumulative distribution
+  const cdf = histogram.slice();
+  for (let i = 1; i < 256; i++) {
+    cdf[i] += cdf[i - 1];
+  }
+
+  // Normalize CDF
+  const total = data.length / 4;
+  const normalized = cdf.map(val => Math.round(val * 255 / total));
+
+  // Apply equalization
+  const result = new ImageData(imageData.width, imageData.height);
+  for (let i = 0; i < data.length; i += 4) {
+    const luminance = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    const factor = normalized[Math.floor(luminance)] / luminance;
+
+    result.data[i] = Math.min(255, data[i] * factor);
+    result.data[i + 1] = Math.min(255, data[i + 1] * factor);
+    result.data[i + 2] = Math.min(255, data[i + 2] * factor);
+    result.data[i + 3] = data[i + 3];
+  }
+
+  return result;
+}
+
+// Adjust image brightness
+function adjustBrightness(imageData, factor) {
+  const data = imageData.data;
+  const result = new ImageData(imageData.width, imageData.height);
+
+  for (let i = 0; i < data.length; i += 4) {
+    result.data[i] = Math.min(255, data[i] * factor);
+    result.data[i + 1] = Math.min(255, data[i + 1] * factor);
+    result.data[i + 2] = Math.min(255, data[i + 2] * factor);
+    result.data[i + 3] = data[i + 3];
+  }
+
+  return result;
+}
+
+// Enhance contrast for better feature detection
+function enhanceContrast(imageData, factor) {
+  const data = imageData.data;
+  const result = new ImageData(imageData.width, imageData.height);
+
+  for (let i = 0; i < data.length; i += 4) {
+    // Apply contrast formula: (value - 128) * factor + 128
+    result.data[i] = Math.min(255, Math.max(0, (data[i] - 128) * factor + 128));
+    result.data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - 128) * factor + 128));
+    result.data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - 128) * factor + 128));
+    result.data[i + 3] = data[i + 3];
+  }
+
+  return result;
+}
+
+// Convert ImageData back to Image element
+async function imageDataToImage(imageData, canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.putImageData(imageData, 0, 0);
+
+  const img = new Image();
+  const dataUrl = canvas.toDataURL();
+
+  return new Promise((resolve) => {
+    img.onload = () => resolve(img);
+    img.src = dataUrl;
+  });
+}
+
 // Handle face detection request
 async function handleDetectFaces(data, sendResponse) {
   try {
@@ -201,6 +318,10 @@ async function handleDetectFaces(data, sendResponse) {
 
     debugLog(`[${imgId}] Detecting faces with ${detector} mode...`);
 
+    // Apply preprocessing to improve detection accuracy
+    const preprocessedImages = await preprocessImage(img);
+    debugLog(`[${imgId}] Generated ${preprocessedImages.length} preprocessed variants`);
+
     // Check if detector is off
     if (config.detectorMode === 'off') {
       sendResponse({
@@ -214,24 +335,56 @@ async function handleDetectFaces(data, sendResponse) {
     }
 
     let detections = null;
+    let bestDetection = null;
     const detectorMode = detector || config.detector;
 
-    if (detectorMode === 'hybrid') {
-      // Try TinyFaceDetector first (fast)
-      const tinyOptions = new faceapi.TinyFaceDetectorOptions({
-        inputSize: 320,
-        scoreThreshold: 0.3,
-      });
+    // Try detection on all preprocessed variants and pick the best result
+    for (let variantIndex = 0; variantIndex < preprocessedImages.length; variantIndex++) {
+      const variantImg = preprocessedImages[variantIndex];
+      let variantDetections = null;
 
-      detections = await faceapi
-        .detectAllFaces(img, tinyOptions)
-        .withFaceLandmarks()
-        .withFaceDescriptors();
+      if (detectorMode === 'hybrid') {
+        // Try TinyFaceDetector first (fast)
+        const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+          inputSize: 320,
+          scoreThreshold: 0.3,
+        });
 
-      if (!detections || detections.length === 0) {
-        // Wait for SsdMobilenet if not loaded yet
-        if (!ssdMobilenetLoaded) {
-          debugLog(`[${imgId}] Waiting for SsdMobilenet...`);
+        variantDetections = await faceapi
+          .detectAllFaces(variantImg, tinyOptions)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+
+        if (!variantDetections || variantDetections.length === 0) {
+          // Wait for SsdMobilenet if not loaded yet
+          if (!ssdMobilenetLoaded && variantIndex === 0) {
+            debugLog(`[${imgId}] Waiting for SsdMobilenet...`);
+            for (let i = 0; i < 50; i++) {
+              if (ssdMobilenetLoaded) break;
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+
+          if (ssdMobilenetLoaded) {
+            debugLog(`[${imgId}] Variant ${variantIndex}: TinyFace found nothing, trying SsdMobilenet...`);
+            const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
+
+            variantDetections = await faceapi
+              .detectAllFaces(variantImg, ssdOptions)
+              .withFaceLandmarks()
+              .withFaceDescriptors();
+
+            if (variantDetections && variantDetections.length > 0) {
+              debugLog(`[${imgId}] Variant ${variantIndex}: SsdMobilenet detected ${variantDetections.length} face(s)`);
+            }
+          }
+        } else {
+          debugLog(`[${imgId}] Variant ${variantIndex}: TinyFace detected ${variantDetections.length} face(s)`);
+        }
+      } else if (detectorMode === 'ssdMobilenetv1' || detectorMode === 'thorough') {
+        // Use SsdMobilenet (more thorough but slower)
+        if (!ssdMobilenetLoaded && variantIndex === 0) {
+          debugLog(`[${imgId}] Waiting for SsdMobilenet to load...`);
           for (let i = 0; i < 50; i++) {
             if (ssdMobilenetLoaded) break;
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -239,52 +392,38 @@ async function handleDetectFaces(data, sendResponse) {
         }
 
         if (ssdMobilenetLoaded) {
-          debugLog(`[${imgId}] TinyFace found nothing, trying SsdMobilenet...`);
           const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
-
-          detections = await faceapi
-            .detectAllFaces(img, ssdOptions)
+          variantDetections = await faceapi
+            .detectAllFaces(variantImg, ssdOptions)
             .withFaceLandmarks()
             .withFaceDescriptors();
-
-          if (detections && detections.length > 0) {
-            debugLog(`[${imgId}] SsdMobilenet detected ${detections.length} face(s)`);
-          }
+        } else if (variantIndex === 0) {
+          throw new Error('SsdMobilenet model not available');
         }
       } else {
-        debugLog(`[${imgId}] TinyFace detected ${detections.length} face(s)`);
-      }
-    } else if (detectorMode === 'ssdMobilenetv1' || detectorMode === 'thorough') {
-      // Use SsdMobilenet (more thorough but slower)
-      if (!ssdMobilenetLoaded) {
-        debugLog(`[${imgId}] Waiting for SsdMobilenet to load...`);
-        for (let i = 0; i < 50; i++) {
-          if (ssdMobilenetLoaded) break;
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
+        // Default to TinyFaceDetector (fast mode)
+        const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+          inputSize: 320,
+          scoreThreshold: 0.3,
+        });
 
-      if (ssdMobilenetLoaded) {
-        const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
-        detections = await faceapi
-          .detectAllFaces(img, ssdOptions)
+        variantDetections = await faceapi
+          .detectAllFaces(variantImg, tinyOptions)
           .withFaceLandmarks()
           .withFaceDescriptors();
-      } else {
-        throw new Error('SsdMobilenet model not available');
       }
-    } else {
-      // Default to TinyFaceDetector (fast mode)
-      const tinyOptions = new faceapi.TinyFaceDetectorOptions({
-        inputSize: 320,
-        scoreThreshold: 0.3,
-      });
 
-      detections = await faceapi
-        .detectAllFaces(img, tinyOptions)
-        .withFaceLandmarks()
-        .withFaceDescriptors();
+      // Keep the best detection (most faces or highest confidence)
+      if (variantDetections && variantDetections.length > 0) {
+        if (!bestDetection || variantDetections.length > bestDetection.length) {
+          bestDetection = variantDetections;
+          debugLog(`[${imgId}] Variant ${variantIndex} has best detection: ${variantDetections.length} faces`);
+        }
+      }
     }
+
+    // Use the best detection from all variants
+    detections = bestDetection;
 
     if (!detections || detections.length === 0) {
       debugLog(`[${imgId}] No faces detected`);
