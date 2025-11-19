@@ -70,3 +70,7 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# WXT build artifacts
+.output/
+.wxt/

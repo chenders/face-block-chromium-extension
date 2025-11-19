@@ -4,7 +4,17 @@
   "type": "module",
   "description": "Privacy-focused Chromium extension that blocks images of specified people",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "wxt",
+    "dev:firefox": "wxt --browser firefox",
+    "build": "wxt build && npm run copy-assets:chrome",
+    "build:firefox": "wxt build --browser firefox && npm run copy-assets:firefox",
+    "build:all": "npm run build && npm run build:firefox",
+    "copy-assets:chrome": "cp -r src/public/* .output/chrome-mv3/ 2>/dev/null || true",
+    "copy-assets:firefox": "cp -r src/public/* .output/firefox-mv2/ 2>/dev/null || true",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip --browser firefox",
+    "compile": "tsc --noEmit"
   },
   "keywords": [
     "chrome-extension",
@@ -19,6 +29,11 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "husky": "^9.1.7",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "vite": "^5.4.21",
+    "wxt": "^0.20.11"
+  },
+  "dependencies": {
+    "face-api.js": "^0.22.2"
   }
 }
