@@ -50,10 +50,13 @@ __pycache__/
 *$py.class
 .image_cache/
 
-# Build artifacts (if added in future)
+# Build artifacts
 dist/
 build/
 *.zip
+*.xpi
+*.crx
+face-block-firefox-source-v*.zip
 
 # Testing
 /test-results/
