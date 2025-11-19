@@ -1,6 +1,9 @@
 // Offscreen document for Chrome - handles face detection with face-api.js
 // This runs in a separate context with DOM/Canvas access
 
+/* global ImageData */
+/* eslint-env browser */
+
 // Simplified logger for offscreen context
 class OffscreenLogger {
   constructor(context) {
@@ -9,13 +12,13 @@ class OffscreenLogger {
   }
 
   getLogLevel() {
-    const stored = localStorage.getItem('faceblock-loglevel');
-    if (stored) return parseInt(stored);
-    // Default to INFO level
+    // Offscreen documents don't have access to localStorage
+    // Could receive log level via message from background if needed
+    // Default to INFO level for offscreen context
     return 2;
   }
 
-  formatMessage(level, message, data) {
+  formatMessage(level, message, _data) {
     const timestamp = new Date().toISOString().split('T')[1];
     return `[${timestamp}][${level}][${this.context}] ${message}`;
   }
