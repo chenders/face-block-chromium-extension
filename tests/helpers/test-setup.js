@@ -18,7 +18,7 @@ export async function setupExtensionContext(options = {}) {
   const {
     needsExtensionId = true,
     loadDelay = process.env.CI ? 5000 : 2000,
-    timeout = process.env.CI ? 60000 : 30000
+    timeout = process.env.CI ? 60000 : 30000,
   } = options;
 
   console.log(`Setting up extension context (CI: ${!!process.env.CI}, timeout: ${timeout}ms)`);
@@ -33,7 +33,9 @@ export async function setupExtensionContext(options = {}) {
 
   // Check if extension directory exists
   if (!fs.existsSync(pathToExtension)) {
-    throw new Error(`Extension directory not found: ${pathToExtension}. Did you run 'npm run build' first?`);
+    throw new Error(
+      `Extension directory not found: ${pathToExtension}. Did you run 'npm run build' first?`
+    );
   }
 
   console.log(`Loading extension from: ${pathToExtension}`);
@@ -46,12 +48,9 @@ export async function setupExtensionContext(options = {}) {
         `--disable-extensions-except=${pathToExtension}`,
         `--load-extension=${pathToExtension}`,
         // Add more args for CI stability
-        ...(process.env.CI ? [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu'
-        ] : [])
+        ...(process.env.CI
+          ? ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+          : []),
       ],
       timeout: timeout,
     });
