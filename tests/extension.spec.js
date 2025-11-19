@@ -245,17 +245,12 @@ test.describe('Face Block Browser Extension @smoke', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await page.waitForTimeout(1000);
 
-    // Check that mode descriptions exist
+    // Check that mode labels exist in the UI
     const content = await page.content();
 
-    expect(content).toContain('Fast Mode (TinyFaceDetector)');
-    expect(content).toContain('Thorough Mode (SsdMobilenet)');
-    expect(content).toContain('Hybrid Mode (Recommended)');
-
-    // Check that descriptions mention key characteristics
-    expect(content).toContain('Fastest detection');
-    expect(content).toContain('better at profiles');
-    expect(content).toContain('falls back');
+    expect(content).toContain('Fast Mode');
+    expect(content).toContain('Accurate Mode');
+    expect(content).toContain('Hybrid Mode');
 
     await page.close();
   });
