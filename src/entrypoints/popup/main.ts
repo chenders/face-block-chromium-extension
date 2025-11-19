@@ -567,9 +567,9 @@ async function handleDetectorChange(e: Event) {
 
   // Map internal values to friendly display names
   const detectorNames: Record<string, string> = {
-    'tinyFaceDetector': 'Fast Mode',
-    'ssdMobilenetv1': 'Accurate Mode',
-    'hybrid': 'Hybrid Mode'
+    tinyFaceDetector: 'Fast Mode',
+    ssdMobilenetv1: 'Accurate Mode',
+    hybrid: 'Hybrid Mode',
   };
 
   const displayName = detectorNames[value] || value;

@@ -103,28 +103,54 @@ jobs:
           retention-days: 30
 
   build:
-    name: Build Package
+    name: Build All Browsers
     runs-on: ubuntu-latest
     needs: [lint, test]
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Build extension package
-        run: make build
-      
-      - name: Upload build artifact
+
+      - name: Build extensions for all browsers
+        run: |
+          echo "Building Chrome extension..."
+          npm run build
+          echo "Building Firefox extension..."
+          npm run build:firefox
+          echo "Building Safari extension..."
+          npm run build:safari
+
+      - name: Package extensions
+        run: |
+          npm run zip
+          npm run zip:firefox
+          npm run zip:safari
+
+      - name: Upload Chrome build
         uses: actions/upload-artifact@v4
         with:
-          name: extension-package
-          path: dist/*.zip
+          name: chrome-extension
+          path: .output/face-block-*-chrome.zip
+          retention-days: 90
+
+      - name: Upload Firefox build
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-extension
+          path: .output/face-block-*-firefox.zip
+          retention-days: 90
+
+      - name: Upload Safari build
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-extension
+          path: .output/face-block-*-safari.zip
           retention-days: 90

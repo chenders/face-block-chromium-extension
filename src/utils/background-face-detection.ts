@@ -1,5 +1,5 @@
-// Firefox-specific face detection implementation
-// Runs directly in the background page which has DOM access in Firefox
+// Background page face detection implementation for Firefox and Safari
+// Runs directly in the background page which has DOM access in Firefox/Safari
 
 import * as faceapi from 'face-api.js';
 
@@ -20,26 +20,26 @@ const DEBUG_MODE = false;
 
 function debugLog(...args: any[]) {
   if (DEBUG_MODE) {
-    console.log('[Face Block Firefox Debug]', ...args);
+    console.log('[Face Block Background Debug]', ...args);
   }
 }
 
 function infoLog(...args: any[]) {
-  console.info('[Face Block Firefox]', ...args);
+  console.info('[Face Block Background]', ...args);
 }
 
 function warnLog(...args: any[]) {
-  console.warn('[Face Block Firefox Warning]', ...args);
+  console.warn('[Face Block Background Warning]', ...args);
 }
 
 function errorLog(...args: any[]) {
-  console.error('[Face Block Firefox Error]', ...args);
+  console.error('[Face Block Background Error]', ...args);
 }
 
-// Initialize face detection for Firefox
-export async function initializeFirefoxFaceDetection() {
+// Initialize face detection for background pages (Firefox/Safari)
+export async function initializeBackgroundFaceDetection() {
   try {
-    debugLog('Initializing Firefox face detection in background...');
+    debugLog('Initializing background face detection...');
 
     // Load models from extension URL
     const baseUrl = chrome.runtime.getURL('');

@@ -16,7 +16,7 @@ export default defineConfig({
   // Define manifest configuration
   manifest: {
     name: 'Face Block',
-    version: '0.1.0',
+    version: '0.1.1',
     description: 'Privacy-focused extension that blocks images of specified people',
     permissions: [
       'storage',

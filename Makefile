@@ -16,9 +16,9 @@ install:
 	npm install
 	@echo "✓ Dependencies installed"
 
-## build: Build extension for both Chrome and Firefox (runs lint and format check first)
+## build: Build extension for all browsers (Chrome, Firefox, Safari)
 build: lint format-check
-	@echo "Building extension for distribution..."
+	@echo "Building extension for all browsers..."
 	bash build-for-store.sh all
 	@echo "✓ Build complete"
 
@@ -33,6 +33,12 @@ build-firefox: lint format-check
 	@echo "Building Firefox extension..."
 	bash build-for-store.sh firefox
 	@echo "✓ Firefox build complete"
+
+## build-safari: Build extension for Safari only
+build-safari: lint format-check
+	@echo "Building Safari extension..."
+	bash build-for-store.sh safari
+	@echo "✓ Safari build complete"
 
 ## test: Run all tests (auto-generates test images if missing)
 test: check-test-images

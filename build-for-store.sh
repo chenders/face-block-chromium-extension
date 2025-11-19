@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build script to package browser extensions for distribution
-# Usage: ./build-for-store.sh [chrome|firefox|all]
+# Usage: ./build-for-store.sh [chrome|firefox|safari|all]
 
 set -e
 
@@ -43,17 +43,25 @@ case "$TARGET" in
     npm run zip:firefox
     echo -e "${GREEN}✓ Firefox build complete: .output/${EXTENSION_NAME}-${VERSION}-firefox.zip${NC}"
     ;;
+  safari)
+    echo -e "${YELLOW}Building for Safari...${NC}"
+    npm run build:safari
+    npm run zip:safari
+    echo -e "${GREEN}✓ Safari build complete: .output/${EXTENSION_NAME}-${VERSION}-safari.zip${NC}"
+    ;;
   all)
     echo -e "${YELLOW}Building for all browsers...${NC}"
     npm run build:all
     npm run zip
     npm run zip:firefox
+    npm run zip:safari
     echo -e "${GREEN}✓ Chrome build complete: .output/${EXTENSION_NAME}-${VERSION}-chrome.zip${NC}"
     echo -e "${GREEN}✓ Firefox build complete: .output/${EXTENSION_NAME}-${VERSION}-firefox.zip${NC}"
+    echo -e "${GREEN}✓ Safari build complete: .output/${EXTENSION_NAME}-${VERSION}-safari.zip${NC}"
     ;;
   *)
     echo -e "${RED}Invalid target: $TARGET${NC}"
-    echo "Usage: ./build-for-store.sh [chrome|firefox|all]"
+    echo "Usage: ./build-for-store.sh [chrome|firefox|safari|all]"
     exit 1
     ;;
 esac
@@ -67,4 +75,7 @@ if [ -f ".output/${EXTENSION_NAME}-${VERSION}-chrome.zip" ]; then
 fi
 if [ -f ".output/${EXTENSION_NAME}-${VERSION}-firefox.zip" ]; then
   ls -lh ".output/${EXTENSION_NAME}-${VERSION}-firefox.zip" | awk '{print "  Firefox: " $5}'
+fi
+if [ -f ".output/${EXTENSION_NAME}-${VERSION}-safari.zip" ]; then
+  ls -lh ".output/${EXTENSION_NAME}-${VERSION}-safari.zip" | awk '{print "  Safari:  " $5}'
 fi

@@ -6,9 +6,16 @@ export default defineBackground(() => {
 
   // Browser detection
   const isChrome = typeof chrome !== 'undefined' && chrome.offscreen !== undefined;
-  const isFirefox = typeof browser !== 'undefined' && !isChrome;
+  const isSafari =
+    typeof browser !== 'undefined' &&
+    !isChrome &&
+    navigator.userAgent.includes('Safari') &&
+    !navigator.userAgent.includes('Chrome');
+  const isFirefox = typeof browser !== 'undefined' && !isChrome && !isSafari;
 
-  console.log(`Running on: ${isChrome ? 'Chrome' : isFirefox ? 'Firefox' : 'Unknown browser'}`);
+  console.log(
+    `Running on: ${isChrome ? 'Chrome' : isSafari ? 'Safari' : isFirefox ? 'Firefox' : 'Unknown browser'}`
+  );
 
   // Initialize face detection based on browser
   initializeFaceDetection();
@@ -47,13 +54,20 @@ export default defineBackground(() => {
 // Initialize face detection based on browser capabilities
 async function initializeFaceDetection() {
   const isChrome = typeof chrome !== 'undefined' && chrome.offscreen !== undefined;
+  const isSafari =
+    typeof browser !== 'undefined' &&
+    !isChrome &&
+    navigator.userAgent.includes('Safari') &&
+    !navigator.userAgent.includes('Chrome');
 
   if (isChrome) {
     console.log('Initializing Chrome offscreen document for face detection');
     await setupOffscreenDocument();
   } else {
-    console.log('Initializing Firefox face detection in background');
-    await setupFirefoxFaceDetection();
+    // Both Firefox and Safari use background page approach
+    const browserName = isSafari ? 'Safari' : 'Firefox';
+    console.log(`Initializing ${browserName} face detection in background`);
+    await setupBackgroundFaceDetection();
   }
 }
 
@@ -84,16 +98,16 @@ async function setupOffscreenDocument() {
   }
 }
 
-// Firefox: Setup face detection directly in background
-async function setupFirefoxFaceDetection() {
+// Firefox/Safari: Setup face detection directly in background
+async function setupBackgroundFaceDetection() {
   try {
-    // Dynamically import Firefox face detection module
-    // This runs directly in the background page since Firefox event pages have DOM access
-    const firefoxModule = await import('../utils/firefox-face-detection');
-    await firefoxModule.initializeFirefoxFaceDetection();
-    console.log('Firefox face detection initialized successfully');
+    // Dynamically import face detection module for background pages
+    // This runs directly in the background page since Firefox/Safari event pages have DOM access
+    const backgroundModule = await import('../utils/background-face-detection');
+    await backgroundModule.initializeBackgroundFaceDetection();
+    console.log('Background face detection initialized successfully');
   } catch (error) {
-    console.error('Failed to setup Firefox face detection:', error);
+    console.error('Failed to setup background face detection:', error);
   }
 }
 
@@ -156,8 +170,8 @@ async function handleFaceDetection(data: any, sendResponse: Function) {
   } else {
     // Handle directly in Firefox background
     try {
-      const firefoxModule = await import('../utils/firefox-face-detection');
-      const response = await firefoxModule.handleFirefoxFaceDetection(data);
+      const backgroundModule = await import('../utils/background-face-detection');
+      const response = await backgroundModule.handleFirefoxFaceDetection(data);
       sendResponse(response);
     } catch (error: any) {
       console.error('Firefox face detection error:', error);
@@ -199,8 +213,8 @@ async function handleUpdateFaceMatcher(data: any, sendResponse: Function) {
   } else {
     // Handle directly in Firefox background
     try {
-      const firefoxModule = await import('../utils/firefox-face-detection');
-      const response = await firefoxModule.updateFirefoxFaceMatcher(formattedData);
+      const backgroundModule = await import('../utils/background-face-detection');
+      const response = await backgroundModule.updateFirefoxFaceMatcher(formattedData);
       sendResponse(response);
     } catch (error: any) {
       console.error('Firefox face matcher update error:', error);
@@ -229,8 +243,8 @@ async function handleUpdateConfig(data: any, sendResponse: Function) {
   } else {
     // Handle directly in Firefox background
     try {
-      const firefoxModule = await import('../utils/firefox-face-detection');
-      const response = firefoxModule.updateFirefoxConfig(data);
+      const backgroundModule = await import('../utils/background-face-detection');
+      const response = backgroundModule.updateFirefoxConfig(data);
       sendResponse(response);
     } catch (error: any) {
       console.error('Firefox config update error:', error);
@@ -276,8 +290,8 @@ async function handleAddReferenceFace(data: any, sendResponse: Function) {
       });
     } else {
       // Use Firefox direct processing
-      const firefoxModule = await import('../utils/firefox-face-detection');
-      faceData = await firefoxModule.extractFaceDescriptor(imageData);
+      const backgroundModule = await import('../utils/background-face-detection');
+      faceData = await backgroundModule.extractFaceDescriptor(imageData);
     }
 
     if (!faceData.success || !faceData.descriptor) {
