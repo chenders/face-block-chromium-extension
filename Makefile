@@ -42,11 +42,15 @@ build-safari: lint format-check
 
 ## test: Run all tests (auto-generates test images if missing)
 test: check-test-images
+	@echo "Building extensions for testing..."
+	npm run build:all
 	@echo "Running tests..."
 	npx playwright test
 
 ## test-smoke: Run smoke tests only (fast subset for CI, auto-generates test images if missing)
 test-smoke: check-test-images
+	@echo "Building extensions for testing..."
+	npm run build:all
 	@echo "Running smoke tests..."
 	SMOKE_TESTS=1 npx playwright test
 
