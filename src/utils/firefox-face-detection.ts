@@ -300,3 +300,94 @@ export function updateFirefoxConfig(data: any): any {
   debugLog('Firefox config updated:', config);
   return { success: true };
 }
+
+// Extract face descriptor from an image for reference face storage
+export async function extractFaceDescriptor(imageData: string): Promise<any> {
+  try {
+    // Wait for models to be loaded
+    if (!modelsLoaded) {
+      debugLog('Waiting for models to load...');
+      for (let i = 0; i < 100; i++) {
+        if (modelsLoaded) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (!modelsLoaded) {
+        throw new Error('Models not loaded');
+      }
+    }
+
+    if (!imageData) {
+      throw new Error('No image data provided');
+    }
+
+    // Create image element
+    const img = new Image();
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = imageData;
+    });
+
+    debugLog('Firefox: Extracting face descriptor from reference image...');
+
+    // Detect face with descriptor
+    let detection = null;
+
+    // Try SsdMobilenet first if loaded (more accurate for reference faces)
+    if (ssdMobilenetLoaded) {
+      const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
+      const detections = await faceapi
+        .detectAllFaces(img, ssdOptions)
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+
+      if (detections && detections.length > 0) {
+        detection = detections[0];
+        debugLog('Firefox: Face detected with SsdMobilenet');
+      }
+    }
+
+    // Fall back to TinyFaceDetector if needed
+    if (!detection) {
+      const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 416, // Higher resolution for reference faces
+        scoreThreshold: 0.3,
+      });
+
+      const detections = await faceapi
+        .detectAllFaces(img, tinyOptions)
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+
+      if (detections && detections.length > 0) {
+        detection = detections[0];
+        debugLog('Firefox: Face detected with TinyFaceDetector');
+      }
+    }
+
+    if (!detection) {
+      debugLog('Firefox: No face detected in reference image');
+      return {
+        success: false,
+        error: 'No face detected in the image'
+      };
+    }
+
+    // Convert descriptor to array
+    const descriptor = Array.from(detection.descriptor);
+
+    debugLog('Firefox: Face descriptor extracted successfully');
+    return {
+      success: true,
+      descriptor: descriptor
+    };
+
+  } catch (error: any) {
+    errorLog('Firefox: Error extracting face descriptor:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}

@@ -35,6 +35,11 @@ export default defineBackground(() => {
       return true;
     }
 
+    if (message.type === 'ADD_REFERENCE_FACE') {
+      handleAddReferenceFace(message.data, sendResponse);
+      return true;
+    }
+
     return false;
   });
 });
@@ -218,5 +223,101 @@ async function handleUpdateConfig(data: any, sendResponse: Function) {
       console.error('Firefox config update error:', error);
       sendResponse({ error: error.message });
     }
+  }
+}
+
+// Handle adding a new reference face
+async function handleAddReferenceFace(data: any, sendResponse: Function) {
+  const isChrome = typeof chrome !== 'undefined' && chrome.offscreen !== undefined;
+
+  try {
+    const { imageData, label } = data;
+
+    if (!imageData || !label) {
+      sendResponse({ success: false, error: 'Missing image data or label' });
+      return;
+    }
+
+    console.log(`Adding reference face for: ${label}`);
+
+    // Detect face and get descriptors
+    let faceData: any;
+
+    if (isChrome) {
+      // Use offscreen document for Chrome
+      faceData = await new Promise((resolve, reject) => {
+        browser.runtime.sendMessage(
+          {
+            type: 'EXTRACT_FACE_DESCRIPTOR',
+            target: 'offscreen',
+            data: { imageData }
+          },
+          response => {
+            if (response && response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response?.error || 'Failed to extract face descriptor'));
+            }
+          }
+        );
+      });
+    } else {
+      // Use Firefox direct processing
+      const firefoxModule = await import('../utils/firefox-face-detection');
+      faceData = await firefoxModule.extractFaceDescriptor(imageData);
+    }
+
+    if (!faceData.success || !faceData.descriptor) {
+      sendResponse({ success: false, error: 'No face detected in image' });
+      return;
+    }
+
+    // Get existing reference faces from storage
+    const result = await browser.storage.local.get('referenceFaces');
+    const referenceFaces = result.referenceFaces || [];
+
+    // Find or create person entry
+    let person = referenceFaces.find((p: any) => p.label === label || p.name === label);
+
+    if (!person) {
+      person = {
+        label: label,
+        name: label,
+        descriptors: [],
+        thumbnail: null
+      };
+      referenceFaces.push(person);
+    }
+
+    // Add the new descriptor
+    person.descriptors.push(faceData.descriptor);
+
+    // Store thumbnail for the first image
+    if (!person.thumbnail && imageData.startsWith('data:')) {
+      // For Chrome, we can't create canvas in service worker, so just store a portion
+      // For Firefox, we could create a proper thumbnail
+      person.thumbnail = imageData.substring(0, 5000); // Store first part as thumbnail placeholder
+    }
+
+    // Save updated reference faces
+    await browser.storage.local.set({ referenceFaces });
+
+    // Update the face matcher
+    await new Promise<void>((resolve) => {
+      browser.runtime.sendMessage(
+        {
+          type: 'UPDATE_FACE_MATCHER',
+          data: referenceFaces
+        },
+        () => resolve()
+      );
+    });
+
+    console.log(`Reference face added successfully for ${label}`);
+    sendResponse({ success: true });
+
+  } catch (error: any) {
+    console.error('Error adding reference face:', error);
+    sendResponse({ success: false, error: error.message });
   }
 }

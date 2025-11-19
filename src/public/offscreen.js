@@ -95,6 +95,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleUpdateConfig(message.data, sendResponse);
       return true;
 
+    case 'EXTRACT_FACE_DESCRIPTOR':
+      handleExtractFaceDescriptor(message.data, sendResponse);
+      return true;
+
     default:
       return false;
   }
@@ -352,6 +356,101 @@ async function handleDetectFaces(data, sendResponse) {
     sendResponse({
       success: false,
       blocked: false,
+      error: error.message
+    });
+  }
+}
+
+// Extract face descriptor from an image for reference face storage
+async function handleExtractFaceDescriptor(data, sendResponse) {
+  try {
+    // Wait for models to be loaded
+    if (!modelsLoaded) {
+      debugLog('Waiting for models to load...');
+      for (let i = 0; i < 100; i++) {
+        if (modelsLoaded) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (!modelsLoaded) {
+        throw new Error('Models not loaded');
+      }
+    }
+
+    const { imageData } = data;
+
+    if (!imageData) {
+      throw new Error('No image data provided');
+    }
+
+    // Create image element
+    const img = new Image();
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = imageData;
+    });
+
+    debugLog('Extracting face descriptor from reference image...');
+
+    // Detect face with descriptor
+    // Use SsdMobilenet for better accuracy when adding reference faces
+    let detection = null;
+
+    // Try SsdMobilenet first if loaded (more accurate for reference faces)
+    if (ssdMobilenetLoaded) {
+      const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
+      const detections = await faceapi
+        .detectAllFaces(img, ssdOptions)
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+
+      if (detections && detections.length > 0) {
+        detection = detections[0]; // Take the first face
+        debugLog('Face detected with SsdMobilenet');
+      }
+    }
+
+    // Fall back to TinyFaceDetector if needed
+    if (!detection) {
+      const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 416, // Higher resolution for reference faces
+        scoreThreshold: 0.3,
+      });
+
+      const detections = await faceapi
+        .detectAllFaces(img, tinyOptions)
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+
+      if (detections && detections.length > 0) {
+        detection = detections[0];
+        debugLog('Face detected with TinyFaceDetector');
+      }
+    }
+
+    if (!detection) {
+      debugLog('No face detected in reference image');
+      sendResponse({
+        success: false,
+        error: 'No face detected in the image'
+      });
+      return;
+    }
+
+    // Convert descriptor to array
+    const descriptor = Array.from(detection.descriptor);
+
+    debugLog('Face descriptor extracted successfully');
+    sendResponse({
+      success: true,
+      descriptor: descriptor
+    });
+
+  } catch (error) {
+    errorLog('Error extracting face descriptor:', error);
+    sendResponse({
+      success: false,
       error: error.message
     });
   }
