@@ -57,9 +57,16 @@ export class Logger {
     }
 
     // Check if development mode
-    const isDev =
-      process.env.NODE_ENV === 'development' ||
-      (typeof chrome !== 'undefined' && chrome.runtime.getManifest().version.includes('dev'));
+    let isDev = process.env.NODE_ENV === 'development';
+
+    // Try to check runtime manifest if available
+    try {
+      if (typeof chrome !== 'undefined' && chrome?.runtime?.getManifest) {
+        isDev = isDev || chrome.runtime.getManifest().version.includes('dev');
+      }
+    } catch (e) {
+      // Chrome runtime not available (during build or tests)
+    }
 
     return isDev ? LogLevel.DEBUG : LogLevel.WARN;
   }

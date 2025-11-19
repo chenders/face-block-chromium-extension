@@ -32,7 +32,7 @@ export class DebugOverlay {
 
   constructor() {
     // Check if debugging is enabled
-    this.enabled = localStorage.getItem('faceblock-debug') === 'true';
+    this.enabled = typeof localStorage !== 'undefined' && localStorage.getItem('faceblock-debug') === 'true';
 
     if (!this.enabled) return;
 
@@ -74,6 +74,10 @@ export class DebugOverlay {
    * Enable or disable the overlay
    */
   static toggle(): boolean {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage not available');
+      return false;
+    }
     const current = localStorage.getItem('faceblock-debug') === 'true';
     const newState = !current;
     localStorage.setItem('faceblock-debug', newState ? 'true' : 'false');
@@ -91,6 +95,7 @@ export class DebugOverlay {
    * Check if overlay is enabled
    */
   static isEnabled(): boolean {
+    if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('faceblock-debug') === 'true';
   }
 
@@ -396,7 +401,9 @@ export class DebugOverlay {
    */
   disable(): void {
     this.enabled = false;
-    localStorage.setItem('faceblock-debug', 'false');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('faceblock-debug', 'false');
+    }
     this.stopRenderLoop();
     this.canvas.remove();
     document.getElementById('faceblock-stats-panel')?.remove();
