@@ -382,27 +382,83 @@ async function handleDetectFaces(data, sendResponse) {
     let bestDetection = null;
     const detectorMode = detector || config.detector;
 
-    // Try detection on all preprocessed variants and pick the best result
-    for (let variantIndex = 0; variantIndex < preprocessedImages.length; variantIndex++) {
-      const variantImg = preprocessedImages[variantIndex];
-      let variantDetections = null;
+    // Enhanced detection with ensemble approach when in hybrid mode
+    if (detectorMode === 'hybrid' || detectorMode === 'ensemble') {
+      debugLog(`[${imgId}] Using ensemble detection with multiple models`);
+      const ensembleDetections = [];
 
-      if (detectorMode === 'hybrid') {
-        // Try TinyFaceDetector first (fast)
+      // Try detection on all preprocessed variants with multiple models
+      for (let variantIndex = 0; variantIndex < preprocessedImages.length; variantIndex++) {
+        const variantImg = preprocessedImages[variantIndex];
+
+        // Run both models in parallel for each variant
+        const detectionPromises = [];
+
+        // TinyFaceDetector
         const tinyOptions = new faceapi.TinyFaceDetectorOptions({
           inputSize: 320,
           scoreThreshold: 0.3,
         });
+        detectionPromises.push(
+          faceapi
+            .detectAllFaces(variantImg, tinyOptions)
+            .withFaceLandmarks()
+            .withFaceDescriptors()
+            .then(faces => ({ model: 'TinyFaceDetector', faces, variant: variantIndex }))
+        );
 
-        variantDetections = await faceapi
-          .detectAllFaces(variantImg, tinyOptions)
-          .withFaceLandmarks()
-          .withFaceDescriptors();
+        // SsdMobilenetv1 (if loaded)
+        if (ssdMobilenetLoaded) {
+          const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
+          detectionPromises.push(
+            faceapi
+              .detectAllFaces(variantImg, ssdOptions)
+              .withFaceLandmarks()
+              .withFaceDescriptors()
+              .then(faces => ({ model: 'SsdMobilenetv1', faces, variant: variantIndex }))
+          );
+        }
 
-        if (!variantDetections || variantDetections.length === 0) {
-          // Wait for SsdMobilenet if not loaded yet
+        // Wait for all models to complete
+        const results = await Promise.allSettled(detectionPromises);
+
+        // Collect successful detections
+        for (const result of results) {
+          if (result.status === 'fulfilled' && result.value.faces && result.value.faces.length > 0) {
+            ensembleDetections.push(result.value);
+            debugLog(`[${imgId}] Variant ${variantIndex} - ${result.value.model}: ${result.value.faces.length} face(s)`);
+          }
+        }
+      }
+
+      // Combine ensemble detections using voting strategy
+      if (ensembleDetections.length > 0) {
+        // Find the detection with most faces and highest combined confidence
+        let bestScore = -1;
+        for (const detection of ensembleDetections) {
+          const faceCount = detection.faces.length;
+          const avgConfidence = detection.faces.reduce((sum, face) => sum + face.detection.score, 0) / faceCount;
+          // Score based on face count and confidence, with model weight
+          const modelWeight = detection.model === 'SsdMobilenetv1' ? 1.2 : 1.0;
+          const score = (faceCount * 1000 + avgConfidence * 100) * modelWeight;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestDetection = detection.faces;
+            debugLog(`[${imgId}] Best ensemble detection: ${detection.model} variant ${detection.variant} (score: ${score.toFixed(2)})`);
+          }
+        }
+      }
+    } else {
+      // Original single-model detection logic for backward compatibility
+      for (let variantIndex = 0; variantIndex < preprocessedImages.length; variantIndex++) {
+        const variantImg = preprocessedImages[variantIndex];
+        let variantDetections = null;
+
+        if (detectorMode === 'ssdMobilenetv1' || detectorMode === 'thorough') {
+          // Use SsdMobilenet (more thorough but slower)
           if (!ssdMobilenetLoaded && variantIndex === 0) {
-            debugLog(`[${imgId}] Waiting for SsdMobilenet...`);
+            debugLog(`[${imgId}] Waiting for SsdMobilenet to load...`);
             for (let i = 0; i < 50; i++) {
               if (ssdMobilenetLoaded) break;
               await new Promise(resolve => setTimeout(resolve, 100));
@@ -410,63 +466,38 @@ async function handleDetectFaces(data, sendResponse) {
           }
 
           if (ssdMobilenetLoaded) {
-            debugLog(`[${imgId}] Variant ${variantIndex}: TinyFace found nothing, trying SsdMobilenet...`);
             const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
-
             variantDetections = await faceapi
               .detectAllFaces(variantImg, ssdOptions)
               .withFaceLandmarks()
               .withFaceDescriptors();
-
-            if (variantDetections && variantDetections.length > 0) {
-              debugLog(`[${imgId}] Variant ${variantIndex}: SsdMobilenet detected ${variantDetections.length} face(s)`);
-            }
+          } else if (variantIndex === 0) {
+            throw new Error('SsdMobilenet model not available');
           }
         } else {
-          debugLog(`[${imgId}] Variant ${variantIndex}: TinyFace detected ${variantDetections.length} face(s)`);
-        }
-      } else if (detectorMode === 'ssdMobilenetv1' || detectorMode === 'thorough') {
-        // Use SsdMobilenet (more thorough but slower)
-        if (!ssdMobilenetLoaded && variantIndex === 0) {
-          debugLog(`[${imgId}] Waiting for SsdMobilenet to load...`);
-          for (let i = 0; i < 50; i++) {
-            if (ssdMobilenetLoaded) break;
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        }
+          // Default to TinyFaceDetector (fast mode)
+          const tinyOptions = new faceapi.TinyFaceDetectorOptions({
+            inputSize: 320,
+            scoreThreshold: 0.3,
+          });
 
-        if (ssdMobilenetLoaded) {
-          const ssdOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 });
           variantDetections = await faceapi
-            .detectAllFaces(variantImg, ssdOptions)
+            .detectAllFaces(variantImg, tinyOptions)
             .withFaceLandmarks()
             .withFaceDescriptors();
-        } else if (variantIndex === 0) {
-          throw new Error('SsdMobilenet model not available');
         }
-      } else {
-        // Default to TinyFaceDetector (fast mode)
-        const tinyOptions = new faceapi.TinyFaceDetectorOptions({
-          inputSize: 320,
-          scoreThreshold: 0.3,
-        });
 
-        variantDetections = await faceapi
-          .detectAllFaces(variantImg, tinyOptions)
-          .withFaceLandmarks()
-          .withFaceDescriptors();
-      }
-
-      // Keep the best detection (most faces or highest confidence)
-      if (variantDetections && variantDetections.length > 0) {
-        if (!bestDetection || variantDetections.length > bestDetection.length) {
-          bestDetection = variantDetections;
-          debugLog(`[${imgId}] Variant ${variantIndex} has best detection: ${variantDetections.length} faces`);
+        // Keep the best detection (most faces or highest confidence)
+        if (variantDetections && variantDetections.length > 0) {
+          if (!bestDetection || variantDetections.length > bestDetection.length) {
+            bestDetection = variantDetections;
+            debugLog(`[${imgId}] Variant ${variantIndex} has best detection: ${variantDetections.length} faces`);
+          }
         }
       }
     }
 
-    // Use the best detection from all variants
+    // Use the best detection from all variants and models
     detections = bestDetection;
 
     if (!detections || detections.length === 0) {
