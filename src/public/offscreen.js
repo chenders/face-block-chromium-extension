@@ -1,26 +1,70 @@
 // Offscreen document for Chrome - handles face detection with face-api.js
 // This runs in a separate context with DOM/Canvas access
 
-// Configuration and logging utilities
-const DEBUG_MODE = false;
+// Simplified logger for offscreen context
+class OffscreenLogger {
+  constructor(context) {
+    this.context = context;
+    this.level = this.getLogLevel();
+  }
 
-function debugLog(...args) {
-  if (DEBUG_MODE) {
-    console.log('[Face Block Debug]', ...args);
+  getLogLevel() {
+    const stored = localStorage.getItem('faceblock-loglevel');
+    if (stored) return parseInt(stored);
+    // Default to INFO level
+    return 2;
+  }
+
+  formatMessage(level, message, data) {
+    const timestamp = new Date().toISOString().split('T')[1];
+    return `[${timestamp}][${level}][${this.context}] ${message}`;
+  }
+
+  debug(message, data) {
+    if (this.level <= 1) {
+      console.log(this.formatMessage('DEBUG', message), data || '');
+    }
+  }
+
+  info(message, data) {
+    if (this.level <= 2) {
+      console.info(this.formatMessage('INFO', message), data || '');
+    }
+  }
+
+  warn(message, data) {
+    if (this.level <= 3) {
+      console.warn(this.formatMessage('WARN', message), data || '');
+    }
+  }
+
+  error(message, error, data) {
+    if (this.level <= 4) {
+      console.error(this.formatMessage('ERROR', message), error || '', data || '');
+    }
+  }
+
+  time(label) {
+    if (this.level <= 1) {
+      console.time(`[${this.context}] ${label}`);
+    }
+  }
+
+  timeEnd(label) {
+    if (this.level <= 1) {
+      console.timeEnd(`[${this.context}] ${label}`);
+    }
   }
 }
 
-function infoLog(...args) {
-  console.info('[Face Block]', ...args);
-}
+// Create logger instance
+const logger = new OffscreenLogger('Offscreen');
 
-function warnLog(...args) {
-  console.warn('[Face Block Warning]', ...args);
-}
-
-function errorLog(...args) {
-  console.error('[Face Block Error]', ...args);
-}
+// Compatibility wrappers
+const debugLog = (...args) => logger.debug(args.join(' '));
+const infoLog = (...args) => logger.info(args.join(' '));
+const warnLog = (...args) => logger.warn(args.join(' '));
+const errorLog = (...args) => logger.error(args.join(' '));
 
 // State management
 let modelsLoaded = false;

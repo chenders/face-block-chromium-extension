@@ -1,6 +1,8 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { browser } from 'wxt/browser';
 import { ImageProcessQueue } from '../utils/image-queue';
+import { createLogger, LogLevel } from '../utils/logger';
+import { getDebugOverlay, DebugOverlay } from '../utils/debug-overlay';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -31,21 +33,23 @@ let observer: MutationObserver | null = null;
 // Priority queue for image processing
 let imageQueue: ImageProcessQueue | null = null;
 
-// Debug logging
-const DEBUG_MODE = false;
+// Structured logging
+const logger = createLogger('Content');
 
+// Debug overlay
+let debugOverlay = getDebugOverlay();
+
+// Compatibility wrappers for existing code
 function debugLog(...args: any[]) {
-  if (DEBUG_MODE) {
-    console.log('[Face Block Content]', ...args);
-  }
+  logger.debug(args.join(' '));
 }
 
 function warnLog(...args: any[]) {
-  console.warn('[Face Block Content Warning]', ...args);
+  logger.warn(args.join(' '));
 }
 
 function errorLog(...args: any[]) {
-  console.error('[Face Block Content Error]', ...args);
+  logger.error(args.join(' '));
 }
 
 // Initialize content script
@@ -270,14 +274,22 @@ async function processExistingImages() {
 
 // Process a single image
 async function processImage(img: HTMLImageElement) {
+  // Start performance measurement
+  const perfLabel = `processImage-${img.src?.substring(0, 50)}`;
+  logger.time(perfLabel);
+
   // Skip if manually unblocked by user
   if (img.dataset.manuallyUnblocked === 'true') {
+    logger.trace('Skipping manually unblocked image', { src: img.src });
     return;
   }
 
   // Skip if already processed with the same src
   const lastProcessedSrc = processedImages.get(img);
-  if (lastProcessedSrc === img.src) return;
+  if (lastProcessedSrc === img.src) {
+    logger.trace('Image already processed', { src: img.src });
+    return;
+  }
 
   // If no reference data, just restore visibility
   if (!hasReferenceData) {
@@ -353,11 +365,25 @@ async function processImage(img: HTMLImageElement) {
   // Mark that we're processing this image
   img.dataset.wasHidden = 'true';
 
+  const startTime = performance.now();
+
   try {
     // Detect faces
     const result = await detectFaces(img, imgId);
+    const processingTime = performance.now() - startTime;
 
     debugLog(`[${imgId}] Detected ${result.facesDetected || 0} face(s)`);
+
+    // Add to debug overlay
+    if (debugOverlay) {
+      debugOverlay.addDetection(img, {
+        img,
+        blocked: result.blocked || false,
+        facesDetected: result.facesDetected || 0,
+        matches: result.matches,
+        processingTime
+      });
+    }
 
     if (result.blocked) {
       // Match found - replace image with blank
@@ -373,8 +399,25 @@ async function processImage(img: HTMLImageElement) {
 
     // Mark as processed
     processedImages.set(img, img.src);
+
+    // End performance measurement
+    logger.timeEnd(perfLabel);
+
   } catch (error: any) {
+    const processingTime = performance.now() - startTime;
     warnLog(`[${imgId}] Error processing image:`, error.message);
+
+    // Add error to debug overlay
+    if (debugOverlay) {
+      debugOverlay.addDetection(img, {
+        img,
+        blocked: false,
+        facesDetected: 0,
+        processingTime,
+        error: error.message
+      });
+    }
+
     // Restore visibility on error
     if (img.dataset.wasHidden) {
       img.setAttribute('data-face-block-processed', 'true');
@@ -382,15 +425,28 @@ async function processImage(img: HTMLImageElement) {
       delete img.dataset.wasHidden;
     }
     processedImages.set(img, img.src);
+
+    // End performance measurement
+    logger.timeEnd(perfLabel);
   }
 }
 
 // Detect faces in image
 async function detectFaces(img: HTMLImageElement, imgId: string): Promise<any> {
+  const detectLogger = logger.child('detectFaces');
+  detectLogger.time(`detect-${imgId}`);
+
   try {
+    detectLogger.debug('Starting face detection', {
+      imgId,
+      src: img.src.substring(0, 100),
+      size: `${img.width}x${img.height}`
+    });
+
     // For data URLs, send directly
     let imageData: string;
     if (img.src.startsWith('data:') || img.src.startsWith('blob:')) {
+      detectLogger.trace('Using direct data URL');
       imageData = img.src;
     } else {
       // For HTTP/HTTPS URLs, try canvas conversion

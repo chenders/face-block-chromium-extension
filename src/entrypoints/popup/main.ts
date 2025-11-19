@@ -1,4 +1,5 @@
 import { browser } from 'wxt/browser';
+import { generateAugmentedDescriptors, AugmentationOptions } from '../../utils/face-augmentation';
 
 // DOM elements
 let personNameInput: HTMLInputElement;
@@ -245,32 +246,56 @@ async function handleAddPerson() {
       referenceFaces.push(person);
     }
 
-    // Process each photo
+    // Process each photo with augmentation
     let successCount = 0;
     let failCount = 0;
+    let totalDescriptors = 0;
+
+    // Augmentation options for reference faces
+    const augmentOptions: AugmentationOptions = {
+      enableMirror: true,
+      enableBrightness: true,
+      enableContrast: true,
+      enableRotation: false, // Disabled to avoid detection issues with rotated faces
+      brightnessLevels: [-20, 20],
+      contrastLevels: [0.85, 1.15],
+      rotationAngles: []
+    };
 
     for (let i = 0; i < pendingFiles.length; i++) {
-      showStatus(`Processing photo ${i + 1} of ${pendingFiles.length}...`, 'info');
+      showStatus(`Processing photo ${i + 1} of ${pendingFiles.length} (with augmentation)...`, 'info');
 
       const file = pendingFiles[i];
       const imageDataUrl = await fileToDataURL(file);
 
-      // Extract face descriptor
-      const descriptor = await extractFaceDescriptor(imageDataUrl);
+      try {
+        // Generate augmented versions and extract descriptors
+        const augmentedDescriptors = await generateAugmentedDescriptors(
+          imageDataUrl,
+          extractFaceDescriptor,
+          augmentOptions
+        );
 
-      if (descriptor) {
-        person.descriptors.push(descriptor);
+        if (augmentedDescriptors.length > 0) {
+          // Add all valid descriptors
+          person.descriptors.push(...augmentedDescriptors);
+          totalDescriptors += augmentedDescriptors.length;
 
-        // Use first successful image as thumbnail
-        if (!person.thumbnail && imageDataUrl.startsWith('data:')) {
-          // Create a smaller thumbnail
-          person.thumbnail = await createThumbnail(imageDataUrl);
+          // Use first successful image as thumbnail
+          if (!person.thumbnail && imageDataUrl.startsWith('data:')) {
+            // Create a smaller thumbnail
+            person.thumbnail = await createThumbnail(imageDataUrl);
+          }
+
+          successCount++;
+          console.log(`Photo ${i + 1}: Generated ${augmentedDescriptors.length} descriptors`);
+        } else {
+          failCount++;
+          console.warn(`No face detected in photo ${i + 1}`);
         }
-
-        successCount++;
-      } else {
+      } catch (error) {
+        console.error(`Error processing photo ${i + 1}:`, error);
         failCount++;
-        console.warn(`No face detected in photo ${i + 1}`);
       }
     }
 
@@ -287,8 +312,8 @@ async function handleAddPerson() {
       data: referenceFaces
     });
 
-    // Show success message
-    let message = `Added ${personName} with ${successCount} photo${successCount > 1 ? 's' : ''}`;
+    // Show success message with descriptor count
+    let message = `Added ${personName} with ${successCount} photo${successCount > 1 ? 's' : ''} (${totalDescriptors} total descriptors)`;
     if (failCount > 0) {
       message += ` (${failCount} photo${failCount > 1 ? 's' : ''} had no detectable face)`;
     }
@@ -406,15 +431,18 @@ function renderPeopleList(people: any[]) {
 
   peopleListDiv.innerHTML = people.map((person, index) => {
     const name = escapeHtml(person.name || person.label);
-    const photoCount = person.descriptors?.length || 0;
+    const descriptorCount = person.descriptors?.length || 0;
     const thumbnail = person.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+
+    // Estimate original photo count (assuming ~5-6 descriptors per photo with augmentation)
+    const estimatedPhotos = Math.ceil(descriptorCount / 5);
 
     return `
       <div class="person-item">
         <img src="${thumbnail}" alt="${name}" class="person-thumbnail" />
         <div class="person-info">
           <div class="person-name">${name}</div>
-          <div class="person-photos">${photoCount} photo${photoCount !== 1 ? 's' : ''}</div>
+          <div class="person-photos" title="${descriptorCount} total descriptors">${descriptorCount} descriptor${descriptorCount !== 1 ? 's' : ''}</div>
         </div>
         <button class="delete-btn" data-person="${name}" title="Delete ${name}">×</button>
       </div>
