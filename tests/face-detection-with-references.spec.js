@@ -13,11 +13,14 @@ test.describe('Face Detection with Reference Data', () => {
   let userDataDir;
   let testPageUrl;
 
-  test.beforeAll(async () => {
-    const context = await setupExtensionContext();
-    browser = context.browser;
-    userDataDir = context.userDataDir;
-  });
+  test.beforeAll(
+    async () => {
+      const context = await setupExtensionContext();
+      browser = context.browser;
+      userDataDir = context.userDataDir;
+    },
+    process.env.CI ? 90000 : 60000
+  ); // 90 seconds timeout in CI, 60 seconds locally;
 
   test.afterAll(async () => {
     await cleanupExtensionContext({ browser, userDataDir });
@@ -62,7 +65,7 @@ test.describe('Face Detection with Reference Data', () => {
     const nonMatchingImages = await page.$$eval('#obama, #biden', imgs =>
       imgs.map(img => ({
         id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+        isBlocked: img.alt === 'Image blocked by Face Block',
         hasProcessed: img.hasAttribute('data-face-block-processed'),
       }))
     );
@@ -135,7 +138,7 @@ test.describe('Face Detection with Reference Data', () => {
     const nonMatchingImages = await page.$$eval('#obama, #biden', imgs =>
       imgs.map(img => ({
         id: img.id,
-        isBlocked: img.alt === 'Image blocked by Face Block Chromium Extension',
+        isBlocked: img.alt === 'Image blocked by Face Block',
       }))
     );
 

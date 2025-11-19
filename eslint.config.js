@@ -59,8 +59,12 @@ export default [
       'node_modules/',
       'extension/libs/',
       'extension/models/',
+      'src/public/libs/',
+      'src/public/models/',
       'playwright-report/',
       'test-results/',
+      'dist/',
+      '.wxt/',
     ],
   },
 ];

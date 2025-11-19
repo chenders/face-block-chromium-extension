@@ -17,6 +17,26 @@ export async function startTestServer() {
     server = http.createServer((req, res) => {
       // Add a small delay to avoid race condition with Playwright's event listeners
       setTimeout(() => {
+        // Serve face-api models from /models/
+        if (req.url.startsWith('/models/')) {
+          const modelPath = path.join(__dirname, '..', '..', 'src', 'public', req.url);
+
+          if (fs.existsSync(modelPath)) {
+            const ext = path.extname(modelPath).toLowerCase();
+            let contentType = 'application/octet-stream';
+            if (ext === '.json') {
+              contentType = 'application/json';
+            }
+
+            res.writeHead(200, {
+              'Content-Type': contentType,
+              'Access-Control-Allow-Origin': '*',
+            });
+            fs.createReadStream(modelPath).pipe(res);
+            return;
+          }
+        }
+
         // Serve test images from /images/, /trump_test_set/ (legacy), or /test-data/
         if (
           req.url.startsWith('/images/') ||

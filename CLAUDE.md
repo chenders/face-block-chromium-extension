@@ -1,1 +1,3 @@
 - Please keep emoji use to a minimum, both when interacting with me and when writing code / documentation.
+- Never push with `--no-verify`
+- Run `prettier` every time you save a file that it formats, or `black` if it's python

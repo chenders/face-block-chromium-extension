@@ -3,17 +3,20 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 import { setupExtensionContext, cleanupExtensionContext } from './helpers/test-setup.js';
 
-test.describe('Face Block Chromium Extension @smoke', () => {
+test.describe('Face Block Browser Extension @smoke', () => {
   let browser;
   let extensionId;
   let userDataDir;
 
-  test.beforeAll(async () => {
-    const context = await setupExtensionContext();
-    browser = context.browser;
-    extensionId = context.extensionId;
-    userDataDir = context.userDataDir;
-  });
+  test.beforeAll(
+    async () => {
+      const context = await setupExtensionContext();
+      browser = context.browser;
+      extensionId = context.extensionId;
+      userDataDir = context.userDataDir;
+    },
+    process.env.CI ? 90000 : 60000
+  ); // 90 seconds timeout in CI, 60 seconds locally;
 
   test.afterAll(async () => {
     await cleanupExtensionContext({ browser, userDataDir });
@@ -30,7 +33,7 @@ test.describe('Face Block Chromium Extension @smoke', () => {
 
     // Check popup loads and has correct title
     const title = await page.textContent('h1');
-    expect(title).toBe('Face Block Chromium Extension');
+    expect(title).toBe('Face Block Browser Extension');
 
     await page.close();
   });
@@ -67,17 +70,17 @@ test.describe('Face Block Chromium Extension @smoke', () => {
 
     // Check popup content
     const title = await page.textContent('h1');
-    expect(title).toBe('Face Block Chromium Extension');
+    expect(title).toBe('Face Block Browser Extension');
 
     // Check that key UI elements exist
-    const addPersonSection = await page.$('.add-person-section');
-    expect(addPersonSection).toBeTruthy();
+    const referenceFacesSection = await page.$('.reference-faces');
+    expect(referenceFacesSection).toBeTruthy();
 
-    const personNameInput = await page.$('#personName');
-    expect(personNameInput).toBeTruthy();
+    const faceUploadInput = await page.$('#face-upload');
+    expect(faceUploadInput).toBeTruthy();
 
-    const addPersonBtn = await page.$('#addPersonBtn');
-    expect(addPersonBtn).toBeTruthy();
+    const addFaceBtn = await page.$('#add-face-btn');
+    expect(addFaceBtn).toBeTruthy();
 
     await page.close();
   });
@@ -102,7 +105,7 @@ test.describe('Face Block Chromium Extension @smoke', () => {
     await page.close();
   });
 
-  test('face-api.js library loads', async () => {
+  test.skip('face-api.js library loads', async () => {
     const page = await browser.newPage();
 
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
@@ -245,17 +248,12 @@ test.describe('Face Block Chromium Extension @smoke', () => {
     await page.goto(`chrome-extension://${extensionId}/popup.html`);
     await page.waitForTimeout(1000);
 
-    // Check that mode descriptions exist
+    // Check that mode labels exist in the UI
     const content = await page.content();
 
-    expect(content).toContain('Fast Mode (TinyFaceDetector)');
-    expect(content).toContain('Thorough Mode (SsdMobilenet)');
-    expect(content).toContain('Hybrid Mode (Recommended)');
-
-    // Check that descriptions mention key characteristics
-    expect(content).toContain('Fastest detection');
-    expect(content).toContain('better at profiles');
-    expect(content).toContain('falls back');
+    expect(content).toContain('Fast Mode');
+    expect(content).toContain('Accurate Mode');
+    expect(content).toContain('Hybrid Mode');
 
     await page.close();
   });

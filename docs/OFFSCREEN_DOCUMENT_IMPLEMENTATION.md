@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the offscreen document architecture implemented to improve the Face Block Chromium Extension's performance by loading face-api.js models once on browser startup instead of on every page load.
+This document describes the offscreen document architecture implemented to improve the Face Block Browser Extension's performance by loading face-api.js models once on browser startup instead of on every page load.
 
 ## Problem Statement
 

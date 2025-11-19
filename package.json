@@ -1,17 +1,40 @@
 {
-  "name": "face-block-chromium-extension",
-  "version": "0.1.0",
+  "name": "face-block-browser-extension",
+  "version": "0.1.1",
   "type": "module",
-  "description": "Privacy-focused Chromium extension that blocks images of specified people",
+  "description": "Privacy-focused browser extension that blocks images of specified people",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "wxt",
+    "dev:firefox": "wxt --browser firefox",
+    "dev:safari": "wxt --browser safari",
+    "build": "wxt build && npm run copy-assets:chrome",
+    "build:firefox": "wxt build --browser firefox && npm run copy-assets:firefox",
+    "build:safari": "wxt build --browser safari && npm run copy-assets:safari",
+    "build:all": "npm run build && npm run build:firefox && npm run build:safari",
+    "copy-assets:chrome": "cp -r src/public/* .output/chrome-mv3/ 2>/dev/null || true",
+    "copy-assets:firefox": "cp -r src/public/* .output/firefox-mv2/ 2>/dev/null || true",
+    "copy-assets:safari": "cp -r src/public/* .output/safari-mv2/ 2>/dev/null || true",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip --browser firefox",
+    "zip:safari": "wxt zip --browser safari",
+    "convert:safari": "xcrun safari-web-extension-converter --bundle-identifier com.groundeffectsoftware.face-block --project-location ./safari-xcode --app-name 'Face Block' --force .output/safari-mv2",
+    "compile": "tsc --noEmit",
+    "test": "npm run build:all && playwright test",
+    "test:smoke": "npm run build:all && SMOKE_TESTS=1 playwright test",
+    "test:ui": "npm run build:all && playwright test --ui",
+    "test:debug": "npm run build:all && playwright test --debug",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.{js,ts,json,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts,json,css,html}\""
   },
   "keywords": [
     "chrome-extension",
     "face-recognition",
     "privacy"
   ],
-  "author": "Chris Henderson <chris@groundeffectsoftware.com>",
+  "author": "Chris Henderson <chris@waitingforthefuture.org>",
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.40.0",
@@ -19,6 +42,11 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "husky": "^9.1.7",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "vite": "^5.4.21",
+    "wxt": "^0.20.11"
+  },
+  "dependencies": {
+    "face-api.js": "^0.22.2"
   }
 }

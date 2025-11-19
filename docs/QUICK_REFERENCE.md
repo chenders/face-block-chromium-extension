@@ -65,7 +65,7 @@ extension/
 ### View Offscreen Document Console
 
 1. Go to `chrome://extensions`
-2. Find "Face Block Chromium Extension"
+2. Find "Face Block Browser Extension"
 3. Click "service worker"
 4. Look for "offscreen.html" in console sources
 
